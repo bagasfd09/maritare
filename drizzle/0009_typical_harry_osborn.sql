@@ -1,0 +1,1 @@
+ALTER TABLE "photos" ADD COLUMN "is_closing" boolean DEFAULT false NOT NULL;

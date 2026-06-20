@@ -1,0 +1,130 @@
+// Server-only data access for the wedding photo gallery.
+//
+// Reads the authenticated user's session, resolves the wedding they own (never
+// trusting a client-supplied id — ownership is derived from the session per
+// AGENTS.md hard rules), and lists its non-deleted photos with short-lived
+// presigned GET URLs so the browser can render images straight from R2.
+//
+// This module imports R2 helpers from `@/lib/r2` (server-only). It must only
+// ever be imported from Server Components / Server Actions.
+
+import { and, asc, eq, isNull } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { packages, photos, weddings } from "@/lib/db/schema";
+import { getViewUrl } from "@/lib/r2";
+import { resolveEditorUserId } from "@/server/queries/wedding";
+
+export type GalleryPhoto = {
+  id: string;
+  label: string | null;
+  objectKey: string;
+  /** Short-lived presigned GET URL (expires in 1h) so the browser fetches from R2 directly. */
+  viewUrl: string;
+  isCover: boolean;
+  isClosing: boolean;
+  sortOrder: number;
+  createdAt: Date;
+};
+
+export type Gallery = {
+  photos: GalleryPhoto[];
+  /** Number of non-deleted photos currently stored. */
+  used: number;
+  /** Package photo limit; `null` means unlimited. */
+  limit: number | null;
+  /** Package display name, or `null` when the wedding has no package. */
+  packageName: string | null;
+  /** Real per-label counts for the gallery filter chips (label → count). */
+  labelCounts: { label: string; count: number }[];
+};
+
+const EMPTY_GALLERY: Gallery = {
+  photos: [],
+  used: 0,
+  limit: null,
+  packageName: null,
+  labelCounts: [],
+};
+
+/** Aggregate photos by label for the gallery filter chips (null → "Belum berlabel"). */
+function countByLabel(rows: { label: string | null }[]): { label: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    const key = r.label?.trim() || "Belum berlabel";
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([label, count]) => ({ label, count }));
+}
+
+/**
+ * Get the current user's gallery: every non-deleted photo of the wedding they
+ * own (ordered by `sortOrder`), each with a fresh presigned GET URL, plus the
+ * package quota context (`used` / `limit` / `packageName`).
+ *
+ * The wedding is resolved from the session exactly like the upload sign route
+ * and the photo actions — the caller never supplies a wedding id. When there is
+ * no resolvable user (unauthenticated in production) or no wedding exists, an
+ * empty gallery is returned so callers can render a neutral empty state.
+ */
+export async function getMyGallery(): Promise<Gallery> {
+  const userId = await resolveEditorUserId();
+  if (!userId) {
+    return EMPTY_GALLERY;
+  }
+
+  // Resolve the owned wedding joined to its package (left join: packageId is
+  // nullable / set-null on package delete). Ownership lives in the WHERE clause.
+  const [owned] = await db
+    .select({
+      weddingId: weddings.id,
+      photoLimit: packages.photoLimit,
+      packageName: packages.name,
+    })
+    .from(weddings)
+    .leftJoin(packages, eq(weddings.packageId, packages.id))
+    .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
+    .orderBy(asc(weddings.createdAt))
+    .limit(1);
+
+  if (!owned) {
+    return EMPTY_GALLERY;
+  }
+
+  const rows = await db
+    .select({
+      id: photos.id,
+      label: photos.label,
+      objectKey: photos.objectKey,
+      isCover: photos.isCover,
+      isClosing: photos.isClosing,
+      sortOrder: photos.sortOrder,
+      createdAt: photos.createdAt,
+    })
+    .from(photos)
+    .where(and(eq(photos.weddingId, owned.weddingId), isNull(photos.deletedAt)))
+    .orderBy(asc(photos.sortOrder));
+
+  // Sign a presigned GET URL per photo (expires in 1h). Done in parallel so the
+  // gallery does not serialize one network round-trip per image.
+  const gallery = await Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      label: row.label,
+      objectKey: row.objectKey,
+      viewUrl: await getViewUrl(row.objectKey),
+      isCover: row.isCover,
+      isClosing: row.isClosing,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt,
+    })),
+  );
+
+  return {
+    photos: gallery,
+    used: gallery.length,
+    limit: owned.photoLimit,
+    packageName: owned.packageName ?? null,
+    labelCounts: countByLabel(rows),
+  };
+}

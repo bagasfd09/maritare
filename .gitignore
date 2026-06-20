@@ -30,6 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# logs — dev server + tunnels (cloudflared/ngrok). May contain tunnel URLs/tokens.
+*.log
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
@@ -40,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Source images for optimize:hero script (re-runnable, not needed in repo)
+public/landing/hero-couple-source.*

@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(pnpm add *)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(rm -rf \"src/components/dashboard\")",
+      "Bash(rm -rf \"src/app/\\(dashboard\\)/dashboard\")",
+      "Bash(cd *)",
+      "Bash(ngrok version *)"
     ]
   }
 }

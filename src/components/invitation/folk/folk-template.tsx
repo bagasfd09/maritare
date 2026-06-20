@@ -1,0 +1,92 @@
+// Folk Garden — renders the (data-driven) Scarlet sections. The cover has TWO
+// independent, separately-uploaded parts (folk-only "Sampul" editor section):
+//   - GATE: the ornamented framed cover (ScarletCover) using the cover photo
+//     (isCover) — the opening "Buka Undangan" screen.
+//   - HERO: an OPTIONAL dedicated asset (image OR video) shown FULL-BLEED at the
+//     very top after the gate opens. Stored on the hero section (imageUrl /
+//     videoUrl), so it's distinct from the gate's cover photo.
+//
+// NOTE: third-party design assets/CSS used at the owner's explicit request; swap
+// for own-licensed art before production.
+
+import type { InvitationTemplateProps } from "@/components/invitation/types";
+
+import { InvImage } from "../scarlet/inv-image";
+import { ScarletAudio } from "../scarlet/scarlet-audio";
+import { ScarletEmbed } from "../scarlet/scarlet-embed";
+import { ScarletAgenda } from "../scarlet/sections/scarlet-agenda";
+import { ScarletCouple } from "../scarlet/sections/scarlet-couple";
+import { ScarletFootnote } from "../scarlet/sections/scarlet-footnote";
+import { ScarletGallery } from "../scarlet/sections/scarlet-gallery";
+import { ScarletGift } from "../scarlet/sections/scarlet-gift";
+import { ScarletSaveDate } from "../scarlet/sections/scarlet-savedate";
+import { ScarletStory } from "../scarlet/scarlet-story";
+import { FolkCoverGate } from "./folk-cover-gate";
+import { FolkHeroVideo } from "./folk-hero-video";
+import { FolkQr } from "./folk-qr";
+import { FolkQuote } from "./folk-quote";
+import { FolkWishes } from "./folk-wishes";
+
+// First word of the editable "Nama lengkap" (pasangan.fullName), falling back to
+// the wedding's top-level name — matches ScarletCover's hero name rendering.
+function firstName(fullName: string | undefined, fallback: string): string {
+  const n = (fullName ?? "").trim() || fallback;
+  return n.split(/\s+/)[0] || fallback;
+}
+
+export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTemplateProps) {
+  // Couple names + date for the downloadable QR card (bride-first, like the cover).
+  const groomFirst = firstName(data.sections.pasangan.groom.fullName, data.groomName);
+  const brideFirst = firstName(data.sections.pasangan.bride.fullName, data.brideName);
+  const qrDate = data.sections.acara.events[0]?.date ?? data.eventDate;
+
+  // Dedicated full-bleed HERO asset (separate from the gate cover): video wins,
+  // else a hero image. Absent → no full-bleed hero (the gate cover stands alone).
+  const heroVideoUrl = data.sections.hero.videoUrl;
+  const heroImageUrl = data.sections.hero.imageUrl;
+
+  return (
+    <>
+      {/* Opening "Buka Undangan" gate (the framed cover photo). Rendered in EVERY
+          mode so the editor preview matches the live invitation — its `fixed`
+          overlay is contained by the editor's scaled preview frame (a transformed
+          ancestor), so it fills the phone rather than the whole page. */}
+      <FolkCoverGate data={data} mode={mode} guestName={guestName} checkin={checkin} />
+      <ScarletEmbed>
+      {/* The dedicated full-bleed hero asset (image or video), when uploaded. */}
+      {heroVideoUrl ? (
+        <FolkHeroVideo src={heroVideoUrl} poster={heroImageUrl} />
+      ) : heroImageUrl ? (
+        <InvImage
+          priority
+          src={heroImageUrl}
+          alt={`${data.groomName} & ${data.brideName}`}
+          className="block w-full object-cover"
+        />
+      ) : null}
+      {/* Folk shows each name once: big script above the photo. Hide the full
+          name that otherwise repeats just above the parents line. */}
+      <ScarletCouple data={data} mode={mode} hideFullName />
+      {/* "Cerita kami" (Our Story) — folk-only chapter; self-hides when empty. */}
+      <ScarletStory title={data.sections.cerita.title} body={data.sections.cerita.body} />
+      <ScarletGallery data={data} mode={mode} />
+      <ScarletSaveDate data={data} mode={mode} />
+      <ScarletAgenda data={data} mode={mode} />
+      <FolkQr
+        checkin={checkin}
+        brideName={brideFirst}
+        groomName={groomFirst}
+        eventDate={qrDate}
+      />
+      {/* Folk shows the bank's logo only (no bank-name text) when a logo exists. */}
+      <ScarletGift data={data} mode={mode} logoOnly />
+      {/* Pre-fill the wish form's name with the invitation's guest (?g= guest,
+          else ?to=); empty on generic links. The guest can still edit it. */}
+      <FolkWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
+      <FolkQuote quote={data.sections.pasangan.quote} />
+      <ScarletFootnote data={data} mode={mode} />
+      <ScarletAudio data={data} mode={mode} waitForOpen={mode !== "editorPreview"} />
+    </ScarletEmbed>
+    </>
+  );
+}

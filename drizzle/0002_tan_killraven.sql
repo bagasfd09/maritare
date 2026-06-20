@@ -1,0 +1,1 @@
+ALTER TABLE "templates" ADD COLUMN "manifest" jsonb DEFAULT '{"formGroups":[],"photoSlots":[]}'::jsonb NOT NULL;

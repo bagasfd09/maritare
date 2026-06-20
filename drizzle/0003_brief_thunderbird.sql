@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "notification_prefs" jsonb DEFAULT '{"rsvp":{"email":true,"wa":true},"wishes":{"email":true,"wa":false},"gift":{"email":true,"wa":true},"reminder":{"email":true,"wa":true},"tips":{"email":false,"wa":false}}'::jsonb NOT NULL;
