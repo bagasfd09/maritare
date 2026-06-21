@@ -1,0 +1,27 @@
+# Keep the build context small + never ship secrets/build artifacts into the image.
+.git
+.github
+node_modules
+.next
+out
+build
+coverage
+
+# secrets & local env (only build-time ARG NEXT_PUBLIC_APP_URL is passed in)
+.env
+.env.*
+!.env.example
+
+# logs & tunnels
+*.log
+
+# docs / local tooling
+DEPLOY.md
+README.md
+.claude
+.vscode
+.idea
+*.tsbuildinfo
+
+# OS
+.DS_Store

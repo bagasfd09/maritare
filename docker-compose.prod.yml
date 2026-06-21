@@ -1,0 +1,79 @@
+# Production stack for a single VPS: web (Next.js) + postgres + redis, with a
+# one-off `migrate` service. The web container binds to 127.0.0.1 only — front it
+# with a reverse proxy (Caddy/nginx) that terminates TLS. See DEPLOY.md.
+#
+# Image source:
+#   - Registry (recommended): GitHub Actions builds & pushes to GHCR; the VPS
+#     pulls it. Set WEB_IMAGE to the exact tag (deploy.sh / the Action do this).
+#   - Build on the VPS: run `docker compose -f docker-compose.prod.yml build`
+#     (uses the `build:` block below). Requires the repo checked out on the VPS.
+#
+# All app config comes from `.env` in this directory (see DEPLOY.md for the keys).
+
+name: maritare
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-maritare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-maritare}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maritare} -d ${POSTGRES_DB:-maritare}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No published ports — only reachable on the compose network.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # One-off DB migration. Not started by `up` (profile-gated); run explicitly via
+  # `docker compose -f docker-compose.prod.yml run --rm migrate` (deploy.sh does this).
+  migrate:
+    image: ${WEB_IMAGE:-ghcr.io/OWNER/maritare:latest}
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    command: ["node", "scripts/migrate.mjs"]
+    env_file: [.env]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["migrate"]
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/OWNER/maritare:latest}
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    restart: unless-stopped
+    env_file: [.env]
+    ports:
+      # localhost only — the reverse proxy (host) forwards 443 -> 127.0.0.1:3000.
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  redis_data:
