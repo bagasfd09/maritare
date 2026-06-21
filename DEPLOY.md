@@ -138,7 +138,26 @@ docker compose -f docker-compose.prod.yml ps
 curl -I http://127.0.0.1:3000        # expect HTTP 200/307
 ```
 
-### 2.5 Reverse proxy + TLS
+### 2.5 Create the first admin
+
+A fresh prod DB has **no users**. Do **not** run `pnpm db:seed` in prod — it injects
+demo weddings/customers/transactions and a publicly-known dev password. Instead
+bootstrap one admin from env vars (idempotent — re-running resets the password):
+
+```bash
+cd /opt/maritare
+C="docker compose -f docker-compose.prod.yml"
+ADMIN_EMAIL='you@yourdomain.com' ADMIN_PASSWORD='<strong-unique-password>' \
+  $C run --rm \
+    -e ADMIN_EMAIL -e ADMIN_PASSWORD \
+    --entrypoint node web scripts/bootstrap-admin.mjs
+```
+
+This upserts a single `super_admin` (scrypt-hashed password, matching the app's
+verifier). Log in at `/login` with that email + password. Optional `ADMIN_NAME`
+sets the display name. Run it after migrations (§2.4) so the `users` table exists.
+
+### 2.6 Reverse proxy + TLS
 
 **Caddy** (simplest — automatic HTTPS):
 
