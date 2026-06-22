@@ -6,10 +6,16 @@
 // text is set. All decorative ornaments + data-aos timings are kept verbatim.
 
 import type { InvitationView } from "@/server/queries/invitation";
+import { cn } from "@/lib/utils";
 
-type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
+type Props = {
+  data: InvitationView;
+  mode: "public" | "ownerPreview" | "editorPreview";
+  /** Extra layout classes for the root section (e.g. Folk adds top spacing). */
+  className?: string;
+};
 
-export function ScarletQuote({ data }: Props) {
+export function ScarletQuote({ data, className }: Props) {
   const quote = data.sections.pasangan.quote;
   const arabic = quote?.arabic?.trim();
   const text = quote?.text?.trim();
@@ -19,7 +25,7 @@ export function ScarletQuote({ data }: Props) {
   }
 
   return (
-    <div className="quote-sec-wrap">
+    <div className={cn("quote-sec-wrap", className)}>
       <div className="orn-clip-mask bot">
         <div className="image-wrap" data-aos="fade-up" data-aos-duration="1200" data-aos-delay="500">
           <img loading="lazy" decoding="async" src="/invitation/scarlet/Orn-clip.webp" alt="Ornament" />

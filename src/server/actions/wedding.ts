@@ -141,6 +141,15 @@ export async function saveWeddingSection(
       }
     }
 
+    // 4d-ii. momen.imageKey (the folk Momen illustration) is a client-supplied
+    //     R2 key — anchor it to this wedding's own "momen" prefix, same as hero.
+    if (sectionData !== undefined && sectionId === "momen") {
+      const { imageKey } = sectionData as { imageKey?: string };
+      if (imageKey && !imageKey.startsWith(`weddings/${wedding.id}/momen/`)) {
+        return { ok: false, error: "Gambar momen tidak valid." };
+      }
+    }
+
     // 4e. galeri.selectedPhotoIds are client-supplied photo references — keep
     //     only ids that point at THIS wedding's own (non-deleted) photos,
     //     silently dropping any stale/foreign id rather than rejecting the save.
@@ -231,6 +240,20 @@ export async function saveWeddingSection(
           await deleteObject(oldKey);
         } catch (error) {
           console.error("saveWeddingSection: stale share image not freed (orphaned)", oldKey, error);
+        }
+      }
+    }
+
+    // Momen: free the previous illustration when it's replaced or cleared, so a
+    // swapped-out image doesn't orphan in R2 (best-effort, like bagikan/hero).
+    if (sectionId === "momen" && sectionData !== undefined) {
+      const oldKey = (existing as { data?: { imageKey?: string } }).data?.imageKey;
+      const newKey = (sectionData as { imageKey?: string }).imageKey;
+      if (oldKey && oldKey !== newKey) {
+        try {
+          await deleteObject(oldKey);
+        } catch (error) {
+          console.error("saveWeddingSection: stale momen image not freed (orphaned)", oldKey, error);
         }
       }
     }

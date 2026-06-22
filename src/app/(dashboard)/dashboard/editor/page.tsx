@@ -46,6 +46,10 @@ export default async function Page() {
     const bagikanData = parseSectionData("bagikan", raw.bagikan?.data);
     if (bagikanData.imageKey) bagikanData.imageUrl = await getViewUrl(bagikanData.imageKey);
 
+    // Presign the folk "Momen" illustration so the editor slot + preview show it.
+    const momenData = parseSectionData("momen", raw.momen?.data);
+    if (momenData.imageKey) momenData.imageUrl = await getViewUrl(momenData.imageKey);
+
     editorData = {
       meta: {
         slug: wedding.slug,
@@ -61,6 +65,10 @@ export default async function Page() {
         pasangan: {
           done: Boolean(raw.pasangan?.done),
           data: parseSectionData("pasangan", raw.pasangan?.data),
+        },
+        momen: {
+          done: Boolean(raw.momen?.done),
+          data: momenData,
         },
         acara: {
           done: Boolean(raw.acara?.done),

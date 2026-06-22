@@ -206,6 +206,25 @@ export const bagikanDataSchema = z.object({
 });
 
 // ─────────────────────────────────────────────────────────────────
+// Momen (folk) — a free "moment" section after the couple: a custom
+// title + an uploaded illustration (e.g. a map of the two hometowns,
+// like the Screenshot_71 reference). Both optional — the section
+// self-hides when title AND image are empty.
+// ─────────────────────────────────────────────────────────────────
+
+export const momenDataSchema = z.object({
+  // Free-text heading shown above the image (e.g. "Two people, raised in
+  // different places, brought together by fate."). Optional.
+  title: z.string().trim().max(240).optional(),
+  // Uploaded illustration — a client-supplied R2 object key under THIS
+  // wedding's "momen" prefix (verified server-side, like hero.imageKey).
+  imageKey: z.string().max(300).optional(),
+  // Resolved server-side (presigned GET / public CDN) on render — never set by
+  // the editor; getInvitationBySlug overwrites it on every render.
+  imageUrl: z.string().optional(),
+});
+
+// ─────────────────────────────────────────────────────────────────
 // Galeri — which gallery photos appear in the invitation grid
 // ─────────────────────────────────────────────────────────────────
 
@@ -230,6 +249,7 @@ const passthroughSchema = z.looseObject({});
 
 export const SECTION_DATA_SCHEMAS = {
   pasangan: pasanganDataSchema,
+  momen: momenDataSchema,
   acara: acaraDataSchema,
   cerita: passthroughSchema,
   galeri: galeriDataSchema,
@@ -248,6 +268,7 @@ export type SectionId = keyof typeof SECTION_DATA_SCHEMAS;
 export const SECTION_IDS = Object.keys(SECTION_DATA_SCHEMAS) as [SectionId, ...SectionId[]];
 
 export type PasanganData = z.infer<typeof pasanganDataSchema>;
+export type MomenData = z.infer<typeof momenDataSchema>;
 export type AcaraEvent = z.infer<typeof acaraEventSchema>;
 export type AcaraData = z.infer<typeof acaraDataSchema>;
 export type AmplopData = z.infer<typeof amplopDataSchema>;
@@ -259,6 +280,7 @@ export type GaleriData = z.infer<typeof galeriDataSchema>;
 
 export const SECTION_DATA_DEFAULTS: {
   pasangan: PasanganData;
+  momen: MomenData;
   acara: AcaraData;
   galeri: GaleriData;
   amplop: AmplopData;
@@ -268,6 +290,7 @@ export const SECTION_DATA_DEFAULTS: {
   bagikan: BagikanData;
 } = {
   pasangan: pasanganDataSchema.parse({}),
+  momen: momenDataSchema.parse({}),
   acara: acaraDataSchema.parse({}),
   galeri: galeriDataSchema.parse({}),
   amplop: amplopDataSchema.parse({}),

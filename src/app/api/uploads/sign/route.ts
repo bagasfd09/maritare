@@ -54,9 +54,11 @@ const signRequestSchema = z.object({
   contentType: z.string().min(1).max(100),
   size: z.number().int().positive(),
   // "photo" (gallery, quota-checked); "audio" (background music), "video",
-  // "hero-image" (folk hero cover), and "share-image" (link-preview/OG image)
-  // are single section assets — no photo quota.
-  kind: z.enum(["photo", "audio", "video", "hero-image", "share-image"]).default("photo"),
+  // "hero-image" (folk hero cover), "share-image" (link-preview/OG image), and
+  // "momen-image" (folk Momen illustration) are single section assets — no quota.
+  kind: z
+    .enum(["photo", "audio", "video", "hero-image", "share-image", "momen-image"])
+    .default("photo"),
 });
 
 type SignResponse =
@@ -168,7 +170,9 @@ export async function POST(request: NextRequest): Promise<Response> {
             ? "hero"
             : kind === "share-image"
               ? "share"
-              : "photos";
+              : kind === "momen-image"
+                ? "momen"
+                : "photos";
     const objectKey = `weddings/${wedding.weddingId}/${folder}/${crypto.randomUUID()}${ext}`;
 
     // 6. Sign a short-lived PUT URL (Content-Type + Content-Length signed).

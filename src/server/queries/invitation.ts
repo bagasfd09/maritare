@@ -20,6 +20,7 @@ import {
   type AmplopData,
   type GaleriData,
   type HeroData,
+  type MomenData,
   type MusikData,
   type PasanganData,
   type RsvpData,
@@ -48,6 +49,7 @@ export type InvitationView = {
   templateSlug: string | null;
   sections: {
     pasangan: PasanganData;
+    momen: MomenData;
     acara: AcaraData;
     cerita: { title?: string; body?: string };
     galeri: GaleriData;
@@ -136,6 +138,16 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   hero.imageUrl = hero.imageKey ? await getViewUrl(hero.imageKey) : undefined;
   hero.videoUrl = hero.videoKey ? await getViewUrl(hero.videoKey) : undefined;
 
+  // Folk "Momen" illustration — a guest-facing content image. Live invitations
+  // use the cacheable public CDN URL (like gallery photos); drafts/owner-preview
+  // fall back to a short-lived presigned URL. Save-time prefix check guarantees
+  // the key is wedding-scoped, so it's safe to hand to publicImageUrl/getViewUrl.
+  const momen = parseSectionData("momen", raw.momen?.data);
+  momen.imageUrl = momen.imageKey
+    ? (kind === "public" ? publicImageUrl(momen.imageKey, { width: 1080 }) : null) ??
+      (await getViewUrl(momen.imageKey))
+    : undefined;
+
   const [photoRows, wishRows] = await Promise.all([
     db
       .select({
@@ -221,6 +233,7 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
       templateSlug: wedding.templateSlug,
       sections: {
         pasangan,
+        momen,
         acara: parseSectionData("acara", raw.acara?.data),
         cerita: { title: raw.cerita?.title, body: raw.cerita?.body },
         galeri: parseSectionData("galeri", raw.galeri?.data),

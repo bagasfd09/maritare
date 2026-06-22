@@ -48,6 +48,8 @@ export function demoInvitation(templateSlug: string): InvitationView {
         },
         showHeroText: true,
       },
+      // Optional folk "Momen" section — empty in the catalog preview (self-hides).
+      momen: {},
       acara: {
         events: [
           {

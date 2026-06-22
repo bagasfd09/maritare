@@ -12,6 +12,7 @@ import { EditorCanvas, type EditorSaveStatus } from "@/components/molecules/edit
 import { EditorPhonePreview } from "@/components/molecules/editor-phone-preview";
 import { PublishControl } from "@/components/molecules/publish-control";
 import { PasanganForm } from "@/components/molecules/editor-forms/pasangan-form";
+import { MomenForm } from "@/components/molecules/editor-forms/momen-form";
 import { HeroForm } from "@/components/molecules/editor-forms/hero-form";
 import { AcaraForm } from "@/components/molecules/editor-forms/acara-form";
 import { CeritaForm } from "@/components/molecules/editor-forms/cerita-form";
@@ -41,6 +42,7 @@ function pad2(n: number): string {
 const CHAPTERS: Record<SectionId, { lead: string; accent: string }> = {
   hero: { lead: "Sampul ", accent: "undangan." },
   pasangan: { lead: "Pasangan ", accent: "kamu." },
+  momen: { lead: "Momen ", accent: "spesial." },
   acara: { lead: "Hari ", accent: "bahagianya." },
   cerita: { lead: "Cerita ", accent: "kami." },
   galeri: { lead: "Galeri ", accent: "momen." },
@@ -66,6 +68,7 @@ const FALLBACK_META: EditorMeta = {
 function emptySections(): EditorSections {
   return {
     pasangan: { done: false, data: SECTION_DATA_DEFAULTS.pasangan },
+    momen: { done: false, data: SECTION_DATA_DEFAULTS.momen },
     acara: { done: false, data: SECTION_DATA_DEFAULTS.acara },
     cerita: { done: false, title: "", body: "" },
     galeri: { done: false, data: SECTION_DATA_DEFAULTS.galeri },
@@ -147,6 +150,7 @@ export function Editor({ data, chrome }: EditorProps) {
 
   const done: Record<string, boolean> = {
     pasangan: sections.pasangan.done,
+    momen: sections.momen.done,
     acara: sections.acara.done,
     cerita: sections.cerita.done,
     galeri: sections.galeri.done,
@@ -186,6 +190,7 @@ export function Editor({ data, chrome }: EditorProps) {
       templateSlug: meta.templateSlug,
       sections: {
         pasangan: sections.pasangan.data,
+        momen: sections.momen.data,
         acara: sections.acara.data,
         cerita: { title: sections.cerita.title, body: sections.cerita.body },
         galeri: sections.galeri.data,
@@ -261,6 +266,13 @@ export function Editor({ data, chrome }: EditorProps) {
                 value={sections.pasangan}
                 photos={gallery.photos}
                 onChange={(v) => setSections((s) => ({ ...s, pasangan: v }))}
+                onStatusChange={setStatus}
+              />
+            )}
+            {activeSection === "momen" && (
+              <MomenForm
+                value={sections.momen}
+                onChange={(v) => setSections((s) => ({ ...s, momen: v }))}
                 onStatusChange={setStatus}
               />
             )}

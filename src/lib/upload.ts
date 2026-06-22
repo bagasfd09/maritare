@@ -7,7 +7,13 @@
 // This module uses browser APIs (XMLHttpRequest) — import it ONLY from client
 // components. It never touches server-only code, so it's safe to live under lib/.
 
-export type UploadKind = "photo" | "audio" | "video" | "hero-image" | "share-image";
+export type UploadKind =
+  | "photo"
+  | "audio"
+  | "video"
+  | "hero-image"
+  | "share-image"
+  | "momen-image";
 
 type SignResponse =
   | { ok: true; uploadUrl: string; objectKey: string }

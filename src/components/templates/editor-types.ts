@@ -10,6 +10,7 @@ import type {
   BagikanData,
   GaleriData,
   HeroData,
+  MomenData,
   MusikData,
   PasanganData,
   RsvpData,
@@ -53,6 +54,8 @@ export type EditorGallery = {
 // sections carry their parsed `data`; every section tracks a `done` flag.
 export type EditorSections = {
   pasangan: { done: boolean; data: PasanganData };
+  // momen (folk only): a custom-title + uploaded-illustration section after the couple.
+  momen: { done: boolean; data: MomenData };
   acara: { done: boolean; data: AcaraData };
   cerita: { done: boolean; title: string; body: string };
   // galeri.data.selectedPhotoIds: which gallery photos appear in the invitation.
