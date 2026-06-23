@@ -20,9 +20,12 @@ type Props = {
   /** Folk shows the bank's own logo only (hides the bank-name text) when a logo
    *  exists for that bank; unknown banks still fall back to the name as text. */
   logoOnly?: boolean;
+  /** Folk: render the account number un-bold and drop the (icon-less) copy
+   *  button circle. Scarlet keeps the bold number + copy button. */
+  plainNumber?: boolean;
 };
 
-export function ScarletGift({ data, logoOnly }: Props) {
+export function ScarletGift({ data, logoOnly, plainNumber }: Props) {
   const { accounts, ewallets, giftAddress } = data.sections.amplop;
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -263,6 +266,7 @@ export function ScarletGift({ data, logoOnly }: Props) {
                               data-aos="zoom-in"
                               data-aos-duration="1000"
                               data-aos-delay="800"
+                              style={plainNumber ? { fontWeight: 400 } : undefined}
                             >
                               Acc. number : {card.number}
                             </p>
@@ -273,7 +277,22 @@ export function ScarletGift({ data, logoOnly }: Props) {
                               onClick={() => handleCopy(card.key, card.number)}
                               aria-label={copied ? "Tersalin" : "Salin"}
                             >
-                              <i className={copied ? "ph ph-check" : "ph ph-copy-simple"} />
+                              {plainNumber ? (
+                                // Folk: real inline SVG (the Phosphor icon font isn't loaded,
+                                // which is what made the button look like an empty circle).
+                                copied ? (
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                ) : (
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                  </svg>
+                                )
+                              ) : (
+                                <i className={copied ? "ph ph-check" : "ph ph-copy-simple"} />
+                              )}
                             </button>
                           </div>
                         </div>

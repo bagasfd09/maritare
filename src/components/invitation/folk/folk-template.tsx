@@ -90,7 +90,7 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
         eventDate={qrDate}
       />
       {/* Folk shows the bank's logo only (no bank-name text) when a logo exists. */}
-      <ScarletGift data={data} mode={mode} logoOnly />
+      <ScarletGift data={data} mode={mode} logoOnly plainNumber />
       {/* Pre-fill the wish form's name with the invitation's guest (?g= guest,
           else ?to=); empty on generic links. The guest can still edit it. */}
       <FolkWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />

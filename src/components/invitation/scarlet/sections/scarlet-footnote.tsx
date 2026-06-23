@@ -11,6 +11,7 @@
 import type { InvitationView } from "@/server/queries/invitation";
 
 import { InvImage } from "../inv-image";
+import { FootnoteVideo } from "./footnote-video";
 
 type Props = {
   data: InvitationView;
@@ -58,14 +59,7 @@ export function ScarletFootnote({ data, hideOrnaments }: Props) {
                       }}
                     >
                       {closingVideoUrl ? (
-                        <video
-                          src={closingVideoUrl}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          style={{ width: "100%", display: "block", objectFit: "cover" }}
-                        />
+                        <FootnoteVideo src={closingVideoUrl} />
                       ) : closingPhoto ? (
                         <InvImage src={closingPhoto.url} alt={coverAlt} />
                       ) : (
