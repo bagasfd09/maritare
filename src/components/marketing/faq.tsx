@@ -22,7 +22,7 @@ export function Faq() {
       <div className="faq-list">
         {faqs.map((item, i) => (
           <div className={`faq-item${open === i ? " open" : ""}`} key={item.q}>
-            <button className="faq-q" onClick={() => setOpen(open === i ? -1 : i)}>
+            <button type="button" className="faq-q" onClick={() => setOpen(open === i ? -1 : i)}>
               <span>{item.q}</span>
               <span className="chev">
                 <ChevronDown size={14} strokeWidth={2} />

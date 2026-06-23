@@ -64,11 +64,6 @@ export function Footer() {
 
       <div className="foot-bot">
         <div>Made with care in Jakarta · © 2026 Maritare</div>
-        <div className="partners-mini">
-          <span>Bridestory</span>
-          <span>Femina</span>
-          <span>Parents Guide</span>
-        </div>
       </div>
     </footer>
   );

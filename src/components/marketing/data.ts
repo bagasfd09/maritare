@@ -155,20 +155,12 @@ export const faqs: FaqItem[] = [
     a: "Tergantung paket: Silver 90 hari, Gold 180 hari, Platinum 1 tahun penuh dari tanggal publish. Bisa diperpanjang kapan saja dengan top-up paket.",
   },
   {
-    q: "Bisa custom desain di luar template yang tersedia?",
-    a: "Bisa. Paket Platinum sudah termasuk konsultasi desain 1-on-1. Untuk Silver & Gold, kustomisasi warna, foto, dan teks tersedia gratis di dashboard.",
-  },
-  {
     q: "Bagaimana cara kirim undangan ke tamu?",
     a: "Setelah publish, kamu dapat satu link unik (maritare.id/nama-kalian). Bagi lewat WhatsApp, atau export gambar undangan untuk broadcast ke grup.",
   },
   {
     q: "Apakah ada batas jumlah tamu yang RSVP?",
-    a: "Silver hingga 100 tamu, Gold hingga 300 tamu, Platinum unlimited. Yang dihitung adalah jumlah konfirmasi RSVP unik, bukan visitor undangan.",
-  },
-  {
-    q: "Bisa refund kalau berubah pikiran?",
-    a: "Bisa refund 100% dalam 7 hari pertama setelah pembayaran, selama undangan belum di-publish. Setelah publish, refund tidak tersedia.",
+    a: "Silver hingga 100 tamu, sedangkan Gold & Platinum unlimited. Yang dihitung adalah jumlah konfirmasi RSVP unik, bukan visitor undangan.",
   },
   {
     q: "Apakah data tamu kami aman?",

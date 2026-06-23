@@ -1,89 +1,66 @@
-"use client";
+/* eslint-disable @next/next/no-img-element -- the phone mockup screen is a
+   decorative fixed-size image; a raw <img> keeps this a 1:1 port of the design */
 
-/* eslint-disable @next/next/no-img-element -- decorative floating photos are
-   animated imperatively (.shown / .bob) and don't need next/image */
-
-import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { FlowerMark } from "./flower-mark";
-import { ArrowUpRight } from "./icons";
-import { floatPhotos } from "./data";
 
-function Orn({ pos }: { pos: "tl" | "br" }) {
-  return (
-    <span className={`final-orn ${pos}`} aria-hidden>
-      <svg viewBox="-50 -50 100 100">
-        {[0, 72, 144, 216, 288].map((deg) => (
-          <g key={deg} transform={`rotate(${deg})`}>
-            <path className="or-petal" d="M 0 -42 C 18 -42 22 -16 0 -2 C -22 -16 -18 -42 0 -42 Z" />
-          </g>
-        ))}
-        <circle className="or-core" cx="0" cy="0" r="6" />
-      </svg>
-    </span>
-  );
-}
+// Exact 21×21 QR cell pattern from the design ("1" = filled cell). Rendered into
+// the .fi-qr grid so the scanner mockup matches the source pixel-for-pixel.
+const QR_BITS =
+  "111111100111001111111100000101110001000001101110100000101011101101110101000001011101101110100010101011101100000101100101000001111111101010101111111000000000011100000000000010100110011000011001000000010100001111111010110000001110101111011001100010001101000001101010110110110000000001010101101111111111100000001111111100000100011111000110101110100110001010110101110100011001000110101110101000001111101100000100010101101001111111100011001110100";
 
 export function FinalCta() {
-  const sectionRef = useRef<HTMLElement>(null);
-
-  // Ports finalCTA(): once the section is in view, fade the photos in largest
-  // first (120ms stagger), then start each bobbing 900ms later.
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const photos = Array.from(section.querySelectorAll<HTMLElement>(".float-photo"));
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (!e.isIntersecting) return;
-          const sorted = [...photos].sort(
-            (a, b) => b.offsetWidth * b.offsetHeight - a.offsetWidth * a.offsetHeight,
-          );
-          sorted.forEach((p, i) => {
-            setTimeout(() => {
-              p.classList.add("shown");
-              setTimeout(() => p.classList.add("bob"), 900);
-            }, i * 120);
-          });
-          io.unobserve(section);
-        });
-      },
-      { threshold: 0.3 },
-    );
-    io.observe(section);
-    return () => io.disconnect();
-  }, []);
-
   return (
-    <section className="final" id="finalCta" ref={sectionRef}>
-      <Orn pos="tl" />
-      <Orn pos="br" />
+    <section className="final" id="finalCta">
+      <span className="final-glow" />
+      <FlowerMark className="final-mark one" inner={false} stamen="none" />
+      <FlowerMark className="final-mark two" inner={false} stamen="none" />
 
-      {floatPhotos.map((p, i) => (
-        <span
-          key={i}
-          className={`float-photo fp${i + 1}`}
-          style={{ "--dur": `${p.dur}s`, "--delay": `${p.delay}s` } as React.CSSProperties}
-        >
-          <img src={p.src} alt="" />
-        </span>
-      ))}
-
-      <div className="final-card reveal">
-        <span className="corner tl" aria-hidden />
-        <span className="corner tr" aria-hidden />
-        <span className="corner bl" aria-hidden />
-        <span className="corner br" aria-hidden />
-
-        <div className="final-stamp" aria-hidden>
-          <span className="s-top">Maritare</span>
-          <FlowerMark className="s-flower" inner={false} coreR={7} stamen="center" />
-          <span className="s-mid">Est.</span>
-          <span className="s-bot">MMXXIV</span>
+      {/* decorative iPad — QR scanner */}
+      <div className="final-ipad left">
+        <div className="fi-screen">
+          <div className="fi-top">
+            <span className="fi-brand">
+              <FlowerMark className="fm" inner={false} stamen="none" />
+              Buku Tamu Digital
+            </span>
+            <span className="fi-live">
+              <span className="d" />
+              Live
+            </span>
+          </div>
+          <div className="fi-body">
+            <div className="fi-frame">
+              <span className="fi-corner tl" />
+              <span className="fi-corner tr" />
+              <span className="fi-corner bl" />
+              <span className="fi-corner br" />
+              <div className="fi-qr">
+                {QR_BITS.split("").map((b, i) => (
+                  <i key={i} className={b === "1" ? "on" : undefined} />
+                ))}
+              </div>
+              <div className="fi-laser" />
+            </div>
+            <div className="fi-cap">
+              Pindai <em>QR undangan</em>
+            </div>
+            <div className="fi-sub">Arahkan QR di undangan ke kamera — beres.</div>
+          </div>
         </div>
+      </div>
 
-        <div className="final-eyebrow">Sebuah Undangan</div>
+      {/* decorative phone — contoh undangan */}
+      <div className="final-phone right">
+        <span className="island" />
+        <img src="/invitation/folk/cover.webp" alt="Contoh undangan Maritare" />
+      </div>
+
+      <div className="final-inner reveal">
+        <div className="final-eyebrow">
+          <span className="dot" />
+          Mulai Sekarang
+        </div>
         <h2>
           Mulai tulis<br />
           <em>hari bahagiamu.</em>
@@ -92,26 +69,15 @@ export function FinalCta() {
           Rancang undangan pertama kalian dalam lima menit. Bayar hanya saat siap publish — tidak
           sebelumnya.
         </p>
-
-        <div className="final-divider">
-          <span className="d-rule" />
-          <FlowerMark coreR={7} stamen="center" />
-          <span className="d-rule" />
-        </div>
-
-        <div className="final-cta-row">
-          <Link href="/login?mode=signup" className="final-cta-primary">
+        <div className="final-actions">
+          <Link href="/login?mode=signup" className="final-btn">
             Rancang Undanganmu
-            <span className="arrow-circle">
-              <ArrowUpRight size={14} strokeWidth={2} />
-            </span>
+            <FlowerMark className="fm" inner stamen="center" />
           </Link>
-          <a href="#harga" className="final-cta-link">
-            atau lihat harga lengkap
+          <a href="#harga" className="final-link">
+            Lihat harga lengkap
           </a>
         </div>
-
-        <div className="final-signoff">Dengan rasa, dari Maritare</div>
       </div>
     </section>
   );

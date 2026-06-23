@@ -17,12 +17,12 @@ import { ScarletEmbed } from "../scarlet/scarlet-embed";
 import { ScarletAgenda } from "../scarlet/sections/scarlet-agenda";
 import { ScarletCouple } from "../scarlet/sections/scarlet-couple";
 import { ScarletFootnote } from "../scarlet/sections/scarlet-footnote";
-import { ScarletGallery } from "../scarlet/sections/scarlet-gallery";
 import { ScarletGift } from "../scarlet/sections/scarlet-gift";
 import { ScarletQuote } from "../scarlet/sections/scarlet-quote";
 import { ScarletSaveDate } from "../scarlet/sections/scarlet-savedate";
 import { ScarletStory } from "../scarlet/scarlet-story";
 import { FolkCoverGate } from "./folk-cover-gate";
+import { FolkGallery } from "./folk-gallery";
 import { FolkHeroVideo } from "./folk-hero-video";
 import { FolkMomen } from "./folk-momen";
 import { FolkQr } from "./folk-qr";
@@ -79,7 +79,7 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       <FolkMomen title={data.sections.momen.title} imageUrl={data.sections.momen.imageUrl} />
       {/* "Cerita kami" (Our Story) — folk-only chapter; self-hides when empty. */}
       <ScarletStory title={data.sections.cerita.title} body={data.sections.cerita.body} />
-      <ScarletGallery data={data} mode={mode} />
+      <FolkGallery data={data} mode={mode} />
       <ScarletSaveDate data={data} mode={mode} />
       <ScarletAgenda data={data} mode={mode} />
       <FolkQr

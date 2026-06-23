@@ -51,7 +51,7 @@ type Stat = { num: string; lbl: string };
 type BrandPanelProps = {
   eyebrow: { mid: string; right: string };
   tag: React.ReactNode;
-  stats: Stat[];
+  stats?: Stat[];
 };
 
 // The left brand/animation panel, shared by the sign-in and forgot-password
@@ -144,28 +144,20 @@ export function BrandPanel({ eyebrow, tag, stats }: BrandPanelProps) {
         </p>
       </div>
 
-      <div className="bloom-stat">
-        {stats.map((s, i) => (
-          <Fragment key={s.lbl}>
-            {i > 0 && <span className="sep" />}
-            <div className="cell">
-              <div className="num">{s.num}</div>
-              <div className="lbl">{s.lbl}</div>
-            </div>
-          </Fragment>
-        ))}
-      </div>
+      {stats && stats.length > 0 && (
+        <div className="bloom-stat">
+          {stats.map((s, i) => (
+            <Fragment key={s.lbl}>
+              {i > 0 && <span className="sep" />}
+              <div className="cell">
+                <div className="num">{s.num}</div>
+                <div className="lbl">{s.lbl}</div>
+              </div>
+            </Fragment>
+          ))}
+        </div>
+      )}
 
-      <div className="brand-foot">
-        <div className="l">
-          <span className="crosshair" />
-          <span>Sejak 2024</span>
-        </div>
-        <div className="r">
-          <span>Jakarta · Bandung · Bali</span>
-          <span className="crosshair" />
-        </div>
-      </div>
     </aside>
   );
 }

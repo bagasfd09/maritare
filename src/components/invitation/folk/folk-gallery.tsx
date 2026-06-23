@@ -1,73 +1,110 @@
-// Photo gallery — a scrapbook-style folk grid (rounded corners, slight per-tile
-// rotation), zoom-in reveals, with watercolor florals tucked at the section
-// corners. Skipped entirely when there are no photos.
+"use client";
 
-import type { InvitationPhoto } from "@/server/queries/invitation";
+// Folk gallery — a featured photo above a swipeable thumbnail strip (CSS
+// scroll-snap, no carousel library; tapping a thumbnail swaps the featured
+// photo via a single useState). Crowned with gold sumping tassels and anchored
+// by burgundy florals so it reads as one family with the quote/couple sections.
+//
+// Curation rule mirrors ScarletGallery: only owner-selected gallery photos
+// appear (never the cover/closing photos). Hidden entirely when none are picked.
+
+import { useState } from "react";
+
+import type { InvitationView } from "@/server/queries/invitation";
 
 import { Reveal } from "../flora/reveal";
-import { FolkFloral, FolkSectionHeading } from "./folk-ornaments";
+import { InvImage } from "../scarlet/inv-image";
+import { FLORAL, ScarletImg, TASSEL_GOLD } from "../scarlet/scarlet-ornaments";
 
-type FolkGalleryProps = {
-  photos: InvitationPhoto[];
-  coupleLabel: string;
-};
+type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
-// Deterministic scrapbook tilts (no Math.random → hydration-safe).
-const TILTS = ["rotate-[-2.5deg]", "rotate-[1.8deg]", "rotate-[2.2deg]", "rotate-[-1.6deg]"];
+export function FolkGallery({ data }: Props) {
+  const selected = new Set(data.sections.galeri.selectedPhotoIds);
+  const photos = data.photos.filter((p) => !p.isCover && !p.isClosing && selected.has(p.id));
+  const [active, setActive] = useState(0);
 
-export function FolkGallery({ photos, coupleLabel }: FolkGalleryProps) {
   if (photos.length === 0) {
     return null;
   }
 
+  // Clamp against a shrinking set (the editor live-edits the selection).
+  const current = photos[Math.min(active, photos.length - 1)] ?? photos[0];
+  const coupleLabel = `${data.groomName} & ${data.brideName}`;
+
   return (
-    <section className="relative overflow-hidden px-5 pb-12 text-center">
-      {/* watercolor accents tucked at the section corners */}
-      <FolkFloral
-        name="flowers-on-rock"
-        className="pointer-events-none absolute -right-8 top-2 w-[110px] select-none opacity-80"
+    <section className="relative overflow-hidden px-7 pb-16 pt-24 text-center">
+      {/* Gold sumping tassels draping from the top corners. */}
+      <ScarletImg name={TASSEL_GOLD} mirrored className="absolute -top-2 left-0 z-10 w-20" />
+      <ScarletImg name={TASSEL_GOLD} className="absolute -top-2 right-0 z-10 w-20" />
+      {/* Burgundy florals anchoring the bottom corners (gentle ambient sway). */}
+      <ScarletImg
+        name={FLORAL.burgundyCluster}
+        className="absolute -bottom-3 -left-10 z-10 w-28 -rotate-6"
+        sway
+        swayOrigin="origin-bottom-left"
       />
-      <FolkFloral
-        name="white-umbel-cluster"
-        className="pointer-events-none absolute -left-10 bottom-0 w-[120px] select-none opacity-75"
+      <ScarletImg
+        name={FLORAL.burgundyCluster}
+        mirrored
+        className="absolute -bottom-3 -right-10 z-10 w-28 rotate-6"
+        sway
+        swayOrigin="origin-bottom-right"
       />
 
       <Reveal>
-        <FolkSectionHeading eyebrow="Galeri" tone="onOlive">
-          Potret <span className="text-[#E8A0B8]">kebersamaan</span>
-        </FolkSectionHeading>
+        <h2 className="[font-family:var(--font-pinyon)] text-[44px] leading-none text-[#700f06]">
+          Our Gallery
+        </h2>
       </Reveal>
 
-      <div className="relative mt-8 grid grid-cols-2 gap-3">
-        {photos.map((photo, i) => (
-          <Reveal
-            key={photo.id}
-            variant="zoom-in"
-            delay={(i % 3) * 120}
-            className={
-              i % 3 === 2
-                ? "col-span-2 rounded-[20px] border-[3px] border-[#F5EFE0] bg-[#F5EFE0] p-1.5 shadow-[0_14px_30px_-22px_rgba(0,0,0,0.5)]"
-                : `${TILTS[i % TILTS.length]} rounded-[20px] border-[3px] border-[#F5EFE0] bg-[#F5EFE0] p-1.5 shadow-[0_14px_30px_-22px_rgba(0,0,0,0.5)]`
-            }
-          >
-            <div
-              className={
-                i % 3 === 2
-                  ? "aspect-[16/10] overflow-hidden rounded-[14px] bg-[#E8D6C2]"
-                  : "aspect-[4/5] overflow-hidden rounded-[14px] bg-[#E8D6C2]"
-              }
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL with query string; next/image would re-proxy and break the short-lived signature */}
-              <img
-                src={photo.url}
-                alt={photo.label ?? `Galeri ${coupleLabel}`}
-                loading="lazy"
-                className="h-full w-full object-cover transition duration-500 hover:scale-[1.04]"
-              />
-            </div>
-          </Reveal>
-        ))}
-      </div>
+      {/* Featured photo — keyed by id so each selection fades in cleanly. */}
+      <Reveal variant="zoom-in" className="relative mx-auto mt-8 max-w-[300px]">
+        <div className="rounded-[22px] border-[3px] border-[#F5EFE0] bg-[#F5EFE0] p-1.5 shadow-[0_18px_38px_-26px_rgba(0,0,0,0.5)]">
+          <div className="aspect-[4/5] overflow-hidden rounded-[16px] bg-[#E8D6C2]">
+            <InvImage
+              key={current.id}
+              src={current.url}
+              alt={current.label ?? coupleLabel}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+      </Reveal>
+
+      {/* Swipeable thumbnail strip — only when there's more than one photo. */}
+      {photos.length > 1 && (
+        <div className="relative mx-auto mt-4 max-w-[320px]">
+          <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {photos.map((photo, i) => {
+              const isActive = photo.id === current.id;
+              return (
+                <button
+                  key={photo.id}
+                  type="button"
+                  onClick={() => setActive(i)}
+                  aria-label={`Lihat foto ${i + 1}`}
+                  className={`snap-start shrink-0 overflow-hidden rounded-[8px] border-2 transition ${
+                    isActive
+                      ? "border-[#700f06]"
+                      : "border-transparent opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <span className="block h-[62px] w-[62px] bg-[#E8D6C2]">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- presigned/public R2 URL; next/image would re-proxy and break the short-lived signature */}
+                    <img
+                      src={photo.url}
+                      alt=""
+                      loading="lazy"
+                      draggable={false}
+                      className="h-full w-full object-cover"
+                    />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

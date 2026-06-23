@@ -15,15 +15,11 @@ type Cell = "check" | "dash" | "inf" | string;
 type Row = { label: string; meta?: string; groupStart?: boolean; values: [Cell, Cell, Cell] };
 
 const ROWS: Row[] = [
-  { label: "Jumlah tamu undangan", groupStart: true, values: ["100", "300", "inf"] },
-  { label: "Template editorial", values: ["1", "3", "inf"] },
-  { label: "Galeri foto", values: ["30 foto", "100 foto", "inf"] },
-  { label: "RSVP, buku tamu, musik & countdown", values: ["check", "check", "check"] },
-  { label: "Subdomain custom ", meta: "(nama.maritare.id)", values: ["dash", "check", "check"] },
-  { label: "Livestream Zoom / YouTube embed", values: ["dash", "check", "check"] },
-  { label: "QR check-in & live wall di TV venue", values: ["dash", "check", "check"] },
-  { label: "Custom domain sendiri ", meta: "(.com / .id)", values: ["dash", "dash", "check"] },
-  { label: "Konsultasi desain 1-on-1 & prioritas support", values: ["dash", "dash", "check"] },
+  { label: "Jumlah tamu undangan", groupStart: true, values: ["100", "inf", "inf"] },
+  { label: "Template editorial", values: ["Tier Silver", "Silver + Gold", "Semua tier"] },
+  { label: "Galeri foto", values: ["5 foto", "50 foto", "100 foto · HD"] },
+  { label: "Buku tamu digital ", meta: "(akun penjaga)", values: ["1 akun", "2 akun", "5 akun"] },
+  { label: "Send undangan klik WhatsApp", values: ["check", "check", "check"] },
 ];
 
 function CellValue({ value, gold, groupStart }: { value: Cell; gold: boolean; groupStart?: boolean }) {
@@ -127,16 +123,6 @@ export function Pricing() {
       <div className="pkg-reassure reveal">
         <span className="pkg-r-item">
           <svg className="pkg-r-ico" viewBox="0 0 24 24">
-            <path d="M3 12a9 9 0 1 0 3-6.7" />
-            <path d="M3 4v5h5" />
-          </svg>
-          <span>
-            <strong>Refund 7 hari.</strong> Tidak puas, uang kembali sepenuhnya.
-          </span>
-        </span>
-        <span className="pkg-r-sep" />
-        <span className="pkg-r-item">
-          <svg className="pkg-r-ico" viewBox="0 0 24 24">
             <path d="M12 2v4" />
             <path d="M12 18v4" />
             <path d="m4.93 4.93 2.83 2.83" />
@@ -148,20 +134,6 @@ export function Pricing() {
           </svg>
           <span>
             <strong>Update gratis</strong> selamanya, sampai hari-H tiba.
-          </span>
-        </span>
-        <span className="pkg-r-sep" />
-        <span className="pkg-r-item">
-          <svg className="pkg-r-ico" viewBox="0 0 24 24">
-            <path d="M14 4h6v6" />
-            <path d="M20 4 10 14" />
-            <path d="M20 14v6h-6" />
-            <path d="m14 20 6-6" />
-            <path d="M4 4h6" />
-            <path d="M4 20h6" />
-          </svg>
-          <span>
-            <strong>Bantuan migrasi</strong> dari undangan lama, gratis.
           </span>
         </span>
         <span className="pkg-r-sep" />

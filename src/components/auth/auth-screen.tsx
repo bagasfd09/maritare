@@ -97,11 +97,6 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
                   setiap detail kecil yang membuatnya milikmu sendiri.
                 </>
               }
-              stats={[
-                { num: "1.247", lbl: "Pasangan" },
-                { num: "38", lbl: "Tema editorial" },
-                { num: "4.9★", lbl: "Rating pengantin" },
-              ]}
             />
 
             {/* ============ RIGHT — Form ============ */}
@@ -281,25 +276,9 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
                     </span>
                   </button>
 
-                  <div className="trust">
-                    <span className="sec-ic">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="4" y="11" width="16" height="10" rx="2" />
-                        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                      </svg>
-                      Enkripsi SSL
-                    </span>
-                    <span className="dotsep" />
-                    <span>Data kalian aman</span>
-                    <span className="dotsep" />
-                    <span>Tidak dijual ke pihak ketiga</span>
-                  </div>
                 </form>
 
                 <div className="form-foot">
-                  <div className="legal">
-                    © 2026 Maritare · <a href="#">Syarat</a> · <a href="#">Privasi</a> · <a href="#">Bantuan</a>
-                  </div>
                   <button className="lang" type="button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <circle cx="12" cy="12" r="10" />
