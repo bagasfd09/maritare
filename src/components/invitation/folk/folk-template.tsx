@@ -20,6 +20,7 @@ import { ScarletFootnote } from "../scarlet/sections/scarlet-footnote";
 import { ScarletGift } from "../scarlet/sections/scarlet-gift";
 import { ScarletQuote } from "../scarlet/sections/scarlet-quote";
 import { ScarletSaveDate } from "../scarlet/sections/scarlet-savedate";
+import { ScarletThankYou } from "../scarlet/sections/scarlet-thankyou";
 import { ScarletStory } from "../scarlet/scarlet-story";
 import { FolkCoverGate } from "./folk-cover-gate";
 import { FolkGallery } from "./folk-gallery";
@@ -93,7 +94,12 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       {/* Pre-fill the wish form's name with the invitation's guest (?g= guest,
           else ?to=); empty on generic links. The guest can still edit it. */}
       <FolkWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
-      <ScarletFootnote data={data} mode={mode} />
+      {/* "Thank you" closing message (Katsudoto quote-message section) — the
+          arched gratitude panel, just above the footer. */}
+      <ScarletThankYou />
+      {/* Folk drops the Scarlet logo + baroque ornament cluster in the closing
+          section (keeps the closing photo). */}
+      <ScarletFootnote data={data} mode={mode} hideOrnaments />
       <ScarletAudio data={data} mode={mode} waitForOpen={mode !== "editorPreview"} />
     </ScarletEmbed>
     </>

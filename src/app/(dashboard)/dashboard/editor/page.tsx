@@ -41,6 +41,8 @@ export default async function Page() {
     const heroData = parseSectionData("hero", raw.hero?.data);
     if (heroData.imageKey) heroData.imageUrl = await getViewUrl(heroData.imageKey);
     if (heroData.videoKey) heroData.videoUrl = await getViewUrl(heroData.videoKey);
+    if (heroData.closingVideoKey)
+      heroData.closingVideoUrl = await getViewUrl(heroData.closingVideoKey);
 
     // Presign the "Bagikan" (link-preview) image so the editor slot can show it.
     const bagikanData = parseSectionData("bagikan", raw.bagikan?.data);

@@ -14,7 +14,7 @@ import type { InvitationView } from "@/server/queries/invitation";
 
 import { Reveal } from "../flora/reveal";
 import { InvImage } from "../scarlet/inv-image";
-import { FLORAL, ScarletImg, TASSEL_GOLD } from "../scarlet/scarlet-ornaments";
+import { ScarletImg, TASSEL_GOLD } from "../scarlet/scarlet-ornaments";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
@@ -32,23 +32,33 @@ export function FolkGallery({ data }: Props) {
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
 
   return (
-    <section className="relative overflow-hidden px-7 pb-16 pt-24 text-center">
-      {/* Gold sumping tassels draping from the top corners. */}
-      <ScarletImg name={TASSEL_GOLD} mirrored className="absolute -top-2 left-0 z-10 w-20" />
-      <ScarletImg name={TASSEL_GOLD} className="absolute -top-2 right-0 z-10 w-20" />
-      {/* Burgundy florals anchoring the bottom corners (gentle ambient sway). */}
+    <section className="relative overflow-hidden px-7 pb-16 pt-[175px] text-center">
+      {/* Gold sumping tassels draping INWARD from the top corners (forming a
+          swag toward the center), gently swaying from where they hang. */}
       <ScarletImg
-        name={FLORAL.burgundyCluster}
-        className="absolute -bottom-3 -left-10 z-10 w-28 -rotate-6"
+        name={TASSEL_GOLD}
         sway
-        swayOrigin="origin-bottom-left"
+        swayOrigin="origin-top"
+        className="absolute -top-[-2px] -left-12 z-10 w-56"
       />
       <ScarletImg
-        name={FLORAL.burgundyCluster}
+        name={TASSEL_GOLD}
         mirrored
-        className="absolute -bottom-3 -right-10 z-10 w-28 rotate-6"
         sway
-        swayOrigin="origin-bottom-right"
+        swayOrigin="origin-top"
+        className="absolute -top-[-2px] -right-12 z-10 w-56"
+      />
+      {/* Decorative gold clips flanking the gallery on each side. */}
+      <ScarletImg
+        name="Orn-clip-2"
+        ext="webp"
+        className="absolute left-0 top-1/2 z-10 w-24 -translate-y-1/2"
+      />
+      <ScarletImg
+        name="Orn-clip-2"
+        ext="webp"
+        mirrored
+        className="absolute right-0 top-1/2 z-10 w-24 -translate-y-1/2"
       />
 
       <Reveal>
@@ -58,9 +68,9 @@ export function FolkGallery({ data }: Props) {
       </Reveal>
 
       {/* Featured photo — keyed by id so each selection fades in cleanly. */}
-      <Reveal variant="zoom-in" className="relative mx-auto mt-8 max-w-[300px]">
+      <Reveal variant="zoom-in" className="relative mx-auto mt-8 max-w-[420px]">
         <div className="rounded-[22px] border-[3px] border-[#F5EFE0] bg-[#F5EFE0] p-1.5 shadow-[0_18px_38px_-26px_rgba(0,0,0,0.5)]">
-          <div className="aspect-[4/5] overflow-hidden rounded-[16px] bg-[#E8D6C2]">
+          <div className="aspect-[4/5] overflow-hidden rounded-[16px] bg-[#E8D6C2] z-12">
             <InvImage
               key={current.id}
               src={current.url}
@@ -71,9 +81,10 @@ export function FolkGallery({ data }: Props) {
         </div>
       </Reveal>
 
-      {/* Swipeable thumbnail strip — only when there's more than one photo. */}
+      {/* Swipeable thumbnail strip — full-bleed (breaks out of the section's
+          px-7 via -mx-7 so it spans edge to edge), horizontally scrollable. */}
       {photos.length > 1 && (
-        <div className="relative mx-auto mt-4 max-w-[320px]">
+        <div className="-mx-7 mt-5">
           <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {photos.map((photo, i) => {
               const isActive = photo.id === current.id;

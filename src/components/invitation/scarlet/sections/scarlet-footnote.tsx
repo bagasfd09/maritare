@@ -12,9 +12,16 @@ import type { InvitationView } from "@/server/queries/invitation";
 
 import { InvImage } from "../inv-image";
 
-type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
+type Props = {
+  data: InvitationView;
+  mode: "public" | "ownerPreview" | "editorPreview";
+  // Folk reuses this closing section but drops the Scarlet logo, birds, and the
+  // baroque ornament cluster — keeping only the closing photo. (Scarlet keeps
+  // them.)
+  hideOrnaments?: boolean;
+};
 
-export function ScarletFootnote({ data }: Props) {
+export function ScarletFootnote({ data, hideOrnaments }: Props) {
   // Prefer a dedicated closing photo; fall back to the cover (then the first
   // photo) so weddings that haven't set a separate closing image keep working.
   const closingPhoto =
@@ -22,9 +29,12 @@ export function ScarletFootnote({ data }: Props) {
     data.photos.find((p) => p.isCover) ??
     data.photos[0];
   const coverAlt = closingPhoto?.label ?? `${data.groomName} & ${data.brideName}`;
+  // Folk can set a closing VIDEO (stored on the hero section) — it takes
+  // precedence over the closing photo. Scarlet never sets it, so it stays photo.
+  const closingVideoUrl = data.sections.hero.closingVideoUrl;
 
   return (
-    <section className="footnote-wrap">
+    <section className={`footnote-wrap${hideOrnaments ? " footnote-plain" : ""}`}>
         <div className="footnote-inner">
           <div className="highlight" data-aos="zoom-out" data-aos-duration="2000">
             <div className="cover-frame" id="coverFrame">
@@ -47,7 +57,16 @@ export function ScarletFootnote({ data }: Props) {
                         opacity: 1,
                       }}
                     >
-                      {closingPhoto ? (
+                      {closingVideoUrl ? (
+                        <video
+                          src={closingVideoUrl}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          style={{ width: "100%", display: "block", objectFit: "cover" }}
+                        />
+                      ) : closingPhoto ? (
                         <InvImage src={closingPhoto.url} alt={coverAlt} />
                       ) : (
                         <img loading="lazy" decoding="async" src="/invitation/scarlet/default-cover.webp" alt={coverAlt} />
@@ -60,6 +79,7 @@ export function ScarletFootnote({ data }: Props) {
           </div>
           <div className="ff-mask"></div>
 
+          {!hideOrnaments && (
           <div className="footnote-body">
             <div
               className="logo-wrap"
@@ -90,7 +110,9 @@ export function ScarletFootnote({ data }: Props) {
               </div>
             </div>
           </div>
+          )}
 
+          {!hideOrnaments && (
           <div className=" ornaments-wrapper">
             <div className="orn-ff-4">
               <div className="orn-ff-4-2">
@@ -243,6 +265,7 @@ export function ScarletFootnote({ data }: Props) {
               </div>
             </div>
           </div>
+          )}
         </div>
       </section>
   );

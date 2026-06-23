@@ -124,10 +124,17 @@ export async function saveWeddingSection(
     //     its own subfolder under THIS wedding (like musik.audioKey) so a forged
     //     or swapped key (image in videoKey, audio key, another wedding) is rejected.
     if (sectionData !== undefined && sectionId === "hero") {
-      const { imageKey, videoKey } = sectionData as { imageKey?: string; videoKey?: string };
+      const { imageKey, videoKey, closingVideoKey } = sectionData as {
+        imageKey?: string;
+        videoKey?: string;
+        closingVideoKey?: string;
+      };
       const okImage = !imageKey || imageKey.startsWith(`weddings/${wedding.id}/hero/`);
       const okVideo = !videoKey || videoKey.startsWith(`weddings/${wedding.id}/videos/`);
-      if (!okImage || !okVideo) {
+      // The closing video shares the wedding's video prefix (uploaded as kind "video").
+      const okClosingVideo =
+        !closingVideoKey || closingVideoKey.startsWith(`weddings/${wedding.id}/videos/`);
+      if (!okImage || !okVideo || !okClosingVideo) {
         return { ok: false, error: "Media hero tidak valid." };
       }
     }

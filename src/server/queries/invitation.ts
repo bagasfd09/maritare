@@ -137,6 +137,8 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   const hero = parseSectionData("hero", raw.hero?.data);
   hero.imageUrl = hero.imageKey ? await getViewUrl(hero.imageKey) : undefined;
   hero.videoUrl = hero.videoKey ? await getViewUrl(hero.videoKey) : undefined;
+  // Closing-section video (folk) — presigned like the hero video above.
+  hero.closingVideoUrl = hero.closingVideoKey ? await getViewUrl(hero.closingVideoKey) : undefined;
 
   // Folk "Momen" illustration — a guest-facing content image. Live invitations
   // use the cacheable public CDN URL (like gallery photos); drafts/owner-preview

@@ -2971,6 +2971,44 @@ export const SCARLET_THEME_CSS = String.raw`
     object-fit: cover;
     object-position: center;
 }
+/* Folk closing (.footnote-plain): no logo/ornaments, so collapse the forced
+   100vh full-screen frame — un-absolute the photo/video chain so the section
+   sizes to the closing media's natural height (no blank space below it). */
+.scarlet-inv section.footnote-wrap.footnote-plain {
+    min-height: 0;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner {
+    height: auto;
+    padding-top: 0;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .ff-mask {
+    display: none;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight {
+    position: relative;
+    inset: auto;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .cover-frame {
+    position: relative;
+    inset: auto;
+    height: auto;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .preview-container {
+    position: relative;
+    height: auto;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .preview-container .slick-list,
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .preview-container .slick-track {
+    height: auto !important;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .preview-container .picture {
+    position: relative !important;
+    height: auto !important;
+}
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .preview-container .picture img,
+.scarlet-inv section.footnote-wrap.footnote-plain .footnote-inner .highlight .preview-container .picture video {
+    height: auto;
+}
 @media (min-width: 1200px) {
 .scarlet-inv .rsvp-inner {
         

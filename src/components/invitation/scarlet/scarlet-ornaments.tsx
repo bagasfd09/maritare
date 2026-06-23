@@ -38,7 +38,7 @@ export function ScarletImg({
     | "origin-bottom-right"
     | "origin-top-left"
     | "origin-top-right";
-  ext?: "png" | "jpg";
+  ext?: "png" | "jpg" | "webp";
 }) {
   return (
     <span

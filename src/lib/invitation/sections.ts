@@ -190,6 +190,13 @@ export const heroDataSchema = z.object({
   imageUrl: z.string().optional(),
   videoKey: z.string().max(300).optional(),
   videoUrl: z.string().optional(),
+  // Dedicated CLOSING-section VIDEO — shown in the footnote/closing section.
+  // (The closing IMAGE still uses the photos table, isClosing.) Stored on the
+  // hero section because the closing media is edited in the same "Sampul" form;
+  // like the hero video it's an R2 object key under weddings/{id}/videos/,
+  // presigned to closingVideoUrl server-side (never set by the editor).
+  closingVideoKey: z.string().max(300).optional(),
+  closingVideoUrl: z.string().optional(),
 });
 
 // ─────────────────────────────────────────────────────────────────

@@ -349,6 +349,163 @@ function HeroAssetSlot({
   );
 }
 
+// The CLOSING asset slot — an image OR a video, like the hero slot. The image
+// case is stored as a gallery photo (isClosing); the video case rides on the
+// hero section (closingVideoKey). The parent's onUpload/onRemove route each to
+// the right place; this component just owns the upload UI + local preview.
+function ClosingAssetSlot({
+  closingPhoto,
+  closingVideoUrl,
+  hasClosingVideo,
+  onUpload,
+  onRemove,
+}: {
+  closingPhoto: EditorPhoto | null;
+  closingVideoUrl: string | undefined;
+  hasClosingVideo: boolean;
+  onUpload: (file: File, onProgress: (percent: number) => void) => Promise<string | null>;
+  onRemove: () => Promise<string | null>;
+}) {
+  const router = useRouter();
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [localIsVideo, setLocalIsVideo] = useState(false);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    return () => {
+      if (localUrl) URL.revokeObjectURL(localUrl);
+    };
+  }, [localUrl]);
+
+  const previewUrl = localUrl ?? closingVideoUrl ?? closingPhoto?.url ?? null;
+  const previewIsVideo = localUrl ? localIsVideo : hasClosingVideo;
+  const hasAsset = !!(localUrl || hasClosingVideo || closingPhoto);
+
+  function handleFile(fileList: FileList | null) {
+    if (busy) return;
+    const file = fileList?.[0];
+    if (!file) return;
+    const isVideo = file.type.startsWith("video/");
+    const err = validateHeroAsset(file);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    setProgress(0);
+    startTransition(async () => {
+      const uploadErr = await onUpload(file, setProgress);
+      if (uploadErr) {
+        setBusy(false);
+        setProgress(null);
+        setError(uploadErr);
+        return;
+      }
+      setLocalUrl(URL.createObjectURL(file));
+      setLocalIsVideo(isVideo);
+      setProgress(100);
+      router.refresh();
+      setTimeout(() => {
+        setProgress(null);
+        setBusy(false);
+      }, 400);
+    });
+  }
+
+  function handleRemove() {
+    if (busy || !hasAsset) return;
+    setError(null);
+    setBusy(true);
+    startTransition(async () => {
+      const err = await onRemove();
+      setLocalUrl(null);
+      setBusy(false);
+      if (err) {
+        setError(err);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,video/mp4,video/webm,video/quicktime"
+        className="hidden"
+        onChange={(e) => {
+          handleFile(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {progress !== null ? (
+        <div className="rounded-[12px] border-[1.5px] border-dashed border-[rgba(245,239,230,0.25)] px-5 py-7">
+          <UploadProgress percent={progress} variant="dark" label="Mengunggah penutup…" />
+        </div>
+      ) : hasAsset && previewUrl ? (
+        <div className="rounded-[12px] overflow-hidden border border-[rgba(245,239,230,0.15)]">
+          {previewIsVideo ? (
+            <video src={previewUrl} muted loop playsInline autoPlay className="w-full max-h-[260px] object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL
+            <img src={previewUrl} alt="Foto penutup" className="w-full max-h-[260px] object-cover" />
+          )}
+          <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[rgba(245,239,230,0.04)]">
+            <span className="text-[12px] text-[rgba(245,239,230,0.7)]">
+              {previewIsVideo
+                ? "Video penutup aktif — tampil di bagian bawah."
+                : "Foto penutup aktif — tampil di bagian bawah."}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                className="text-[12px] font-semibold text-peach hover:text-cream disabled:opacity-50"
+              >
+                Ganti
+              </button>
+              <button
+                type="button"
+                onClick={handleRemove}
+                disabled={busy}
+                className="text-[12px] font-semibold text-[rgba(245,239,230,0.55)] hover:text-cream disabled:opacity-50"
+              >
+                Hapus (pakai sampul)
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="w-full rounded-[12px] border-[1.5px] border-dashed border-[rgba(245,239,230,0.25)] p-8 flex flex-col items-center justify-center gap-2 transition-colors hover:border-peach disabled:cursor-wait"
+        >
+          <span className="w-10 h-10 rounded-full bg-burgundy text-cream flex items-center justify-center">
+            <Icon name="upload" size={16} />
+          </span>
+          <span className="font-display italic text-[15px] text-cream">Upload foto / video penutup</span>
+          <span className="text-[11px] text-[rgba(245,239,230,0.5)]">
+            Foto (JPG/PNG/WebP/AVIF, maks 10 MB) atau video (MP4/WebM/MOV, maks 50 MB)
+          </span>
+        </button>
+      )}
+
+      {error && <div className="text-[12px] text-[#ff9b8a] mt-3">{error}</div>}
+    </>
+  );
+}
+
 export type HeroValue = { done: boolean; data: HeroData };
 
 type HeroFormProps = {
@@ -360,7 +517,12 @@ type HeroFormProps = {
 
 // Persist only the stored hero fields — never the server-resolved *Url fields.
 function toHeroPayload(data: HeroData): Record<string, unknown> {
-  return { fullSize: data.fullSize, imageKey: data.imageKey, videoKey: data.videoKey };
+  return {
+    fullSize: data.fullSize,
+    imageKey: data.imageKey,
+    videoKey: data.videoKey,
+    closingVideoKey: data.closingVideoKey,
+  };
 }
 
 export function HeroForm({ value, onChange, photos, onStatusChange }: HeroFormProps) {
@@ -439,33 +601,48 @@ export function HeroForm({ value, onChange, photos, onStatusChange }: HeroFormPr
         />
       </div>
 
-      {/* Closing photo — a SEPARATE upload, shown at the very bottom. */}
+      {/* Closing asset (photo OR video) — a SEPARATE upload, shown at the very bottom. */}
       <div className="mt-8 pt-7 border-t border-[rgba(245,239,230,0.1)]">
-        <FormHeading>Foto Penutup</FormHeading>
+        <FormHeading>Foto / Video Penutup</FormHeading>
         <p className="text-[13px] text-[rgba(245,239,230,0.6)] leading-[1.6] mb-6">
-          Foto yang tampil di <strong className="text-cream">bagian penutup</strong> (paling bawah
-          undangan). Kalau kosong, ikut foto sampul.
+          Media yang tampil di <strong className="text-cream">bagian penutup</strong> (paling bawah
+          undangan). Bisa <strong className="text-cream">foto</strong> atau{" "}
+          <strong className="text-cream">video</strong> (autoplay, tanpa suara). Kalau kosong, ikut
+          foto sampul.
         </p>
 
-        <PhotoSlot
-          photo={closing}
-          imgAlt="Foto penutup"
-          emptyTitle="Upload foto penutup"
-          emptyHint="Saat ini ikut foto sampul"
-          activeNote="Foto penutup aktif — tampil di bagian bawah."
-          removeLabel="Hapus (pakai sampul)"
+        <ClosingAssetSlot
+          closingPhoto={closing}
+          closingVideoUrl={value.data.closingVideoUrl}
+          hasClosingVideo={!!value.data.closingVideoKey}
           onUpload={async (file, onProgress) => {
+            if (file.type.startsWith("video/")) {
+              const up = await uploadToR2(file, { kind: "video", onProgress });
+              if (!up.ok) return up.error;
+              patchHero({ closingVideoKey: up.objectKey });
+              // A video replaces the photo — drop the old closing photo if any.
+              if (closing) await deletePhoto({ photoId: closing.id });
+              return null;
+            }
             const res = await uploadPhoto(file, "Foto penutup", onProgress);
             if ("error" in res) return res.error;
             const set = await setClosingPhoto({ photoId: res.photoId });
             if (!set.ok) return set.error;
             if (closing) await deletePhoto({ photoId: closing.id });
+            // A photo replaces any existing closing video.
+            if (value.data.closingVideoKey) patchHero({ closingVideoKey: undefined });
             return null;
           }}
           onRemove={async () => {
-            if (!closing) return null;
-            const res = await deletePhoto({ photoId: closing.id });
-            return res.ok ? null : res.error;
+            if (value.data.closingVideoKey) {
+              patchHero({ closingVideoKey: undefined });
+              return null;
+            }
+            if (closing) {
+              const res = await deletePhoto({ photoId: closing.id });
+              return res.ok ? null : res.error;
+            }
+            return null;
           }}
         />
       </div>
