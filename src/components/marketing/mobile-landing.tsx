@@ -95,7 +95,7 @@ export function MobileLanding() {
               <FlowerMark className="fm" inner stamen="center" />
             </a>
             <div className="mnav-right">
-              <Link href="/login?mode=signup" className="pill">
+              <Link href="/login?mode=signin" className="pill">
                 Mulai
               </Link>
               <button type="button" className="burger" aria-label="Menu">
@@ -122,7 +122,7 @@ export function MobileLanding() {
               Tamu buka undangan website yang indah lewat ponsel. Kamu pegang buku tamu digital
               yang mencatat kehadiran real-time di hari-H.
             </p>
-            <Link href="/login?mode=signup" className="hero-cta">
+            <Link href="/login?mode=signin" className="hero-cta">
               Rancang undanganmu
               <FlowerMark className="fm" inner stamen="center" />
             </Link>
@@ -378,7 +378,7 @@ export function MobileLanding() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/login?mode=signup" className="pbtn">
+                  <Link href="/login?mode=signin" className="pbtn">
                     Pilih {p.name}
                   </Link>
                 </div>
@@ -456,7 +456,7 @@ export function MobileLanding() {
                 <FlowerMark className="fm" inner stamen="center" />
                 <span className="dr" />
               </div>
-              <Link href="/login?mode=signup" className="final-cta">
+              <Link href="/login?mode=signin" className="final-cta">
                 Rancang Undanganmu
                 <span className="ac">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

@@ -108,7 +108,7 @@ export function Pricing() {
         {TIERS.map((t) => (
           <div key={t.name} className={`pkg-cell pkg-cta-cell center${t.gold ? " is-gold" : ""}`}>
             <Link
-              href={`/login?mode=signup&plan=${t.name.toLowerCase()}`}
+              href={`/login?mode=signin&plan=${t.name.toLowerCase()}`}
               className={`pkg-cta${t.gold ? " pkg-cta-primary" : ""}`}
             >
               Pilih {t.name}

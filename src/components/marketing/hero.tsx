@@ -60,7 +60,7 @@ export function Hero() {
             digital yang mencatat kehadiran real-time di hari-H. Satu link, semuanya beres.
           </p>
           <div className="hero-cta">
-            <Link href="/login?mode=signup" className="btn-primary">
+            <Link href="/login?mode=signin" className="btn-primary">
               Rancang undanganmu
               <span className="cta-mark">
                 <FlowerMark />

@@ -70,7 +70,7 @@ export function FinalCta() {
           sebelumnya.
         </p>
         <div className="final-actions">
-          <Link href="/login?mode=signup" className="final-btn">
+          <Link href="/login?mode=signin" className="final-btn">
             Rancang Undanganmu
             <FlowerMark className="fm" inner stamen="center" />
           </Link>

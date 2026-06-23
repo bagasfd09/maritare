@@ -31,6 +31,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
   },
+  // og:image / twitter:image come from opengraph-image.tsx in this route group.
+  twitter: {
+    card: "summary_large_image",
+    title: "Maritare — Undangan digital editorial",
+    description:
+      "Bikin undangan pertama dalam 5 menit. Bayar setelah siap publish — tidak sebelumnya.",
+  },
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

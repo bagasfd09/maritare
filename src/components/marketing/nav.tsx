@@ -59,7 +59,7 @@ export function Nav() {
               <a href="#harga">Harga</a>
             </div>
           </div>
-          <Link href="/login?mode=signup" className="btn btn-primary">
+          <Link href="/login?mode=signin" className="btn btn-primary">
             Mulai bikin
             <span className="arrow-bg">
               <ArrowUpRight size={11} strokeWidth={2.4} />
