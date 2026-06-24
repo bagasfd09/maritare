@@ -62,7 +62,7 @@ export function FolkGallery({ data }: Props) {
 
       {/* Carousel: one ornately-framed photo, arrows on each side. */}
       <div className="relative mx-auto mt-6 max-w-[420px] px-2">
-        <Reveal variant="zoom-in" className="relative mx-auto w-[300px] max-w-[80vw]">
+        <Reveal variant="zoom-in" className="relative mx-auto w-[360px] max-w-[90vw]">
           {/* Florals BEHIND the photo frame ─────────────────────────────── */}
           {/* Maroon shields rotating out of the top corners. */}
           <ScarletImg
@@ -97,16 +97,15 @@ export function FolkGallery({ data }: Props) {
             className="absolute bottom-[8%] right-0 z-0 w-[30%] translate-x-[42%]"
           />
 
-          {/* The featured photo — keyed by id so each step fades in cleanly. */}
-          <div className="relative z-10 rounded-[20px] bg-[#F5EFE0] p-1.5 shadow-[0_18px_38px_-26px_rgba(0,0,0,0.5)]">
-            <div className="aspect-[3/4] overflow-hidden rounded-[16px] bg-[#E8D6C2]">
-              <InvImage
-                key={current.id}
-                src={current.url}
-                alt={current.label ?? coupleLabel}
-                className="h-full w-full object-cover"
-              />
-            </div>
+          {/* The featured photo — keyed by id so each step fades in cleanly.
+              No frame/border: the rounded photo sits directly on the section. */}
+          <div className="relative z-10 aspect-[3/4] overflow-hidden rounded-[16px] bg-[#E8D6C2] shadow-[0_18px_38px_-26px_rgba(0,0,0,0.5)]">
+            <InvImage
+              key={current.id}
+              src={current.url}
+              alt={current.label ?? coupleLabel}
+              className="h-full w-full object-cover"
+            />
           </div>
 
           {/* Peony clusters IN FRONT at the bottom corners. */}
@@ -158,7 +157,7 @@ export function FolkGallery({ data }: Props) {
           center-mode photo-slider). */}
       {photos.length > 1 && (
         <div className="-mx-5 mt-8">
-          <div className="flex gap-2 overflow-x-auto px-[calc(50%-55px)] pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-1.5 overflow-x-auto px-[calc(50%-36px)] pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {photos.map((photo, i) => {
               const isActive = photo.id === current.id;
               return (
@@ -171,7 +170,7 @@ export function FolkGallery({ data }: Props) {
                     isActive ? "border-[#700f06]" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <span className="block h-[80px] w-[110px] bg-[#E8D6C2]">
+                  <span className="block h-[52px] w-[72px] bg-[#E8D6C2]">
                     {/* eslint-disable-next-line @next/next/no-img-element -- presigned/public R2 URL; next/image would re-proxy and break the short-lived signature */}
                     <img
                       src={photo.url}
