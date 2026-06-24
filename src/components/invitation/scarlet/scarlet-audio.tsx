@@ -63,6 +63,11 @@ export function ScarletAudio({ data, mode, waitForOpen = false }: Props) {
   const ytHostRef = useRef<HTMLDivElement | null>(null);
   const ytPlayerRef = useRef<YTPlayer | null>(null);
   const startedRef = useRef(false);
+  // Mirror `playing` so the visibility handler reads it without re-registering.
+  const playingRef = useRef(false);
+  useEffect(() => {
+    playingRef.current = playing;
+  }, [playing]);
 
   // YouTube IFrame player lifecycle + segment loop.
   useEffect(() => {
@@ -167,6 +172,27 @@ export function ScarletAudio({ data, mode, waitForOpen = false }: Props) {
     window.addEventListener("touchstart", start);
     return remove;
   }, [isPreview, configured, youtubeId, startSec, waitForOpen]);
+
+  // Tie playback to the active tab: pause when the tab is hidden, resume when
+  // it's foregrounded again — but only if it was playing when we left.
+  useEffect(() => {
+    if (isPreview || !configured) return;
+    const wasPlaying = { current: false };
+    const onVisibility = () => {
+      if (document.hidden) {
+        wasPlaying.current = playingRef.current;
+        if (!wasPlaying.current) return;
+        if (youtubeId) ytPlayerRef.current?.pauseVideo();
+        else audioRef.current?.pause();
+      } else if (wasPlaying.current) {
+        wasPlaying.current = false;
+        if (youtubeId) ytPlayerRef.current?.playVideo();
+        else void audioRef.current?.play().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [isPreview, configured, youtubeId]);
 
   if (!configured) return null;
 

@@ -66,12 +66,6 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
           className="block w-full object-cover"
         />
       ) : null}
-      {/* Opening quote / verse (kutipan ayat) — the full Scarlet quote design
-          (gold baroque crown + joglo pavilion + burgundy florals), reused here
-          since Folk shares ScarletEmbed's theme CSS. Sits right after the hero,
-          before the couple; self-hides when there's no quote. Edited in the
-          Mempelai (pasangan) form's quote fields. */}
-      <ScarletQuote data={data} mode={mode} className="mt-[30px]" />
       {/* Folk shows each name once: big script above the photo. Hide the full
           name that otherwise repeats just above the parents line. */}
       <ScarletCouple data={data} mode={mode} hideFullName />
@@ -94,6 +88,12 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       {/* Pre-fill the wish form's name with the invitation's guest (?g= guest,
           else ?to=); empty on generic links. The guest can still edit it. */}
       <FolkWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
+      {/* Quote / verse (kutipan ayat) — the full Scarlet quote design (gold
+          baroque crown + joglo pavilion + burgundy florals), reused here since
+          Folk shares ScarletEmbed's theme CSS. Sits right above the closing
+          "Thank you"; self-hides when there's no quote. Edited in the Mempelai
+          (pasangan) form's quote fields. */}
+      <ScarletQuote data={data} mode={mode} className="mt-[30px]" />
       {/* "Thank you" closing message (Katsudoto quote-message section) — the
           arched gratitude panel, just above the footer. */}
       <ScarletThankYou />
