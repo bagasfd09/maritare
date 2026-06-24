@@ -15,7 +15,7 @@ export function FolkFooter({ groomName, brideName }: FolkFooterProps) {
       <FolkFloral name="gold-ornament" className="relative mx-auto h-16 w-auto opacity-95" />
 
       <p className="relative mt-4 [font-family:var(--font-caveat)] text-[26px] font-semibold leading-snug text-[#E8A0B8]">
-        Finding you was like coming home
+        Finding you wokeas like coming home
       </p>
 
       <p className="relative mx-auto mt-5 max-w-[320px] font-body text-[13px] leading-[1.85] text-[#F5EFE0]/85">
