@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, ArrowUpRight } from "./icons";
+import { Check, ArrowRight } from "./icons";
 
 // "Investasi" — a three-tier comparison table. Faithful to the design's
 // pkg-table grid: a header row of tiers, nine feature rows, a CTA row, and a
@@ -113,7 +113,7 @@ export function Pricing() {
             >
               Pilih {t.name}
               <span className="arrow-circle">
-                <ArrowUpRight size={14} strokeWidth={2} />
+                <ArrowRight size={14} strokeWidth={2} />
               </span>
             </Link>
           </div>

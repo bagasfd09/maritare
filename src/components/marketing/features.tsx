@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { FlowerMark } from "./flower-mark";
-import { ArrowUpRight } from "./icons";
+import { ArrowRight } from "./icons";
 
 const SLIDE_TAGS = ["Undangan Website", "Buku Tamu Digital"];
 
@@ -216,7 +216,7 @@ export function Features() {
               masing-masing — tanpa copy-paste manual.
             </p>
             <span className="fc-go">
-              <ArrowUpRight size={13} strokeWidth={1.9} />
+              <ArrowRight size={13} strokeWidth={1.9} />
             </span>
           </a>
           <a href="#" className="feat-card c-sage">
@@ -237,7 +237,7 @@ export function Features() {
               real-time untuk konsumsi dan tempat duduk.
             </p>
             <span className="fc-go">
-              <ArrowUpRight size={13} strokeWidth={1.9} />
+              <ArrowRight size={13} strokeWidth={1.9} />
             </span>
           </a>
           <a href="#" className="feat-card c-terra">
@@ -257,7 +257,7 @@ export function Features() {
               real-time, tanpa refresh manual.
             </p>
             <span className="fc-go">
-              <ArrowUpRight size={13} strokeWidth={1.9} />
+              <ArrowRight size={13} strokeWidth={1.9} />
             </span>
           </a>
         </div>
@@ -271,7 +271,7 @@ export function Features() {
         <a href="#harga" className="ff-cta">
           Lihat harga &amp; paket
           <span className="arrow-circle">
-            <ArrowUpRight size={14} strokeWidth={1.8} />
+            <ArrowRight size={14} strokeWidth={1.8} />
           </span>
         </a>
       </div>

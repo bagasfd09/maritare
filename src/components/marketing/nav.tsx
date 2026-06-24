@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FlowerMark } from "./flower-mark";
-import { ArrowUpRight } from "./icons";
+import { ArrowRight } from "./icons";
 
 // Ports the design's navBehavior IIFE: the bar overlays the hero, becomes
 // fixed past 4px, swaps to its light "scrolled" skin past the hero, and
@@ -62,7 +62,7 @@ export function Nav() {
           <Link href="/login?mode=signin" className="btn btn-primary">
             Mulai bikin
             <span className="arrow-bg">
-              <ArrowUpRight size={11} strokeWidth={2.4} />
+              <ArrowRight size={11} strokeWidth={2.4} />
             </span>
           </Link>
         </div>

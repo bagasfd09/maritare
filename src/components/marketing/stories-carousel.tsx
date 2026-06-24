@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowRight, ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { stories } from "./data";
 
 export function StoriesCarousel() {
@@ -61,7 +61,7 @@ export function StoriesCarousel() {
         >
           See All Stories
           <span className="w-9 h-9 rounded-full border border-[rgba(26,26,26,0.18)] inline-flex items-center justify-center">
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </span>
         </a>
       </motion.div>

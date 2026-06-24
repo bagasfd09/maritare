@@ -11,11 +11,11 @@ const base = (size: number) => ({
   stroke: "currentColor" as const,
 });
 
-export function ArrowUpRight({ size = 14, strokeWidth = 1.8, className }: IconProps) {
+export function ArrowRight({ size = 14, strokeWidth = 1.8, className }: IconProps) {
   return (
     <svg {...base(size)} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M7 17 17 7" />
-      <path d="M7 7h10v10" />
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
     </svg>
   );
 }
