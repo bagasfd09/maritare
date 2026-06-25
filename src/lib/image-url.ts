@@ -23,10 +23,17 @@ export function hasPublicCdn(): boolean {
  */
 export function publicImageUrl(
   objectKey: string,
-  opts?: { width?: number; quality?: number },
+  opts?: { width?: number; height?: number; quality?: number; fit?: "cover" | "contain" | "scale-down" },
 ): string | null {
   if (!PUBLIC_BASE) return null;
   const width = opts?.width ?? 1280;
   const quality = opts?.quality ?? 75;
-  return `${PUBLIC_BASE}/cdn-cgi/image/width=${width},quality=${quality},format=auto/${objectKey}`;
+  const params = [`width=${width}`];
+  if (opts?.height) params.push(`height=${opts.height}`);
+  if (opts?.fit) params.push(`fit=${opts.fit}`);
+  // gravity=auto crops toward the salient region (faces) instead of the centre
+  // when fit=cover — keeps the couple in frame on a fixed-ratio share card.
+  if (opts?.fit === "cover") params.push("gravity=auto");
+  params.push(`quality=${quality}`, "format=auto");
+  return `${PUBLIC_BASE}/cdn-cgi/image/${params.join(",")}/${objectKey}`;
 }

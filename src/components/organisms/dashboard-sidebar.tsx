@@ -21,7 +21,7 @@ const TOP: NavItem[] = [
 ];
 
 const BOTTOM: NavItem[] = [
-  { id: "billing", icon: "card", label: "Tagihan", href: "/dashboard/billing" },
+  { id: "billing", icon: "card", label: "Pembayaran", href: "/dashboard/billing" },
   { id: "settings", icon: "settings", label: "Pengaturan", href: "/dashboard/settings" },
 ];
 
@@ -136,16 +136,22 @@ export function DashboardSidebar({
 
       {/* Secondary nav */}
       <nav className="flex flex-col gap-[2px] mt-4 pt-4 border-t border-beige">
-        {BOTTOM.map((it) => (
-          <a
-            key={it.id}
-            href={it.href}
-            className="flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13px] font-medium text-muted-ink"
-          >
-            <Icon name={it.icon} size={16} />
-            {it.label}
-          </a>
-        ))}
+        {BOTTOM.map((it) => {
+          const isActive = active === it.id;
+          return (
+            <a
+              key={it.id}
+              href={it.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13px] font-medium",
+                isActive ? "bg-burgundy text-cream" : "text-muted-ink",
+              )}
+            >
+              <Icon name={it.icon} size={16} />
+              {it.label}
+            </a>
+          );
+        })}
       </nav>
 
       {/* Profile */}

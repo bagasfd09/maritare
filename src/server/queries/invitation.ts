@@ -75,6 +75,9 @@ export type InvitationView = {
    * should set R2_PUBLIC_URL so og:image resolves to the non-expiring CDN URL.
    */
   ogImageUrl?: string;
+  /** Declared og:image dimensions — set only for the fixed-ratio CDN share card. */
+  ogImageWidth?: number;
+  ogImageHeight?: number;
 };
 
 export type InvitationLookup =
@@ -212,14 +215,31 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   // private/presigned like the rest of the draft. The cover fallback reuses the
   // cover's already-resolved URL, so it inherits that rule and isn't signed twice.
   const bagikan = parseSectionData("bagikan", raw.bagikan?.data);
+  // Source for the share card: the editable "Bagikan" image, else the cover photo.
+  const ogSourceKey = bagikan.imageKey ?? photoRows.find((r) => r.isCover)?.objectKey;
   let ogImageUrl: string | undefined;
-  if (bagikan.imageKey) {
-    // bagikan.imageKey passed save-time prefix validation (wedding-scoped).
-    ogImageUrl =
-      (kind === "public" ? publicImageUrl(bagikan.imageKey, { width: 1200, quality: 80 }) : null) ??
-      (await getViewUrl(bagikan.imageKey));
-  } else {
-    ogImageUrl = signedPhotos.find((p) => p.isCover)?.url;
+  let ogImageWidth: number | undefined;
+  let ogImageHeight: number | undefined;
+  if (ogSourceKey) {
+    // Live views: a fixed 1200×630 landscape card (Cloudflare cover-crop) so
+    // WhatsApp/social render the LARGE preview — a portrait source served at its
+    // own aspect gets shrunk to a tiny side-thumbnail. Declaring the real size
+    // (below, in generateMetadata) is what flips the crawler to the big card.
+    const card =
+      kind === "public"
+        ? publicImageUrl(ogSourceKey, { width: 1200, height: 630, fit: "cover", quality: 80 })
+        : null;
+    if (card) {
+      ogImageUrl = card;
+      ogImageWidth = 1200;
+      ogImageHeight = 630;
+    } else if (bagikan.imageKey) {
+      // Draft/owner-preview (or no CDN): untouched presigned image, no declared size.
+      ogImageUrl = await getViewUrl(bagikan.imageKey);
+    } else {
+      // Cover fallback reuses its already-signed URL (not signed twice).
+      ogImageUrl = signedPhotos.find((p) => p.isCover)?.url;
+    }
   }
 
   return {
@@ -252,6 +272,8 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
         createdAt: w.createdAt.toISOString(),
       })),
       ogImageUrl,
+      ogImageWidth,
+      ogImageHeight,
     },
   };
 }

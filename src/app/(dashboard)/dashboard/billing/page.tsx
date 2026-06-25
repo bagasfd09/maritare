@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { Billing } from "@/components/templates/billing";
 import { BillingMobile } from "@/components/templates/billing-mobile";
+import { Checkout } from "@/components/templates/checkout";
 import { getBillingData } from "@/server/queries/dashboard";
 
 export default async function Page() {
@@ -11,7 +11,11 @@ export default async function Page() {
   }
   return (
     <>
-      <div className="hidden lg:contents"><Billing data={data} /></div>
+      {/* Desktop: the checkout screen (design 08). Mobile keeps the billing
+          overview — its design (MB_Tagihan) is unchanged. */}
+      <div className="hidden lg:contents">
+        <Checkout chrome={data.chrome} email={data.billingContact.email} />
+      </div>
       <BillingMobile data={data} />
     </>
   );

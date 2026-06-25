@@ -41,17 +41,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (lookup.kind === "notFound") {
     return { title: "Undangan tidak ditemukan · Maritare" };
   }
-  const { groomName, brideName, ogImageUrl } = lookup.data;
+  const { groomName, brideName, ogImageUrl, ogImageWidth, ogImageHeight } = lookup.data;
   const title = `The Wedding of ${groomName} & ${brideName}`;
   const description = `Dengan penuh sukacita, kami mengundangmu hadir di hari bahagia ${groomName} & ${brideName}.`;
 
   // Link-preview (WhatsApp/social): when an image is available, ship a
   // large-image card; otherwise a plain text card. The image is the editable
   // "Bagikan" image, falling back to the cover photo (resolved in the query).
-  // No declared width/height: the source isn't cropped to a fixed ratio (CDN
-  // preserves aspect; the presigned fallback is the untouched original), so we
-  // let the crawler read the real dimensions from the bytes instead of lying.
-  const images = ogImageUrl ? [{ url: ogImageUrl, alt: title }] : undefined;
+  // Live views ship a fixed 1200×630 card and declare its size — that's what
+  // makes WhatsApp render the LARGE preview rather than a small thumbnail. The
+  // presigned fallback (drafts / no CDN) is the untouched original, so we leave
+  // its dimensions undeclared and let the crawler read the bytes.
+  const images = ogImageUrl
+    ? [
+        {
+          url: ogImageUrl,
+          alt: title,
+          ...(ogImageWidth && ogImageHeight
+            ? { width: ogImageWidth, height: ogImageHeight }
+            : {}),
+        },
+      ]
+    : undefined;
 
   return {
     title,
