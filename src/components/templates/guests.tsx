@@ -17,7 +17,7 @@ import { GuestFormModal } from "@/components/molecules/guest-form-modal";
 import { buildInviteMessage, waMeLink } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { cn } from "@/lib/utils";
-import { markGuestInvited, sendWhatsappBlast } from "@/server/actions/guests";
+import { markGuestInvited } from "@/server/actions/guests";
 import type { DashboardChrome, GuestsData } from "@/server/queries/dashboard";
 
 type GuestRow = GuestsData["guests"][number];
@@ -65,7 +65,7 @@ export function Guests({ data, chrome }: GuestsProps) {
   const [editGuest, setEditGuest] = useState<GuestRow | null>(null);
   const [formNonce, setFormNonce] = useState(0);
   const [blastMsg, setBlastMsg] = useState<string | null>(null);
-  const [blasting, startBlast] = useTransition();
+  const [, startBlast] = useTransition();
   const router = useRouter();
 
   const groomName = chrome?.groomName ?? "";
@@ -101,21 +101,6 @@ export function Guests({ data, chrome }: GuestsProps) {
     window.open(waMeLink(target, message), "_blank", "noopener");
     startBlast(async () => {
       await markGuestInvited({ guestId: g.id });
-      router.refresh();
-    });
-  }
-
-  // Auto: bulk-send via the Fonnte API to every guest with a phone (no per-guest
-  // clicking). Marks the successful ones as invited.
-  function handleBlast() {
-    setBlastMsg(null);
-    startBlast(async () => {
-      const r = await sendWhatsappBlast({});
-      setBlastMsg(
-        r.ok
-          ? `Terkirim ${r.sent} · gagal ${r.failed} · tanpa nomor ${r.skipped}`
-          : r.error,
-      );
       router.refresh();
     });
   }
@@ -165,7 +150,14 @@ export function Guests({ data, chrome }: GuestsProps) {
               <Button variant="ghost" onClick={() => setImportOpen(true)}>
                 <Icon name="upload" size={14} />Import .csv
               </Button>
-              <Button variant="primary" onClick={openAddGuest}><Icon name="plus" size={14} />Tambah tamu</Button>
+              <Button variant="ghost" onClick={openAddGuest}><Icon name="plus" size={14} />Tambah tamu</Button>
+              <Button
+                onClick={() => router.push("/dashboard/guests/sebar")}
+                className="bg-[#1FA855] text-white border-transparent hover:bg-[#1b9a4d] shadow-[0_8px_18px_-10px_rgba(31,168,85,0.8)]"
+              >
+                <Icon name="wa" size={14} stroke="#fff" />
+                Sebar via WhatsApp
+              </Button>
             </>
           }
         />
@@ -213,10 +205,6 @@ export function Guests({ data, chrome }: GuestsProps) {
             </div>
             <div className="flex-1" />
             {blastMsg && <span className="text-[11px] text-muted-ink">{blastMsg}</span>}
-            <Button variant="ghost" size="sm" onClick={handleBlast} disabled={blasting}>
-              <Icon name="wa" size={12} />
-              {blasting ? "Mengirim…" : "Kirim WhatsApp (API)"}
-            </Button>
           </div>
 
           {/* Table — the card fills the remaining height; rows scroll INSIDE it

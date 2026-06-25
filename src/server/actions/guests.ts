@@ -16,17 +16,16 @@ import { insertGuestsWithCode } from "@/lib/guest-code";
 import { sendFonnteMessage } from "@/lib/fonnte";
 import { buildInviteMessage } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 type OwnedWedding = { id: string; slug: string; groomName: string; brideName: string };
 
 async function resolveOwnedWedding(): Promise<OwnedWedding | null> {
-  const userId = await resolveEditorUserId();
-  if (!userId) return null;
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) return null;
   const w = await db.query.weddings.findFirst({
     columns: { id: true, slug: true, groomName: true, brideName: true },
-    where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-    orderBy: (t, { asc }) => [asc(t.createdAt)],
+    where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
   });
   return w ?? null;
 }

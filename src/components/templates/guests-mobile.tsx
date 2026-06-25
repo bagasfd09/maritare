@@ -10,6 +10,8 @@ import {
 import { Icon } from "@/components/atoms/icon";
 import { Avatar, initials } from "@/components/atoms/avatar";
 import { GuestStatus } from "@/components/molecules/guest-status";
+import { buildInviteMessage, waMeLink } from "@/lib/invite-message";
+import { normalizePhoneIntl } from "@/lib/phone";
 import type { DashboardChrome, GuestsData } from "@/server/queries/dashboard";
 
 const FILTERS = ["Semua", "Hadir", "Belum", "Tidak"];
@@ -24,6 +26,11 @@ type GuestsMobileProps = {
 // Screen Mobile 03 · Daftar Tamu. `chrome` is accepted for a consistent page
 // contract but MobileShell has no chrome region, so it is intentionally unused.
 export function GuestsMobile({ data }: GuestsMobileProps) {
+  // Couple names for the prefilled WhatsApp invite (per-row quick-send). The
+  // wa.me link is a plain anchor so this stays a server component.
+  const groomName = data.chrome?.groomName ?? "";
+  const brideName = data.chrome?.brideName ?? "";
+
   // RSVP summary — dot colors mirror GuestStatus so the card reads as a legend
   // for the list below it.
   const rsvpStats = [
@@ -72,29 +79,79 @@ export function GuestsMobile({ data }: GuestsMobileProps) {
         </div>
       </MobileCard>
 
+      <a
+        href="/dashboard/guests/sebar"
+        className="inline-flex items-center justify-center gap-2 w-full h-[46px] rounded-full text-cream text-[13px] font-semibold tracking-[0.04em] no-underline shadow-[0_8px_18px_-12px_rgba(31,168,85,0.9)]"
+        style={{ background: "#1FA855" }}
+      >
+        <Icon name="wa" size={16} stroke="#fff" /> Sebar via WhatsApp
+      </a>
+
+      {data.guests.length > 0 && (
+        <p className="text-[11px] text-muted-ink px-1 -mt-1">
+          Atau ketuk ikon WhatsApp di tiap tamu untuk kirim cepat.
+        </p>
+      )}
+
       <MobileCard flush>
         {data.guests.length === 0 ? (
           <div className="px-4 py-8 text-center font-display italic text-[14px] text-faint">
             Belum ada tamu. Tambah tamu pertamamu.
           </div>
         ) : (
-          data.guests.map((g, i) => (
-            <div
-              key={g.id}
-              className="flex items-center gap-3 px-4 py-[13px] border-b border-line last:border-b-0"
-            >
-              <Avatar tone={AVATAR_TONES[i % 4]} size={38}>
-                {initials(g.name)}
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold">{g.name}</div>
-                <div className="text-[11px] text-muted-ink">
-                  {g.group ?? "—"} · {g.partySize !== null ? `${g.partySize} orang` : "—"}
+          data.guests.map((g, i) => {
+            // wa.me deep link with the prefilled invite — null when no valid number.
+            const target = normalizePhoneIntl(g.phone);
+            const waHref = target
+              ? waMeLink(
+                  target,
+                  buildInviteMessage({
+                    guestName: g.name,
+                    groomName,
+                    brideName,
+                    slug: data.weddingSlug,
+                    guestCode: g.code ?? undefined,
+                  }),
+                )
+              : null;
+            return (
+              <div
+                key={g.id}
+                className="flex items-center gap-[10px] px-4 py-[13px] border-b border-line last:border-b-0"
+              >
+                <Avatar tone={AVATAR_TONES[i % 4]} size={38}>
+                  {initials(g.name)}
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold truncate">{g.name}</div>
+                  <div className="text-[11px] text-muted-ink truncate">
+                    {g.group ?? "—"}
+                    {g.phone ? ` · ${g.phone}` : " · tanpa nomor"}
+                  </div>
                 </div>
+                <GuestStatus status={g.status} />
+                {waHref ? (
+                  <a
+                    href={waHref}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label={`Kirim WhatsApp ke ${g.name}`}
+                    className="w-9 h-9 rounded-full bg-[#1FA855] inline-flex items-center justify-center shrink-0"
+                  >
+                    <Icon name="wa" size={15} stroke="#fff" />
+                  </a>
+                ) : (
+                  <span
+                    aria-hidden
+                    title="Tamu belum punya nomor"
+                    className="w-9 h-9 rounded-full bg-cream border border-line inline-flex items-center justify-center shrink-0 opacity-50"
+                  >
+                    <Icon name="wa" size={15} stroke="var(--color-faint)" />
+                  </span>
+                )}
               </div>
-              <GuestStatus status={g.status} />
-            </div>
-          ))
+            );
+          })
         )}
       </MobileCard>
 

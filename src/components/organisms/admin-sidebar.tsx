@@ -10,6 +10,7 @@ type NavItem = { id: string; icon: IconName; label: string; href: string };
 const ITEMS: NavItem[] = [
   { id: "overview", icon: "home", label: "Overview", href: "/admin" },
   { id: "weddings", icon: "users", label: "Undangan", href: "/admin/weddings" },
+  { id: "users", icon: "user", label: "User", href: "/admin/users" },
   { id: "orders", icon: "card", label: "Pesanan", href: "/admin/orders" },
   { id: "templates", icon: "template", label: "Template", href: "/admin/templates" },
   { id: "packages", icon: "sparkle", label: "Paket & Promo", href: "/admin/packages" },

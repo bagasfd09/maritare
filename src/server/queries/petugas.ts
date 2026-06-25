@@ -11,7 +11,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { guestbookTokens, packages, weddings } from "@/lib/db/schema";
 import { relativeTimeId } from "@/lib/datetime";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 import {
   getDashboardChrome,
   type DashboardChrome,
@@ -42,8 +42,8 @@ export type PetugasData = {
  * page redirects to onboarding in that case).
  */
 export async function getPetugasData(): Promise<PetugasData | null> {
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return null;
   }
 
@@ -55,8 +55,7 @@ export async function getPetugasData(): Promise<PetugasData | null> {
     })
     .from(weddings)
     .leftJoin(packages, eq(weddings.packageId, packages.id))
-    .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-    .orderBy(asc(weddings.createdAt))
+    .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
     .limit(1);
 
   if (!wedding) {

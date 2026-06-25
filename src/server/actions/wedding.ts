@@ -13,7 +13,8 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { photos, templates, weddings, type WeddingSections } from "@/lib/db/schema";
+import { photos, templates, weddingMembers, weddings, type WeddingSections } from "@/lib/db/schema";
+import { generateUniqueInviteCode } from "@/lib/guest-code";
 import {
   SECTION_DATA_SCHEMAS,
   SECTION_IDS,
@@ -21,7 +22,7 @@ import {
 } from "@/lib/invitation/sections";
 import { deleteObject } from "@/lib/r2";
 import { coupleSlug } from "@/lib/slug";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveEditorUserId, resolveMemberWeddingId } from "@/server/queries/wedding";
 
 const saveWeddingSectionSchema = z.object({
   sectionId: z.enum(SECTION_IDS),
@@ -69,17 +70,16 @@ export async function saveWeddingSection(
   }
 
   // 2. Derive ownership from the session — same logic as getMyWedding().
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, error: "Kamu harus masuk dulu untuk menyimpan." };
   }
 
   try {
-    // 3. Load the owned wedding (first non-deleted, by ownership).
+    // 3. Load the member's wedding (non-deleted).
     const wedding = await db.query.weddings.findFirst({
       columns: { id: true, sections: true },
-      where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-      orderBy: (w, { asc }) => [asc(w.createdAt)],
+      where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
     });
 
     if (!wedding) {
@@ -336,12 +336,15 @@ export async function createWedding(
   }
 
   try {
-    const existing = await db.query.weddings.findFirst({
+    // Guard on MEMBERSHIP: a user manages exactly one wedding. If they already
+    // belong to one (as creator OR as a joined partner), this is a no-op that
+    // just routes to the editor (so a double-submit can't create a second).
+    const existingMembership = await db.query.weddingMembers.findFirst({
       columns: { id: true },
-      where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
+      where: eq(weddingMembers.userId, userId),
     });
 
-    if (!existing) {
+    if (!existingMembership) {
       const template = await db.query.templates.findFirst({
         columns: { id: true },
         where: and(
@@ -355,15 +358,29 @@ export async function createWedding(
       }
 
       const slug = await uniqueWeddingSlug(coupleSlug(groomName, brideName));
+      const inviteCode = await generateUniqueInviteCode();
 
-      await db.insert(weddings).values({
-        userId,
-        slug,
-        groomName,
-        brideName,
-        eventDate,
-        templateId: template.id,
-        status: "draft",
+      // Insert the wedding AND the creator's membership row atomically — a
+      // partial failure must never leave a wedding nobody can reach via membership.
+      await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(weddings)
+          .values({
+            userId,
+            slug,
+            groomName,
+            brideName,
+            eventDate,
+            templateId: template.id,
+            status: "draft",
+            inviteCode,
+          })
+          .returning({ id: weddings.id });
+        await tx.insert(weddingMembers).values({
+          weddingId: created!.id,
+          userId,
+          role: "owner",
+        });
       });
     }
   } catch (error) {
@@ -413,16 +430,18 @@ export async function saveWeddingDetails(
   const venue = parsed.data.venue ? parsed.data.venue : null;
   const city = parsed.data.city ? parsed.data.city : null;
 
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, error: "Kamu harus masuk dulu." };
   }
 
   try {
+    // Key the UPDATE on the resolved wedding id (membership already verified) —
+    // a Drizzle UPDATE can't join, and weddings.userId is only the creator.
     const [row] = await db
       .update(weddings)
       .set({ groomName, brideName, eventDate, venue, city, updatedAt: new Date() })
-      .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
+      .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
       .returning({ id: weddings.id });
     if (!row) {
       return { ok: false, error: "Undangan tidak ditemukan." };
@@ -460,16 +479,15 @@ export async function chooseTemplate(input: {
     return { ok: false, error: "Template tidak valid." };
   }
 
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, error: "Kamu harus masuk dulu untuk memasang template." };
   }
 
   try {
     const wedding = await db.query.weddings.findFirst({
       columns: { id: true },
-      where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-      orderBy: (w, { asc }) => [asc(w.createdAt)],
+      where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
     });
     if (!wedding) {
       return { ok: false, error: "Undangan tidak ditemukan." };

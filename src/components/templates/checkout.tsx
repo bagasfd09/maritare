@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { Button } from "@/components/atoms/button";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Icon } from "@/components/atoms/icon";
@@ -9,6 +7,8 @@ import { SectionNumber } from "@/components/atoms/section-number";
 import { Em } from "@/components/atoms/typography";
 import { DashboardTopBar } from "@/components/organisms/dashboard-topbar";
 import { DashboardShell } from "@/components/templates/dashboard-shell";
+import { useCheckout } from "@/components/templates/use-checkout";
+import { CD_UNITS, LAUNCH_PCT, PAYS, PLANS } from "@/lib/checkout";
 import { rupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { DashboardChrome } from "@/server/queries/dashboard";
@@ -16,127 +16,35 @@ import type { DashboardChrome } from "@/server/queries/dashboard";
 // Screen 08 · Checkout — ported 1:1 from the design's Final_Checkout.
 //
 // UI only: there is no payment backend yet (the gateway provider is undecided),
-// so the plan/payment/voucher catalog below is baked from the design and the
-// "Bayar" button is intentionally inert. When a provider is chosen, wire the
-// selection state to a Server Action + order/promo tables. Until then this is a
-// faithful, interactive mock. Live read data threaded in: sidebar `chrome` and
-// the invoice `email`.
-
-type PlanState = "lower" | "current" | "upgrade";
-type Plan = {
-  id: string;
-  roman: string;
-  name: string;
-  price: number;
-  per: string;
-  guests: string;
-  perks: string[];
-  state: PlanState;
-};
-
-const LAUNCH_PCT = 20;
-// Proportional credit for the still-active Gold plan, applied on upgrade.
-const GOLD_CREDIT = 150_000;
-
-const PLANS: Plan[] = [
-  {
-    id: "silver",
-    roman: "I",
-    name: "Silver",
-    price: 150_000,
-    per: "90 hari aktif",
-    guests: "Hingga 100 tamu",
-    perks: ["1 template editorial", "Galeri 30 foto", "RSVP & buku tamu digital"],
-    state: "lower",
-  },
-  {
-    id: "gold",
-    roman: "II",
-    name: "Gold",
-    price: 300_000,
-    per: "180 hari aktif",
-    guests: "Hingga 300 tamu",
-    perks: ["Semua dari Silver, plus →", "Subdomain nama.maritare.id", "Livestream & QR check-in"],
-    state: "current",
-  },
-  {
-    id: "platinum",
-    roman: "III",
-    name: "Platinum",
-    price: 500_000,
-    per: "1 tahun aktif",
-    guests: "Tamu unlimited",
-    perks: [
-      "Semua dari Gold, plus →",
-      "Custom domain (.com / .id)",
-      "Galeri foto unlimited",
-      "Konsultasi desain 1-on-1",
-    ],
-    state: "upgrade",
-  },
-];
-
-type Pay = { id: string; label: string; desc: string; badge: string; color: string; recommended?: boolean };
-const PAYS: Pay[] = [
-  { id: "bca", label: "BCA Virtual Account", desc: "Transfer & verifikasi otomatis", badge: "BCA", color: "#0060AF", recommended: true },
-  { id: "qris", label: "QRIS", desc: "Scan dari semua e-wallet & m-banking", badge: "QRIS", color: "#1a1a1a" },
-  { id: "gopay", label: "GoPay", desc: "Saldo GoPay / GoPay Later", badge: "GoPay", color: "#00AED6" },
-  { id: "ewallet", label: "OVO · DANA · ShopeePay", desc: "Bayar dengan e-wallet pilihanmu", badge: "e-wallet", color: "#4C2A86" },
-  { id: "cc", label: "Kartu Kredit / Debit", desc: "Visa · Mastercard · JCB · cicilan 0%", badge: "Kartu", color: "#7c2d2d" },
-];
-
-type Voucher = { pct: number; label: string };
-const VOUCHERS: Record<string, Voucher> = {
-  CINTA20: { pct: 20, label: "Diskon 20%" },
-  NIKAHYUK: { pct: 15, label: "Diskon 15%" },
-  MARITARE10: { pct: 10, label: "Diskon 10%" },
-};
-
-// Fixed launch-promo window (2d 14h 22m 08s). Seeded as a constant so first
-// paint matches on server and client; the live deadline is set on mount.
-const PROMO_MS = ((2 * 24 + 14) * 3600 + 22 * 60 + 8) * 1000;
-
-const CD_UNITS: Array<{ key: "hari" | "jam" | "mnt" | "dtk"; div: number; mod: number }> = [
-  { key: "hari", div: 86_400_000, mod: Infinity },
-  { key: "jam", div: 3_600_000, mod: 24 },
-  { key: "mnt", div: 60_000, mod: 60 },
-  { key: "dtk", div: 1_000, mod: 60 },
-];
+// so the plan/payment/voucher catalog (see @/lib/checkout) is baked from the
+// design and the "Bayar" button is intentionally inert. When a provider is
+// chosen, wire the selection state to a Server Action + order/promo tables.
+// Until then this is a faithful, interactive mock. Live read data threaded in:
+// sidebar `chrome` and the invoice `email`. The mobile twin is CheckoutMobile;
+// both share state via useCheckout so they never drift.
 
 export function Checkout({ chrome, email }: { chrome: DashboardChrome | null; email: string }) {
-  const [plan, setPlan] = useState("platinum");
-  const [pay, setPay] = useState("bca");
-  const [promoInput, setPromoInput] = useState("");
-  const [voucher, setVoucher] = useState<{ code: string } & Voucher | null>(null);
-  const [voucherErr, setVoucherErr] = useState("");
-  const [remain, setRemain] = useState(PROMO_MS);
-
-  useEffect(() => {
-    const deadline = Date.now() + PROMO_MS;
-    const t = setInterval(() => setRemain(Math.max(0, deadline - Date.now())), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  function applyVoucher() {
-    const code = promoInput.trim().toUpperCase();
-    if (!code) return;
-    const found = VOUCHERS[code];
-    if (found) {
-      setVoucher({ code, ...found });
-      setVoucherErr("");
-    } else {
-      setVoucherErr("Kode voucher tidak valid atau sudah berakhir.");
-    }
-  }
-
-  const sel = PLANS.find((p) => p.id === plan)!;
-  const launchOff = Math.round((sel.price * LAUNCH_PCT) / 100);
-  const afterLaunch = sel.price - launchOff;
-  const voucherOff = voucher ? Math.round((afterLaunch * voucher.pct) / 100) : 0;
-  const credit = plan === "platinum" ? GOLD_CREDIT : 0;
-  const total = Math.max(0, sel.price - launchOff - voucherOff - credit);
-  const saved = launchOff + voucherOff + credit;
-  const verb = plan === "gold" ? "Perpanjang" : "Upgrade ke";
+  const {
+    plan,
+    setPlan,
+    pay,
+    setPay,
+    promoInput,
+    setPromoInput,
+    voucher,
+    voucherErr,
+    setVoucherErr,
+    remain,
+    applyVoucher,
+    clearVoucher,
+    sel,
+    launchOff,
+    voucherOff,
+    credit,
+    total,
+    saved,
+    verb,
+  } = useCheckout();
 
   return (
     <DashboardShell active="billing" chrome={chrome}>
@@ -384,7 +292,7 @@ export function Checkout({ chrome, email }: { chrome: DashboardChrome | null; em
                       </div>
                       <button
                         type="button"
-                        onClick={() => { setVoucher(null); setPromoInput(""); }}
+                        onClick={clearVoucher}
                         title="Hapus voucher"
                         className="bg-transparent border-0 text-[rgba(245,239,230,0.6)] cursor-pointer flex p-[2px]"
                       >

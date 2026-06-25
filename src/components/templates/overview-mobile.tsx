@@ -49,7 +49,8 @@ function activityCopy(item: ActivityItem): { strong: string; rest: string } {
 
 // Mobile 01 · Beranda — ported 1:1 from the design's MB_Beranda, wired to data.
 export function OverviewMobile({ data, chrome }: OverviewMobileProps) {
-  const groomFirstName = (chrome?.groomName ?? "").trim().split(/\s+/)[0];
+  // Greeting uses the SIGNED-IN user's first name (each co-owner sees their own).
+  const greetName = (chrome?.userName ?? "").trim().split(/\s+/)[0];
   const eyebrow = chrome ? `Beranda · ${chrome.coupleLabel}` : "Beranda";
 
   const photoLimitLabel = data.photos.limit ?? "∞";
@@ -59,9 +60,9 @@ export function OverviewMobile({ data, chrome }: OverviewMobileProps) {
       active="beranda"
       eyebrow={eyebrow}
       title={
-        groomFirstName ? (
+        greetName ? (
           <>
-            Selamat sore, <MobileEm>{groomFirstName}.</MobileEm>
+            Selamat sore, <MobileEm>{greetName}.</MobileEm>
           </>
         ) : (
           <>

@@ -98,7 +98,7 @@ function csvEscape(value: string | number): string {
 // Detail-sheet rows, derived from the AdminWeddingRow already in props.
 const DETAIL_FIELDS: { label: string; value: (w: AdminWeddingRow) => React.ReactNode }[] = [
   { label: "Pasangan", value: (w) => w.couple },
-  { label: "Customer", value: (w) => w.customer },
+  { label: "Pemilik", value: (w) => w.customer },
   { label: "Kota", value: (w) => w.city },
   { label: "Paket", value: (w) => <PkgBadge pkg={w.pkg} /> },
   { label: "Status", value: (w) => <AdminStatus status={w.status} /> },
@@ -112,8 +112,16 @@ const SHEET_MENU_ITEM =
   "w-full flex items-center gap-3 px-[18px] py-[13px] text-left text-[13.5px] font-semibold text-charcoal border-b border-line last:border-b-0 cursor-pointer";
 
 // Admin mobile · Undangan — ports `M_Weddings` from mobile-admin-screens.jsx.
-export function AdminWeddingsMobile({ weddings }: { weddings: AdminWeddingRow[] }) {
-  const [query, setQuery] = useState("");
+// `initialQuery` seeds the search (User screen's "Lihat undangan" links here with
+// the owner email pre-filled).
+export function AdminWeddingsMobile({
+  weddings,
+  initialQuery = "",
+}: {
+  weddings: AdminWeddingRow[];
+  initialQuery?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [activeFilter, setActiveFilter] = useState<FilterValue>("all");
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -346,7 +354,7 @@ export function AdminWeddingsMobile({ weddings }: { weddings: AdminWeddingRow[] 
             {expandedId === w.id && (
               <div className="mt-3 pt-3 border-t border-line flex flex-col gap-[6px] text-[11.5px]">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-ink">Pelanggan</span>
+                  <span className="text-muted-ink">Pemilik</span>
                   <span className="font-semibold text-charcoal truncate">{w.customer}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3">

@@ -35,6 +35,9 @@ export const promoDiscountType = pgEnum("promo_discount_type", ["percent", "fixe
 export const adminRole = pgEnum("admin_role", ["super_admin", "support", "finance", "designer"]);
 export const inviteStatus = pgEnum("invite_status", ["pending", "accepted", "revoked"]);
 export const ticketStatus = pgEnum("ticket_status", ["open", "closed"]);
+// Role of a user within a wedding. Single value for now (both partners are equal
+// owners); extend with editor/viewer later if delegation is ever needed.
+export const weddingMemberRole = pgEnum("wedding_member_role", ["owner"]);
 
 // ─────────────────────────────────────────────────────────────────
 // Auth.js tables (DrizzleAdapter)
@@ -185,9 +188,16 @@ export const weddings = pgTable(
   "weddings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // The CREATOR / billing contact (the account that first made this wedding).
+    // Authorization is NOT derived from this column — it lives in wedding_members
+    // (a wedding can have two equal owners). Kept for billing (orders.userId) and
+    // as the immutable creator pointer.
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // Shareable code a partner enters at onboarding to join as the 2nd owner.
+    // Unambiguous 6-char code (see generateGuestCode); nullable only for backfill.
+    inviteCode: text("invite_code").unique(),
     slug: text("slug").notNull(),
     groomName: text("groom_name").notNull(),
     brideName: text("bride_name").notNull(),
@@ -207,6 +217,27 @@ export const weddings = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [uniqueIndex("weddings_slug_unique").on(t.slug)],
+);
+
+// Membership join: which users may manage a wedding. The product allows TWO
+// equal owners (groom + bride); authorization is derived from a row here, never
+// from weddings.userId directly. Hard-deleted on "remove partner" (internal join
+// row; the wedding + creator pointer survive), so the unique index stays simple.
+export const weddingMembers = pgTable(
+  "wedding_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    weddingId: uuid("wedding_id")
+      .notNull()
+      .references(() => weddings.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: weddingMemberRole("role").default("owner").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("wedding_members_wedding_user_unique").on(t.weddingId, t.userId)],
 );
 
 // ─────────────────────────────────────────────────────────────────

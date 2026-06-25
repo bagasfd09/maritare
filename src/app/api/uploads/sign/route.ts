@@ -20,7 +20,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { packages, photos, weddings } from "@/lib/db/schema";
 import { getUploadUrl } from "@/lib/r2";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 // Allowed content types → file extension used in the object key, per kind.
 const IMAGE_TYPE_EXT: Record<string, string> = {
@@ -112,15 +112,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // 2. Derive ownership from the session — never trust a client wedding id.
-    const userId = await resolveEditorUserId();
-    if (!userId) {
+    const memberWeddingId = await resolveMemberWeddingId();
+    if (!memberWeddingId) {
       return json(
         { ok: false, error: "Kamu harus masuk dulu untuk mengunggah." },
         401,
       );
     }
 
-    // 3. Resolve the user's wedding together with its package photo limit.
+    // 3. Resolve the member's wedding together with its package photo limit.
     const wedding = await db
       .select({
         weddingId: weddings.id,
@@ -128,8 +128,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       })
       .from(weddings)
       .leftJoin(packages, eq(weddings.packageId, packages.id))
-      .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-      .orderBy(weddings.createdAt)
+      .where(and(eq(weddings.id, memberWeddingId), isNull(weddings.deletedAt)))
       .limit(1)
       .then((rows) => rows[0]);
 

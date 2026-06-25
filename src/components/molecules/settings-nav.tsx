@@ -14,6 +14,7 @@ type NavItem = {
 const ITEMS: NavItem[] = [
   { id: "account", label: "Akun", icon: "settings", active: true },
   { id: "undangan", label: "Detail undangan", icon: "calendar" },
+  { id: "partner", label: "Partner", icon: "users" },
   { id: "domain", label: "Domain & slug", icon: "globe" },
   { id: "notifikasi", label: "Notifikasi", icon: "bell" },
   { id: "danger", label: "Zona berbahaya", icon: "x", danger: true },

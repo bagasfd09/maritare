@@ -20,6 +20,7 @@ import {
   rsvps,
   templates,
   users,
+  weddingMembers,
   weddings,
   wishes,
 } from "@/lib/db/schema";
@@ -79,7 +80,8 @@ function buildChrome(
 ): DashboardChrome {
   const userName = userRow.name?.trim() || userRow.email;
   return {
-    coupleLabel: `${weddingRow.groomName} & ${weddingRow.brideName}`,
+    // Bride-first by convention (e.g. "Kiki & Bagas").
+    coupleLabel: `${weddingRow.brideName} & ${weddingRow.groomName}`,
     groomName: weddingRow.groomName,
     brideName: weddingRow.brideName,
     status: weddingRow.status,
@@ -96,44 +98,65 @@ function buildChrome(
 
 type ResolvedWedding = {
   wedding: WeddingRow;
+  /** The SIGNED-IN member (groom or bride) — drives the sidebar/profile identity. */
   user: Pick<UserRow, "name" | "email">;
+  /** The wedding's creator (weddings.userId) — the billing contact. */
+  creator: Pick<UserRow, "name" | "email">;
+  /** The signed-in member's own user id (for per-user settings + member list). */
+  userId: string;
   packageName: string | null;
   photoLimit: number | null;
 };
 
 /**
- * Resolve the owned wedding joined to its owner + package in a single query.
- * Ownership lives in the WHERE clause (session-derived user id). Returns `null`
- * when there is no resolvable user or the user has no non-deleted wedding.
+ * Resolve the wedding the signed-in user is a MEMBER of, joined to its creator +
+ * package. `user` is the signed-in member (so the sidebar shows the logged-in
+ * partner's identity, not the creator's); `creator` is weddings.userId (billing
+ * contact). Returns `null` when unauthenticated or the user has no membership.
  */
 async function resolveWedding(): Promise<ResolvedWedding | null> {
   const userId = await resolveEditorUserId();
   if (!userId) {
     return null;
   }
+  const membership = await db.query.weddingMembers.findFirst({
+    columns: { weddingId: true },
+    where: eq(weddingMembers.userId, userId),
+  });
+  if (!membership) {
+    return null;
+  }
 
   const [row] = await db
     .select({
       wedding: weddings,
-      userName: users.name,
-      userEmail: users.email,
+      creatorName: users.name,
+      creatorEmail: users.email,
       packageName: packages.name,
       photoLimit: packages.photoLimit,
     })
     .from(weddings)
     .innerJoin(users, eq(weddings.userId, users.id))
     .leftJoin(packages, eq(weddings.packageId, packages.id))
-    .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-    .orderBy(asc(weddings.createdAt))
+    .where(and(eq(weddings.id, membership.weddingId), isNull(weddings.deletedAt)))
     .limit(1);
 
   if (!row) {
     return null;
   }
 
+  // The signed-in member's own profile (may be the partner, not the creator).
+  const me = await db.query.users.findFirst({
+    columns: { name: true, email: true },
+    where: eq(users.id, userId),
+  });
+  const creator = { name: row.creatorName, email: row.creatorEmail };
+
   return {
     wedding: row.wedding,
-    user: { name: row.userName, email: row.userEmail },
+    user: me ?? creator,
+    creator,
+    userId,
     packageName: row.packageName ?? null,
     photoLimit: row.photoLimit,
   };
@@ -512,6 +535,61 @@ export async function getGuestsData(): Promise<GuestsData | null> {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Sebar Undangan WhatsApp (manual, one-at-a-time wa.me sender)
+// ─────────────────────────────────────────────────────────────────
+
+export type WaBlastData = {
+  chrome: DashboardChrome | null;
+  guests: GuestsData["guests"];
+  /** For building the per-guest WhatsApp invite link client-side. */
+  weddingSlug: string;
+  groomName: string;
+  brideName: string;
+  /** "Sabtu · 14 Juni 2026" — seeds the default message template. */
+  dateLabel: string | null;
+  /** "Pendopo Kayon · Yogyakarta" — seeds the default message template. */
+  venueLabel: string | null;
+};
+
+export async function getWaBlastData(): Promise<WaBlastData | null> {
+  const resolved = await resolveWedding();
+  if (!resolved) {
+    return null;
+  }
+  const { wedding } = resolved;
+
+  const rows = await db
+    .select({
+      id: guests.id,
+      name: guests.name,
+      code: guests.code,
+      group: guests.group,
+      phone: guests.phone,
+      side: guests.side,
+      status: guests.status,
+      partySize: guests.partySize,
+      foodChoice: guests.foodChoice,
+      invitationStatus: guests.invitationStatus,
+    })
+    .from(guests)
+    .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)))
+    .orderBy(asc(guests.createdAt));
+
+  const pendingWishes = await countPendingWishes(wedding.id);
+  const eventDate = parseEventDate(wedding.eventDate);
+
+  return {
+    chrome: buildChrome(wedding, resolved.user, resolved.packageName, pendingWishes),
+    guests: rows,
+    weddingSlug: wedding.slug,
+    groomName: wedding.groomName,
+    brideName: wedding.brideName,
+    dateLabel: formatDateLabel(eventDate),
+    venueLabel: formatVenueLabel(wedding.venue, wedding.city),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Wishes
 // ─────────────────────────────────────────────────────────────────
 
@@ -611,7 +689,7 @@ export async function getBillingData(): Promise<BillingData | null> {
   if (!resolved) {
     return null;
   }
-  const { wedding, user } = resolved;
+  const { wedding, user, creator } = resolved;
 
   // Current package details (price + limits + perks) for the plan card. Joined
   // separately so packageName from resolveWedding stays the single source of
@@ -687,7 +765,9 @@ export async function getBillingData(): Promise<BillingData | null> {
           perks: upgradeRow.perks,
         }
       : null,
-    billingContact: { name: user.name?.trim() ?? "", email: user.email },
+    // Billing is anchored to the wedding's creator (orders.userId), so the
+    // contact shown is the creator — even when the signed-in viewer is the partner.
+    billingContact: { name: creator.name?.trim() ?? "", email: creator.email },
     orders: orderRows,
   };
 }
@@ -796,6 +876,10 @@ export type SettingsData = {
     venue: string | null;
     city: string | null;
   };
+  /** Shareable code a partner enters at onboarding to co-own this wedding. */
+  inviteCode: string | null;
+  /** Current owners (1 or 2). `isMe` = the signed-in viewer; `isCreator` = account owner. */
+  members: { userId: string; name: string; email: string; isCreator: boolean; isMe: boolean }[];
   notificationPrefs: NotificationPrefs;
 };
 
@@ -812,14 +896,30 @@ export async function getSettingsData(): Promise<SettingsData | null> {
   }
   const { wedding } = resolved;
 
-  // resolveWedding only joins name+email; settings also needs phone + prefs.
+  // The settings profile is the SIGNED-IN member's own (phone + prefs are
+  // per-user), not the creator's — resolved.userId is the session user.
   const userRow = await db.query.users.findFirst({
     columns: { name: true, email: true, phone: true, notificationPrefs: true },
-    where: eq(users.id, wedding.userId),
+    where: eq(users.id, resolved.userId),
   });
   if (!userRow) {
     return null;
   }
+
+  // Current owners of this wedding (1 or 2), creator first.
+  const memberRows = await db
+    .select({ userId: weddingMembers.userId, name: users.name, email: users.email })
+    .from(weddingMembers)
+    .innerJoin(users, eq(weddingMembers.userId, users.id))
+    .where(eq(weddingMembers.weddingId, wedding.id))
+    .orderBy(asc(weddingMembers.createdAt));
+  const members = memberRows.map((m) => ({
+    userId: m.userId,
+    name: m.name?.trim() || m.email,
+    email: m.email,
+    isCreator: m.userId === wedding.userId,
+    isMe: m.userId === resolved.userId,
+  }));
 
   const pendingWishes = await countPendingWishes(wedding.id);
   const displayName = userRow.name?.trim() || userRow.email;
@@ -840,6 +940,8 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       venue: wedding.venue,
       city: wedding.city,
     },
+    inviteCode: wedding.inviteCode,
+    members,
     notificationPrefs: normalizeNotificationPrefs(userRow.notificationPrefs),
   };
 }

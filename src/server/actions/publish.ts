@@ -13,12 +13,12 @@
 // the public /inv/<slug> route can never serve an unpublished invitation.
 
 import { revalidatePath } from "next/cache";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { orders, packages, weddings } from "@/lib/db/schema";
 import { logAudit } from "@/server/audit";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 /** Why a publish was refused — lets the UI tailor the call to action. */
 export type PublishRefusal = "auth" | "notfound" | "incomplete" | "unpaid" | "server";
@@ -40,8 +40,8 @@ function revalidatePublishSurfaces(slug: string): void {
 }
 
 export async function publishWedding(): Promise<PublishResult> {
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, reason: "auth", error: "Kamu harus masuk dulu." };
   }
 
@@ -55,8 +55,7 @@ export async function publishWedding(): Promise<PublishResult> {
       venue: true,
       templateId: true,
     },
-    where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-    orderBy: [asc(weddings.createdAt)],
+    where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
   });
   if (!wedding) {
     return { ok: false, reason: "notfound", error: "Undangan tidak ditemukan." };
@@ -116,9 +115,7 @@ export async function publishWedding(): Promise<PublishResult> {
     const [row] = await db
       .update(weddings)
       .set({ status: "live", publishedAt: now, expiresAt, updatedAt: now })
-      .where(
-        and(eq(weddings.id, wedding.id), eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-      )
+      .where(and(eq(weddings.id, wedding.id), isNull(weddings.deletedAt)))
       .returning({ id: weddings.id });
     if (!row) {
       return { ok: false, reason: "notfound", error: "Undangan tidak ditemukan." };
@@ -139,15 +136,14 @@ export async function publishWedding(): Promise<PublishResult> {
 }
 
 export async function unpublishWedding(): Promise<UnpublishResult> {
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, error: "Kamu harus masuk dulu." };
   }
 
   const wedding = await db.query.weddings.findFirst({
     columns: { id: true, slug: true },
-    where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-    orderBy: [asc(weddings.createdAt)],
+    where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
   });
   if (!wedding) {
     return { ok: false, error: "Undangan tidak ditemukan." };
@@ -160,9 +156,7 @@ export async function unpublishWedding(): Promise<UnpublishResult> {
     const [row] = await db
       .update(weddings)
       .set({ status: "draft", publishedAt: null, updatedAt: now })
-      .where(
-        and(eq(weddings.id, wedding.id), eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-      )
+      .where(and(eq(weddings.id, wedding.id), isNull(weddings.deletedAt)))
       .returning({ id: weddings.id });
     if (!row) {
       return { ok: false, error: "Undangan tidak ditemukan." };

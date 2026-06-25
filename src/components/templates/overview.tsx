@@ -18,8 +18,9 @@ type OverviewProps = {
 // Screen 01 · Beranda (Overview). Renders straight from real overview data.
 export function Overview({ data }: OverviewProps) {
   const chrome = data.chrome;
-  // Greeting uses the groom's first name; skip when chrome is unavailable.
-  const groomFirstName = (chrome?.groomName ?? "").trim().split(/\s+/)[0];
+  // Greeting uses the SIGNED-IN user's first name (each co-owner sees their own
+  // name, not always the groom's); skip when chrome is unavailable.
+  const greetName = (chrome?.userName ?? "").trim().split(/\s+/)[0];
 
   // Countdown — render straight from data; coerce nulls for the card's required
   // props (CountdownCard takes a number/string and is out of scope to change).
@@ -44,8 +45,8 @@ export function Overview({ data }: OverviewProps) {
           num="§ I"
           eyebrow="Beranda"
           title={
-            groomFirstName
-              ? <>Selamat sore, <Em className="text-burgundy">{groomFirstName}.</Em></>
+            greetName
+              ? <>Selamat sore, <Em className="text-burgundy">{greetName}.</Em></>
               : <>Selamat <Em className="text-burgundy">sore.</Em></>
           }
           actions={

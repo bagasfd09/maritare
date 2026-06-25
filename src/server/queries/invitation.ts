@@ -13,7 +13,7 @@
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { photos, templates, weddings, wishes } from "@/lib/db/schema";
+import { photos, templates, weddingMembers, weddings, wishes } from "@/lib/db/schema";
 import {
   parseSectionData,
   type AcaraData,
@@ -93,7 +93,6 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   const [wedding] = await db
     .select({
       id: weddings.id,
-      userId: weddings.userId,
       slug: weddings.slug,
       groomName: weddings.groomName,
       brideName: weddings.brideName,
@@ -117,9 +116,17 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   if (wedding.status === "live") {
     kind = "public";
   } else {
-    // Draft/pending/expired: visible only to the owner as a preview.
+    // Draft/pending/expired: visible only to a MEMBER as a preview (either owner —
+    // groom or bride — not just the creator, so both partners can preview drafts).
     const userId = await resolveEditorUserId();
-    if (!userId || userId !== wedding.userId) {
+    if (!userId) {
+      return { kind: "notFound" };
+    }
+    const membership = await db.query.weddingMembers.findFirst({
+      columns: { id: true },
+      where: and(eq(weddingMembers.weddingId, wedding.id), eq(weddingMembers.userId, userId)),
+    });
+    if (!membership) {
       return { kind: "notFound" };
     }
     kind = "ownerPreview";

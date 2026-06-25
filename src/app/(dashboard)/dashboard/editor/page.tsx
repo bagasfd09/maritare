@@ -127,7 +127,7 @@ export default async function Page() {
       <div className="hidden lg:contents">
         <Editor data={editorData} chrome={chrome} />
       </div>
-      <EditorMobile />
+      <EditorMobile data={editorData} />
     </>
   );
 }

@@ -18,7 +18,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { packages, photos, weddings } from "@/lib/db/schema";
 import { deleteObject, headObject } from "@/lib/r2";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 const addPhotoSchema = z.object({
   objectKey: z.string().min(1),
@@ -62,15 +62,14 @@ export type SetClosingResult = { ok: true } | { ok: false; error: string };
  * is no resolvable user or no owned wedding.
  */
 async function resolveOwnedWeddingId(): Promise<string | null> {
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return null;
   }
 
   const wedding = await db.query.weddings.findFirst({
     columns: { id: true },
-    where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-    orderBy: (w, { asc: ascOrder }) => [ascOrder(w.createdAt)],
+    where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
   });
 
   return wedding?.id ?? null;

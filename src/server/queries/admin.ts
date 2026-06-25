@@ -211,6 +211,78 @@ export async function getAdminWeddings(): Promise<AdminWeddingRow[]> {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// 3b · Users (customers) — account-centric, complements the weddings table
+// ─────────────────────────────────────────────────────────────────
+
+// One row per CUSTOMER account (role = 'customer'). Includes deactivated
+// accounts (deletedAt set) so the admin can see + restore them; `active`
+// distinguishes them. `weddings` = non-deleted weddings owned; `spent` = sum of
+// that user's PAID orders (rupiah int).
+export type AdminUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  /** Relative Indonesian signup label, e.g. "3 hari lalu". */
+  joined: string;
+  weddings: number;
+  spent: number;
+  /** false when the account is soft-deleted (deactivated). */
+  active: boolean;
+  initials: string;
+};
+
+/**
+ * All customer accounts (incl. deactivated), newest first, each with their
+ * wedding count + total paid. Empty when the caller is not an admin.
+ */
+export async function getAdminUsers(): Promise<AdminUserRow[]> {
+  const admin = await requireAdmin();
+  if (!admin) {
+    return [];
+  }
+
+  const rows = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      createdAt: users.createdAt,
+      deletedAt: users.deletedAt,
+      // Non-deleted weddings owned by this user.
+      weddings: sql<number>`coalesce((
+        select count(*)
+        from ${weddings}
+        where ${weddings.userId} = ${users.id}
+          and ${weddings.deletedAt} is null
+      ), 0)::int`,
+      // Sum of this user's PAID orders.
+      spent: sql<number>`coalesce((
+        select sum(${orders.amount})
+        from ${orders}
+        where ${orders.userId} = ${users.id}
+          and ${orders.status} = 'paid'
+      ), 0)::int`,
+    })
+    .from(users)
+    .where(eq(users.role, "customer"))
+    .orderBy(desc(users.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name?.trim() || r.email,
+    email: r.email,
+    phone: r.phone?.trim() || "—",
+    joined: relativeTimeId(r.createdAt),
+    weddings: r.weddings ?? 0,
+    spent: r.spent ?? 0,
+    active: r.deletedAt == null,
+    initials: initialsOf(r.name, r.email),
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────
 // 4 · Orders (AdminTransaction-shaped)
 // ─────────────────────────────────────────────────────────────────
 

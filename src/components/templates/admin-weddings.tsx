@@ -121,7 +121,7 @@ function coupleInitials(couple: string) {
 // Detail-modal rows, derived from the AdminWeddingRow already in props (no new query).
 const DETAIL_FIELDS: { label: string; value: (w: AdminWeddingRow) => React.ReactNode }[] = [
   { label: "Pasangan", value: (w) => w.couple },
-  { label: "Customer", value: (w) => w.customer },
+  { label: "Pemilik", value: (w) => w.customer },
   { label: "Kota", value: (w) => w.city },
   { label: "Paket", value: (w) => <PkgBadge pkg={w.pkg} /> },
   { label: "Status", value: (w) => <AdminStatus status={w.status} /> },
@@ -132,8 +132,16 @@ const DETAIL_FIELDS: { label: string; value: (w: AdminWeddingRow) => React.React
 ];
 
 // Admin screen 02 · Undangan — master table of all weddings.
-export function AdminWeddings({ weddings }: { weddings: AdminWeddingRow[] }) {
-  const [query, setQuery] = useState("");
+// `initialQuery` seeds the search box (used by the User table's "Lihat undangan"
+// action, which links here with the owner email pre-filled).
+export function AdminWeddings({
+  weddings,
+  initialQuery = "",
+}: {
+  weddings: AdminWeddingRow[];
+  initialQuery?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [pkgFilter, setPkgFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<WeddingStatus | "">("");
   const [cityFilter, setCityFilter] = useState("");
@@ -544,7 +552,7 @@ export function AdminWeddings({ weddings }: { weddings: AdminWeddingRow[] }) {
                       />
                     </th>
                     <th className={TH}>Pasangan</th>
-                    <th className={TH}>Customer (email)</th>
+                    <th className={TH}>Pemilik (email)</th>
                     <th className={TH}>Paket</th>
                     <th className={TH}>Template</th>
                     <th className={TH}>Status</th>

@@ -13,7 +13,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { packages, photos, weddings } from "@/lib/db/schema";
 import { getViewUrl } from "@/lib/r2";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 export type GalleryPhoto = {
   id: string;
@@ -68,13 +68,13 @@ function countByLabel(rows: { label: string | null }[]): { label: string; count:
  * empty gallery is returned so callers can render a neutral empty state.
  */
 export async function getMyGallery(): Promise<Gallery> {
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return EMPTY_GALLERY;
   }
 
-  // Resolve the owned wedding joined to its package (left join: packageId is
-  // nullable / set-null on package delete). Ownership lives in the WHERE clause.
+  // Resolve the member's wedding joined to its package (left join: packageId is
+  // nullable / set-null on package delete). Ownership comes from membership.
   const [owned] = await db
     .select({
       weddingId: weddings.id,
@@ -83,8 +83,7 @@ export async function getMyGallery(): Promise<Gallery> {
     })
     .from(weddings)
     .leftJoin(packages, eq(weddings.packageId, packages.id))
-    .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-    .orderBy(asc(weddings.createdAt))
+    .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
     .limit(1);
 
   if (!owned) {

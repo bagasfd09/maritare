@@ -15,13 +15,14 @@ type AvatarProps = {
   tone?: Tone;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 };
 
 // Initials avatar. Ports `.d-av`.
-export function Avatar({ children, tone = "sage", size = 32, className }: AvatarProps) {
+export function Avatar({ children, tone = "sage", size = 32, className, style }: AvatarProps) {
   return (
     <span
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, ...style }}
       className={cn(
         "rounded-full inline-flex items-center justify-center shrink-0",
         "font-display font-bold text-[13px]",

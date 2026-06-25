@@ -6,7 +6,7 @@ import { SectionNumber } from "@/components/atoms/section-number";
 import { TemplateFeatured } from "@/components/molecules/template-featured";
 import { TemplateCard, type Template } from "@/components/molecules/template-card";
 import { type MiniInvitePalette } from "@/components/molecules/mini-invite";
-import { isRenderableTemplateSlug } from "@/components/invitation/slugs";
+import { isRenderableTemplateSlug, templateThumbSrc } from "@/components/invitation/slugs";
 import type { CatalogTemplate, TemplatesData } from "@/server/queries/dashboard";
 
 // The fixed set of palette keys MiniInvite knows. A template slug that isn't a
@@ -31,12 +31,6 @@ type GalleryRow = {
   thumbSrc: string | null;
   template: Template;
   source: CatalogTemplate;
-};
-
-// Renderable templates that have a generated cover thumbnail in
-// public/invitation/thumbs/<slug>.webp.
-const TEMPLATE_THUMBS: Record<string, string> = {
-  folk: "/invitation/thumbs/folk.webp",
 };
 
 const CATEGORIES = ["Semua", "Editorial", "Romantic", "Rustic", "Minimal"];
@@ -70,7 +64,7 @@ function toRows(data: TemplatesData): GalleryRow[] {
       previewHref,
       // An admin-uploaded cover (presigned URL) wins for ANY template, even
       // non-renderable ones; the static thumb stays the fallback for renderable.
-      thumbSrc: t.coverUrl ?? (renderable ? (TEMPLATE_THUMBS[t.slug] ?? null) : null),
+      thumbSrc: templateThumbSrc(t.slug, t.coverUrl ?? null),
       template: {
         id: toPalette(t.slug),
         name: t.name,

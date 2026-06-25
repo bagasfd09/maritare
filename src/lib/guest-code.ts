@@ -7,8 +7,10 @@
 
 import { randomInt } from "node:crypto";
 
+import { eq } from "drizzle-orm";
+
 import { db } from "@/lib/db";
-import { guests } from "@/lib/db/schema";
+import { guests, weddings } from "@/lib/db/schema";
 
 // Unambiguous base-57 alphabet — omits 0/O/1/I/l so a code can't be misread off
 // a screen. 57^6 ≈ 34 billion combinations.
@@ -24,6 +26,24 @@ export function generateGuestCode(): string {
     code += ALPHABET[randomInt(ALPHABET.length)];
   }
   return code;
+}
+
+/**
+ * A unique wedding invite code (the "kode undangan" a partner enters at
+ * onboarding to join as the 2nd owner). Reuses the unambiguous guest-code
+ * alphabet; the `weddings.invite_code` unique index is the real guarantee, this
+ * just pre-checks so the insert/update rarely collides.
+ */
+export async function generateUniqueInviteCode(): Promise<string> {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const code = generateGuestCode();
+    const existing = await db.query.weddings.findFirst({
+      columns: { id: true },
+      where: eq(weddings.inviteCode, code),
+    });
+    if (!existing) return code;
+  }
+  throw new Error("Failed to generate a unique invite code");
 }
 
 function isUniqueViolation(error: unknown): boolean {

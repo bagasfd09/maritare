@@ -5,7 +5,8 @@ export type IconName =
   | "card" | "settings" | "search" | "plus" | "arrow-r" | "arrow-ur" | "arrow-d"
   | "chevron-d" | "chevron-r" | "external" | "bell" | "check" | "x" | "more"
   | "filter" | "upload" | "download" | "qr" | "link" | "copy" | "music"
-  | "calendar" | "pin" | "globe" | "wa" | "eye" | "sparkle" | "grip" | "list" | "share" | "logout";
+  | "calendar" | "pin" | "globe" | "wa" | "eye" | "sparkle" | "grip" | "list" | "share" | "logout"
+  | "user";
 
 type IconProps = {
   name: IconName;
@@ -35,6 +36,7 @@ export function Icon({ name, size = 16, stroke = "currentColor", strokeWidth = 1
     case "home": return (<svg {...common}><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg>);
     case "edit": return (<svg {...common}><path d="M14 4l6 6L10 20H4v-6L14 4z" /></svg>);
     case "users": return (<svg {...common}><circle cx="9" cy="9" r="3.5" /><path d="M3 20c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5" /><circle cx="17" cy="8" r="2.5" /><path d="M15 20c0-2.4 1.6-4.5 4-5" /></svg>);
+    case "user": return (<svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" /></svg>);
     case "heart": return (<svg {...common}><path d="M12 21s-7-4.5-9-9.5C1.6 7 4 4 7 4c1.7 0 3.2 1 4 2 0.8-1 2.3-2 4-2 3 0 5.4 3 4 7.5C19 16.5 12 21 12 21z" /></svg>);
     case "image": return (<svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M21 16l-6-5-10 9" /></svg>);
     case "envelope": return (<svg {...common}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 8l9 6 9-6" /></svg>);

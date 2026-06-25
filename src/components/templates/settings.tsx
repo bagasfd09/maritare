@@ -7,6 +7,7 @@ import { SectionNumber } from "@/components/atoms/section-number";
 import { SettingsNav } from "@/components/molecules/settings-nav";
 import { SettingsAccount } from "@/components/molecules/settings-account";
 import { SettingsWedding } from "@/components/molecules/settings-wedding";
+import { SettingsPartner } from "@/components/molecules/settings-partner";
 import { SettingsDomain } from "@/components/molecules/settings-domain";
 import { SettingsNotifications } from "@/components/molecules/settings-notifications";
 import { SettingsDanger } from "@/components/molecules/settings-danger";
@@ -42,6 +43,7 @@ export function Settings({ data }: { data: SettingsData }) {
           <div className="min-w-0 flex flex-col gap-[22px]">
             <SettingsAccount profile={data.profile} />
             <SettingsWedding wedding={data.wedding} />
+            <SettingsPartner inviteCode={data.inviteCode} members={data.members} />
             <SettingsDomain weddingSlug={data.weddingSlug} />
             <SettingsNotifications prefs={data.notificationPrefs} />
             <SettingsDanger />

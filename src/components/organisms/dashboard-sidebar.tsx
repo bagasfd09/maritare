@@ -75,7 +75,7 @@ export function DashboardSidebar({
         <div className="font-display italic text-[22px] text-charcoal leading-[1.1] tracking-[-0.015em]">
           {chrome ? (
             <>
-              {chrome.groomName} <span className="text-burgundy">&amp;</span> {chrome.brideName}
+              {chrome.brideName} <span className="text-burgundy">&amp;</span> {chrome.groomName}
             </>
           ) : (
             "Undanganmu"

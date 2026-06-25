@@ -9,6 +9,7 @@ import {
   MobileHeading,
 } from "@/components/molecules/mobile-primitives";
 import { MobileShell } from "@/components/templates/mobile-shell";
+import { templateThumbSrc } from "@/components/invitation/slugs";
 import type { TemplatesData } from "@/server/queries/dashboard";
 
 const CATEGORIES = ["Semua", "Editorial", "Romantic", "Rustic", "Minimal"];
@@ -48,17 +49,20 @@ export function TemplatesMobile({ data }: { data: TemplatesData }) {
       {/* Featured: current (or recommended) template */}
       {featured && (
         <MobileCard className="flex items-center gap-4">
-          {featured.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL; plain img keeps it off the optimizer (next/image would break the signed URL)
-            <img
-              src={featured.coverUrl}
-              alt={`Pratinjau ${featured.name}`}
-              loading="lazy"
-              className="w-[104px] h-[140px] rounded-[6px] object-cover object-top shrink-0"
-            />
-          ) : (
-            <MiniInvite width={104} palette={toPalette(featured.slug)} scale={0.62} />
-          )}
+          {(() => {
+            const thumb = templateThumbSrc(featured.slug, featured.coverUrl ?? null);
+            return thumb ? (
+              // eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL or static thumb; plain img keeps signed URLs off the optimizer
+              <img
+                src={thumb}
+                alt={`Pratinjau ${featured.name}`}
+                loading="lazy"
+                className="w-[104px] h-[140px] rounded-[6px] object-cover object-top shrink-0"
+              />
+            ) : (
+              <MiniInvite width={104} palette={toPalette(featured.slug)} scale={0.62} />
+            );
+          })()}
           <div className="flex-1 min-w-0">
             <StatusPill tone={isCurrent ? "live" : "draft"} className="text-[10px]">
               {isCurrent ? "Sedang dipakai" : "Pilihan Maritare"}
@@ -82,13 +86,15 @@ export function TemplatesMobile({ data }: { data: TemplatesData }) {
         </MobileHeading>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {others.map((t) => (
+        {others.map((t) => {
+          const thumb = templateThumbSrc(t.slug, t.coverUrl ?? null);
+          return (
           <MobileCard key={t.slug} className="p-[10px]">
             <div className="flex justify-center">
-              {t.coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL; plain img keeps it off the optimizer (next/image would break the signed URL)
+              {thumb ? (
+                // eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL or static thumb; plain img keeps signed URLs off the optimizer
                 <img
-                  src={t.coverUrl}
+                  src={thumb}
                   alt={`Pratinjau ${t.name}`}
                   loading="lazy"
                   className="w-[120px] h-[162px] rounded-[6px] object-cover object-top"
@@ -104,7 +110,8 @@ export function TemplatesMobile({ data }: { data: TemplatesData }) {
               </span>
             </div>
           </MobileCard>
-        ))}
+          );
+        })}
       </div>
     </MobileShell>
   );

@@ -5,11 +5,11 @@
 // Actions — it never accepts a client-supplied wedding id (ownership is always
 // derived from the session per AGENTS.md hard rules).
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { templates, users, weddings } from "@/lib/db/schema";
+import { templates, users, weddingMembers, weddings } from "@/lib/db/schema";
 import { DEFAULT_MANIFEST, type TemplateManifest } from "@/lib/invitation/manifest";
 
 /** A non-deleted wedding row, including its `sections` jsonb document. */
@@ -52,19 +52,37 @@ export async function resolveEditorUserId(): Promise<string | null> {
 }
 
 /**
- * Get the current user's wedding for the editor: the first non-deleted wedding
- * owned by the resolved user, ordered by `createdAt`. Returns `null` when there
- * is no resolvable user (unauthenticated in production) or no wedding exists.
+ * Resolve the id of the wedding the signed-in user is a MEMBER of (one wedding
+ * per user — a user is an owner of exactly one wedding). This is the single
+ * source of ownership: every wedding-scoped getter/action goes through here
+ * instead of filtering on `weddings.userId` (which is now only the creator).
+ * Returns `null` when unauthenticated or the user has no membership yet.
  */
-export async function getMyWedding(): Promise<WeddingRow | null> {
+export async function resolveMemberWeddingId(): Promise<string | null> {
   const userId = await resolveEditorUserId();
   if (!userId) {
     return null;
   }
+  const member = await db.query.weddingMembers.findFirst({
+    columns: { weddingId: true },
+    where: eq(weddingMembers.userId, userId),
+  });
+  return member?.weddingId ?? null;
+}
+
+/**
+ * Get the current user's wedding for the editor — the non-deleted wedding they
+ * are a member of. Returns `null` when there is no resolvable user
+ * (unauthenticated in production) or no membership/wedding exists.
+ */
+export async function getMyWedding(): Promise<WeddingRow | null> {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
+    return null;
+  }
 
   const wedding = await db.query.weddings.findFirst({
-    where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-    orderBy: [asc(weddings.createdAt)],
+    where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
   });
 
   return wedding ?? null;

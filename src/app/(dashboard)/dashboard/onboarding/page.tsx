@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { auth } from "@/lib/auth";
 import { isRenderableTemplateSlug } from "@/components/invitation/slugs";
 import { Onboarding } from "@/components/templates/onboarding";
 import { getPublishedTemplates } from "@/server/queries/dashboard";
@@ -14,10 +15,12 @@ export default async function Page() {
     redirect("/dashboard");
   }
 
+  const session = await auth();
+
   // Only renderable templates (folk/scarlet) can actually be used.
   const templates = (await getPublishedTemplates()).filter((t) =>
     isRenderableTemplateSlug(t.slug),
   );
 
-  return <Onboarding templates={templates} />;
+  return <Onboarding templates={templates} userEmail={session?.user?.email ?? null} />;
 }

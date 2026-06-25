@@ -12,7 +12,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { weddings, wishes } from "@/lib/db/schema";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 const moderateSchema = z.object({
   wishId: z.string().uuid(),
@@ -29,17 +29,16 @@ export async function moderateWish(input: ModerateWishInput): Promise<ModerateWi
   }
   const { wishId, action } = parsed.data;
 
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, error: "Kamu harus masuk dulu." };
   }
 
   try {
-    // Resolve the owned wedding from the session (same logic as the editor).
+    // Resolve the member's wedding from the session (same logic as the editor).
     const wedding = await db.query.weddings.findFirst({
       columns: { id: true },
-      where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-      orderBy: (w, { asc }) => [asc(w.createdAt)],
+      where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
     });
     if (!wedding) {
       return { ok: false, error: "Undangan tidak ditemukan." };

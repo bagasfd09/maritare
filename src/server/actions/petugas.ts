@@ -15,7 +15,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -27,7 +27,7 @@ import {
   readKioskNonce,
   setKioskCookie,
 } from "@/lib/guestbook-session";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 export type PetugasResult = { ok: true } | { ok: false; error: string };
 
@@ -145,14 +145,13 @@ export async function endPetugasSession(): Promise<void> {
 // ─────────────────────────────────────────────────────────────────
 
 async function resolveOwnerWedding(): Promise<{ id: string; limit: number } | null> {
-  const userId = await resolveEditorUserId();
-  if (!userId) return null;
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) return null;
   const [row] = await db
     .select({ id: weddings.id, limit: packages.guestbookLimit })
     .from(weddings)
     .leftJoin(packages, eq(weddings.packageId, packages.id))
-    .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-    .orderBy(asc(weddings.createdAt))
+    .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
     .limit(1);
   if (!row) return null;
   return { id: row.id, limit: row.limit ?? 1 };

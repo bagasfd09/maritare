@@ -28,7 +28,7 @@ import {
   parseGuestImportRow,
   type GuestImportData,
 } from "@/lib/guests-csv";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 const MAX_IMPORT_BYTES = 2_000_000; // 2 MB.
 const MAX_DATA_ROWS = 1000;
@@ -45,17 +45,16 @@ interface ImportFailure {
 export async function POST(request: NextRequest): Promise<Response> {
   try {
     // 1. Derive ownership from the session — never trust a client wedding id.
-    const userId = await resolveEditorUserId();
-    if (!userId) {
+    const memberWeddingId = await resolveMemberWeddingId();
+    if (!memberWeddingId) {
       return json({ ok: false, error: "Kamu harus masuk dulu." }, 401);
     }
 
-    // 2. Resolve the user's first non-deleted wedding (same pattern as sign).
+    // 2. Resolve the member's non-deleted wedding (same pattern as sign).
     const wedding = await db
       .select({ weddingId: weddings.id })
       .from(weddings)
-      .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-      .orderBy(weddings.createdAt)
+      .where(and(eq(weddings.id, memberWeddingId), isNull(weddings.deletedAt)))
       .limit(1)
       .then((rows) => rows[0]);
 

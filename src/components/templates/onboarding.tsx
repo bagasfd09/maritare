@@ -14,6 +14,8 @@ import { Display, Em } from "@/components/atoms/typography";
 import { cn } from "@/lib/utils";
 import type { CatalogTemplate } from "@/server/queries/dashboard";
 import { createWedding } from "@/server/actions/wedding";
+import { joinWeddingByCode } from "@/server/actions/wedding-members";
+import { logout } from "@/server/actions/auth";
 
 const INPUT =
   "w-full bg-cream border border-beige rounded-[12px] px-[14px] py-3 font-body text-[14px] text-charcoal outline-none transition-colors focus:border-burgundy focus:bg-paper placeholder:text-faint";
@@ -25,13 +27,35 @@ const TEMPLATE_THUMBS: Record<string, string> = {
   folk: "/invitation/thumbs/folk.webp",
 };
 
-export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
+// Ambient floral scatter behind the form — keeps the entry screen warm/branded
+// instead of a flat ivory wall. Faint, decorative, non-interactive.
+const PETALS = [
+  { className: "top-[-44px] left-[-32px]", size: 184, rot: 18, op: 0.09 },
+  { className: "top-[14%] right-[-56px]", size: 140, rot: -14, op: 0.08 },
+  { className: "bottom-[-48px] left-[6%]", size: 168, rot: 26, op: 0.07 },
+  { className: "bottom-[16%] right-[4%]", size: 116, rot: -22, op: 0.06 },
+] as const;
+
+export function Onboarding({
+  templates,
+  userEmail,
+}: {
+  templates: CatalogTemplate[];
+  userEmail?: string | null;
+}) {
+  const [mode, setMode] = useState<"create" | "join">("create");
   const [groomName, setGroomName] = useState("");
   const [brideName, setBrideName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [templateSlug, setTemplateSlug] = useState(templates[0]?.slug ?? "");
+  const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function switchMode(next: "create" | "join") {
+    setMode(next);
+    setError(null);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,20 +84,111 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
     });
   }
 
+  function handleJoin(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (!joinCode.trim()) {
+      setError("Masukkan kode undangan dari pasanganmu.");
+      return;
+    }
+
+    startTransition(async () => {
+      // On success this redirects (never returns); only errors come back.
+      const result = await joinWeddingByCode({ code: joinCode.trim() });
+      if (result && !result.ok) {
+        setError(result.error);
+      }
+    });
+  }
+
   return (
-    <div className="min-h-screen w-full bg-ivory text-charcoal font-body flex flex-col items-center px-5 py-10">
-      <div className="w-full max-w-[680px]">
-        {/* Brand header */}
-        <div className="flex items-center justify-between mb-8">
+    <div className="relative min-h-screen w-full overflow-hidden bg-ivory text-charcoal font-body flex flex-col items-center px-4 sm:px-5 py-8 sm:py-10">
+      {/* Ambient brand background: warm glow + faint floral scatter. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(110%_70%_at_50%_-8%,rgba(234,211,194,0.5),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(80%_55%_at_100%_100%,rgba(212,144,111,0.12),transparent_50%)]" />
+        {PETALS.map((p, i) => (
+          <div
+            key={i}
+            className={cn("absolute", p.className)}
+            style={{ opacity: p.op, transform: `rotate(${p.rot}deg)` }}
+          >
+            <FlowerMark
+              size={p.size}
+              color="var(--color-terracotta)"
+              core="var(--color-burgundy)"
+              stamen="var(--color-peach)"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="relative z-10 w-full max-w-[680px]">
+        {/* Brand header. The account chip tells a hesitant user which account
+            they're signed into AND gives a clean exit (escape hatch). */}
+        <div className="flex items-center justify-between gap-3 mb-8">
           <Logo size={26} />
-          <FlowerMark size={20} />
+          {userEmail ? (
+            <div className="flex items-center gap-2 rounded-full border border-line bg-paper/70 backdrop-blur-sm pl-3 pr-1 py-1">
+              <span className="hidden sm:inline text-[11px] text-muted-ink max-w-[220px] truncate">
+                Masuk sebagai <span className="font-semibold text-charcoal">{userEmail}</span>
+              </span>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-[5px] rounded-full bg-cream hover:bg-blush/50 text-burgundy text-[11px] font-semibold tracking-[0.02em] px-3 py-[6px] transition-colors cursor-pointer"
+                >
+                  <Icon name="logout" size={13} />
+                  Keluar
+                </button>
+              </form>
+            </div>
+          ) : (
+            <FlowerMark size={20} />
+          )}
         </div>
 
+        {/* Mode toggle: create a new wedding, or join a partner's by code.
+            Two equal-weight cards (not a text-only pill) so "Gabung pakai kode"
+            is clearly a real choice, not an afterthought. */}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {(
+            [
+              ["create", "Buat undangan baru", "plus"],
+              ["join", "Gabung pakai kode", "link"],
+            ] as const
+          ).map(([m, label, icon]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => switchMode(m)}
+              aria-pressed={mode === m}
+              className={cn(
+                "inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-3 sm:py-[14px] rounded-[14px] text-[12px] sm:text-[13px] font-semibold tracking-[0.02em] leading-tight text-center cursor-pointer transition-colors border",
+                mode === m
+                  ? "bg-burgundy text-cream border-burgundy shadow-[0_8px_18px_-12px_rgba(124,45,45,0.8)]"
+                  : "bg-paper text-charcoal border-line hover:border-burgundy/40",
+              )}
+            >
+              <Icon name={icon} size={15} className="shrink-0" />
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[12px] text-muted-ink mb-7">
+          {mode === "create"
+            ? "Pasanganmu sudah bikin undangan? Pilih “Gabung pakai kode”."
+            : "Belum ada undangan? Pilih “Buat undangan baru”."}
+        </p>
+
+        {mode === "create" ? (
+          <>
         <div className="mb-6">
           <span className="text-[11px] tracking-[0.22em] uppercase font-bold text-muted-ink">
             Selamat datang
           </span>
-          <Display as="h1" className="text-[34px] mt-2 leading-[1.05]">
+          <Display as="h1" className="text-[26px] sm:text-[34px] mt-2 leading-[1.05]">
             Buat <Em className="text-burgundy">undangan</Em> pertamamu.
           </Display>
           <p className="text-[14px] text-muted-ink mt-3 leading-[1.6] max-w-[460px]">
@@ -84,7 +199,7 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Couple names */}
-          <div className="bg-paper border border-line rounded-[14px] px-[22px] py-5 grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
+          <div className="bg-paper border border-line rounded-[14px] px-4 sm:px-[22px] py-5 grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
             <div>
               <label className={INPUT_LABEL} htmlFor="ob-groom">
                 Nama mempelai pria
@@ -130,7 +245,7 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
           {/* Template picker */}
           <div>
             <label className={cn(INPUT_LABEL, "px-1")}>Pilih template</label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {templates.map((t) => {
                 const selected = t.slug === templateSlug;
                 // Prefer an admin-uploaded cover (presigned URL), then the local
@@ -144,7 +259,7 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
                     onClick={() => setTemplateSlug(t.slug)}
                     aria-pressed={selected}
                     className={cn(
-                      "text-left bg-paper rounded-2xl border p-[14px] relative cursor-pointer transition-colors",
+                      "text-left bg-paper rounded-2xl border p-[10px] sm:p-[14px] relative cursor-pointer transition-colors",
                       selected ? "border-burgundy ring-1 ring-burgundy" : "border-line hover:border-charcoal/30",
                     )}
                   >
@@ -153,7 +268,7 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
                         <Icon name="check" size={13} />
                       </span>
                     )}
-                    <div className="bg-cream rounded-[10px] mb-3 overflow-hidden h-[180px] flex items-center justify-center">
+                    <div className="bg-cream rounded-[10px] mb-3 overflow-hidden h-[140px] sm:h-[180px] flex items-center justify-center">
                       {thumb ? (
                         // eslint-disable-next-line @next/next/no-img-element -- static local thumbnail; plain img keeps it off the optimizer
                         <img
@@ -174,10 +289,10 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
                         </div>
                       )}
                     </div>
-                    <div className="font-display italic text-[18px] leading-[1.1] text-charcoal px-1">
+                    <div className="font-display italic text-[16px] sm:text-[18px] leading-[1.1] text-charcoal px-1">
                       {t.name}
                     </div>
-                    <div className="text-[10px] text-muted-ink tracking-[0.2em] uppercase font-semibold mt-1 px-1">
+                    <div className="text-[9px] sm:text-[10px] text-muted-ink tracking-[0.18em] sm:tracking-[0.2em] uppercase font-semibold mt-1 px-1">
                       {t.style ?? t.category ?? ""}
                     </div>
                   </button>
@@ -192,19 +307,70 @@ export function Onboarding({ templates }: { templates: CatalogTemplate[] }) {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex flex-col items-stretch sm:flex-row sm:items-center gap-3 pt-1">
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-burgundy text-cream font-body font-semibold text-[14px] tracking-[0.04em] cursor-pointer disabled:opacity-60 transition-opacity"
+              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-burgundy text-cream font-body font-semibold text-[14px] tracking-[0.04em] cursor-pointer disabled:opacity-60 transition-opacity w-full sm:w-auto"
             >
               {isPending ? "Membuat…" : "Buat undangan →"}
             </button>
-            <span className="text-[12px] text-muted-ink">
+            <span className="text-[12px] text-muted-ink text-center sm:text-left">
               Gratis selama belum publish.
             </span>
           </div>
         </form>
+          </>
+        ) : (
+          <form onSubmit={handleJoin} className="flex flex-col gap-5">
+            <div className="mb-6">
+              <span className="text-[11px] tracking-[0.22em] uppercase font-bold text-muted-ink">
+                Gabung undangan
+              </span>
+              <Display as="h1" className="text-[26px] sm:text-[34px] mt-2 leading-[1.05]">
+                Satu undangan, <Em className="text-burgundy">berdua.</Em>
+              </Display>
+              <p className="text-[14px] text-muted-ink mt-3 leading-[1.6] max-w-[460px]">
+                Masukkan kode undangan dari pasanganmu untuk ikut mengelola undangan
+                yang sama. Kode bisa dilihat pasanganmu di menu Pengaturan.
+              </p>
+            </div>
+
+            <div className="bg-paper border border-line rounded-[14px] px-4 sm:px-[22px] py-5">
+              <label className={INPUT_LABEL} htmlFor="ob-code">
+                Kode undangan
+              </label>
+              <input
+                id="ob-code"
+                className={cn(INPUT, "sm:max-w-[280px] tracking-[0.3em] uppercase")}
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="mis. K7P2QX"
+                maxLength={40}
+                autoComplete="off"
+              />
+            </div>
+
+            {error && (
+              <div className="text-[13px] text-burgundy bg-blush/40 border border-burgundy/30 rounded-[10px] px-4 py-3">
+                {error}
+              </div>
+            )}
+
+            <div className="flex flex-col items-stretch sm:flex-row sm:items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-burgundy text-cream font-body font-semibold text-[14px] tracking-[0.04em] cursor-pointer disabled:opacity-60 transition-opacity w-full sm:w-auto"
+              >
+                {isPending ? "Menggabungkan…" : "Gabung undangan →"}
+              </button>
+              <span className="text-[12px] text-muted-ink text-center sm:text-left">
+                Belum punya kode? Minta ke pasanganmu.
+              </span>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

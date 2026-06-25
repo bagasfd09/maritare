@@ -2,6 +2,7 @@ import { Icon, type IconName } from "@/components/atoms/icon";
 import { Avatar } from "@/components/atoms/avatar";
 import { MobileShell } from "@/components/templates/mobile-shell";
 import { MobileCard, MobileEyebrow, MobileToggle } from "@/components/molecules/mobile-primitives";
+import { SettingsPartnerMobile } from "@/components/molecules/settings-partner-mobile";
 import { cn } from "@/lib/utils";
 import { logout } from "@/server/actions/auth";
 import type { SettingsData } from "@/server/queries/dashboard";
@@ -96,7 +97,7 @@ function ToggleRow({ label, on }: { label: string; on: boolean }) {
 // Mobile 09 · Pengaturan — ported from the design's MB_Pengaturan, now bound to
 // the signed-in user's real profile + invitation.
 export function SettingsMobile({ data }: { data: SettingsData }) {
-  const { profile, weddingSlug, notificationPrefs } = data;
+  const { profile, weddingSlug, notificationPrefs, inviteCode, members } = data;
   const headerName = profile.name.trim() || profile.email;
   return (
     <MobileShell active="pengaturan" eyebrow="Pengaturan" title={<>Pengaturan.</>}>
@@ -115,6 +116,8 @@ export function SettingsMobile({ data }: { data: SettingsData }) {
         <LinkRow icon="link" label="Tautan & domain" sub={`maritare.id/${weddingSlug}`} />
         <LinkRow icon="globe" label="Bahasa" sub="Indonesia" />
       </SettingsGroup>
+
+      <SettingsPartnerMobile inviteCode={inviteCode} members={members} />
 
       <SettingsGroup title="Notifikasi">
         <ToggleRow label="Email" on={notificationPrefs.rsvp.email} />

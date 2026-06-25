@@ -15,7 +15,7 @@ import { db } from "@/lib/db";
 import { users, weddings } from "@/lib/db/schema";
 import { NOTIFICATION_KINDS, type NotificationPrefs } from "@/lib/notifications";
 import { isValidSlug } from "@/lib/slug";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveEditorUserId, resolveMemberWeddingId } from "@/server/queries/wedding";
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
 
@@ -128,16 +128,15 @@ export async function renameSlug(input: {
   }
   const slug = parsed.data.slug;
 
-  const userId = await resolveEditorUserId();
-  if (!userId) {
+  const weddingId = await resolveMemberWeddingId();
+  if (!weddingId) {
     return { ok: false, error: "Kamu harus masuk dulu." };
   }
 
   try {
     const wedding = await db.query.weddings.findFirst({
       columns: { id: true, slug: true },
-      where: and(eq(weddings.userId, userId), isNull(weddings.deletedAt)),
-      orderBy: (w, { asc }) => [asc(w.createdAt)],
+      where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
     });
     if (!wedding) {
       return { ok: false, error: "Undangan tidak ditemukan." };

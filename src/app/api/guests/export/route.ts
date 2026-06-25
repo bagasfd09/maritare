@@ -16,24 +16,23 @@ import { db } from "@/lib/db";
 import { guests, weddings } from "@/lib/db/schema";
 import { toCsv } from "@/lib/csv";
 import { GUEST_CSV_HEADERS, guestToCsvCells } from "@/lib/guests-csv";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 type ExportErrorResponse = { ok: false; error: string };
 
 export async function GET(): Promise<Response> {
   try {
     // 1. Derive ownership from the session — never trust a client wedding id.
-    const userId = await resolveEditorUserId();
-    if (!userId) {
+    const memberWeddingId = await resolveMemberWeddingId();
+    if (!memberWeddingId) {
       return json({ ok: false, error: "Kamu harus masuk dulu." }, 401);
     }
 
-    // 2. Resolve the user's first non-deleted wedding (same pattern as sign).
+    // 2. Resolve the member's non-deleted wedding (same pattern as sign).
     const wedding = await db
       .select({ weddingId: weddings.id })
       .from(weddings)
-      .where(and(eq(weddings.userId, userId), isNull(weddings.deletedAt)))
-      .orderBy(weddings.createdAt)
+      .where(and(eq(weddings.id, memberWeddingId), isNull(weddings.deletedAt)))
       .limit(1)
       .then((rows) => rows[0]);
 

@@ -7,11 +7,12 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/atoms/icon";
 import { logout } from "@/server/actions/auth";
 
-export type AdminMobileNavKey = "overview" | "weddings" | "orders" | "templates" | "packages" | "team";
+export type AdminMobileNavKey = "overview" | "weddings" | "users" | "orders" | "templates" | "packages" | "team";
 
 const ROUTES: Record<AdminMobileNavKey, string> = {
   overview: "/admin",
   weddings: "/admin/weddings",
+  users: "/admin/users",
   orders: "/admin/orders",
   templates: "/admin/templates",
   packages: "/admin/packages",
@@ -38,6 +39,7 @@ type SheetItem = {
 } & ({ id: AdminMobileNavKey } | { href: string });
 
 const SHEET_ITEMS: SheetItem[] = [
+  { id: "users", icon: "user", title: "User", desc: "Semua pelanggan terdaftar" },
   { id: "packages", icon: "sparkle", title: "Paket & Promo", desc: "Harga, paket, kode promo" },
   { id: "team", icon: "users", title: "Tim admin", desc: "Anggota, role & izin" },
   { href: "/admin/support", icon: "heart", title: "Support", desc: "Bantuan & tiket" },
@@ -49,7 +51,7 @@ export function AdminMobileTabBar({ active }: { active: AdminMobileNavKey }) {
   const [sheet, setSheet] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const moreActive = active === "packages" || active === "team";
+  const moreActive = active === "packages" || active === "team" || active === "users";
 
   return (
     <>
