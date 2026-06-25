@@ -47,6 +47,33 @@ const FILTERS: { label: string; value: FilterValue }[] = [
 
 const PAGE_SIZE = 8;
 
+// Minimal CSV field escaping (quotes fields containing comma/quote/newline).
+function csvEscape(value: string | number): string {
+  const s = String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadUsersCsv(rows: AdminUserRow[]) {
+  const header = ["id", "name", "email", "phone", "joined", "weddings", "spent", "status"];
+  const lines = [
+    header.join(","),
+    ...rows.map((u) =>
+      [u.id, u.name, u.email, u.phone, u.joined, u.weddings, u.spent, u.active ? "aktif" : "nonaktif"]
+        .map(csvEscape)
+        .join(","),
+    ),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "maritare-users.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 const SHEET_MENU_ITEM =
   "w-full flex items-center gap-3 px-[18px] py-[13px] text-left text-[13.5px] font-semibold text-charcoal border-b border-line last:border-b-0 cursor-pointer no-underline";
 
@@ -186,11 +213,25 @@ export function AdminUsersMobile({ users }: { users: AdminUserRow[] }) {
 
   return (
     <AdminMobileShell active="users">
-      <AdminMobileHead
-        eyebrow={`${counts.total} pelanggan`}
-        title="Semua pelanggan"
-        sub={`${counts.active} aktif · ${counts.inactive} nonaktif`}
-      />
+      <div className="relative">
+        <AdminMobileHead
+          eyebrow={`${counts.total} pelanggan`}
+          title="Semua pelanggan"
+          sub={`${counts.active} aktif · ${counts.inactive} nonaktif · ${counts.withInv} punya undangan`}
+        />
+        <AdminMobileIconMini
+          onClick={() => downloadUsersCsv(filtered)}
+          aria-label="Ekspor CSV"
+          title="Ekspor CSV"
+          className="absolute right-[18px] top-[18px]"
+        >
+          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3v12" />
+            <path d="M7 10l5 5 5-5" />
+            <path d="M4 19h16" />
+          </svg>
+        </AdminMobileIconMini>
+      </div>
 
       {/* stat chips — doubles as a filter shortcut row */}
       <AdminMobileHScroll className="px-[18px] pt-[14px] pb-[2px]">

@@ -437,9 +437,10 @@ export function AdminUsers({ users }: { users: AdminUserRow[] }) {
                   size={28}
                   onClick={() => goToPage(effectivePage - 1)}
                   disabled={effectivePage === 1}
+                  aria-label="Halaman sebelumnya"
                   className={cn(effectivePage === 1 && "opacity-40 pointer-events-none")}
                 >
-                  ‹
+                  <span aria-hidden="true">‹</span>
                 </CircleButton>
                 {pageNumbers.map((n) => (
                   <button
@@ -459,9 +460,10 @@ export function AdminUsers({ users }: { users: AdminUserRow[] }) {
                   size={28}
                   onClick={() => goToPage(effectivePage + 1)}
                   disabled={effectivePage === totalPages}
+                  aria-label="Halaman berikutnya"
                   className={cn(effectivePage === totalPages && "opacity-40 pointer-events-none")}
                 >
-                  ›
+                  <span aria-hidden="true">›</span>
                 </CircleButton>
               </div>
             </div>
