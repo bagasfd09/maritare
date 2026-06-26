@@ -12,7 +12,7 @@
 // Curation rule mirrors ScarletGallery: only owner-selected gallery photos appear
 // (never the cover/closing photos). Hidden entirely when none are picked.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { InvitationView } from "@/server/queries/invitation";
 
@@ -45,6 +45,11 @@ export function FolkGallery({ data }: Props) {
 
   // Clamp against a shrinking set (the editor live-edits the selection).
   const idx = Math.min(active, photos.length - 1);
+  // Keep the active thumbnail scrolled to the center of the strip.
+  const activeThumbRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [idx]);
   const current = photos[idx] ?? photos[0];
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
 
@@ -152,6 +157,7 @@ export function FolkGallery({ data }: Props) {
               return (
                 <button
                   key={photo.id}
+                  ref={isActive ? activeThumbRef : undefined}
                   type="button"
                   onClick={() => setActive(i)}
                   aria-label={`Lihat foto ${i + 1}`}
