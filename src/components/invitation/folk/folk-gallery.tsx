@@ -22,6 +22,17 @@ import { ScarletImg, PEONY_RED, SHIELD_RED, TASSEL_GOLD } from "../scarlet/scarl
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
+// Varied thumbnail sizes, cycled by index so the strip mixes portrait, square
+// and landscape rectangles (uniform rounded corners). Heights vary so they don't
+// line up as one flat row.
+const THUMB_SIZES = [
+  "h-[64px] w-[46px]", // tall portrait
+  "h-[52px] w-[74px]", // landscape
+  "h-[60px] w-[58px]", // square-ish
+  "h-[54px] w-[82px]", // wide
+  "h-[68px] w-[50px]", // taller portrait
+];
+
 export function FolkGallery({ data }: Props) {
   const selected = new Set(data.sections.galeri.selectedPhotoIds);
   const photos = data.photos.filter((p) => !p.isCover && !p.isClosing && selected.has(p.id));
@@ -35,7 +46,6 @@ export function FolkGallery({ data }: Props) {
   const idx = Math.min(active, photos.length - 1);
   const current = photos[idx] ?? photos[0];
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
-  const go = (delta: number) => setActive((photos.length + idx + delta) % photos.length);
 
   return (
     <section className="relative overflow-hidden px-5 pb-[7%] pt-[30%] text-center">
@@ -62,7 +72,7 @@ export function FolkGallery({ data }: Props) {
 
       {/* Carousel: one ornately-framed photo, arrows on each side. */}
       <div className="relative mx-auto mt-6 max-w-[420px] px-2">
-        <Reveal variant="zoom-in" className="relative mx-auto w-[360px] max-w-[90vw]">
+        <Reveal variant="zoom-in" className="relative mx-auto w-[320px] max-w-[88vw]">
           {/* Florals BEHIND the photo frame ─────────────────────────────── */}
           {/* Maroon shields rotating out of the top corners. */}
           <ScarletImg
@@ -128,28 +138,6 @@ export function FolkGallery({ data }: Props) {
             className="absolute bottom-0 right-0 z-20 w-[18%] translate-x-[78%] -translate-y-[2%]"
           />
         </Reveal>
-
-        {/* Prev / next arrows (hidden for a single photo). */}
-        {photos.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              aria-label="Foto sebelumnya"
-              className="absolute left-0 top-1/2 z-30 -translate-y-1/2 p-2.5 text-[#700f06] opacity-60 transition hover:opacity-100"
-            >
-              <Chevron className="rotate-180" />
-            </button>
-            <button
-              type="button"
-              onClick={() => go(1)}
-              aria-label="Foto berikutnya"
-              className="absolute right-0 top-1/2 z-30 -translate-y-1/2 p-2.5 text-[#700f06] opacity-60 transition hover:opacity-100"
-            >
-              <Chevron />
-            </button>
-          </>
-        )}
       </div>
 
       {/* Thumbnail strip — the other gallery photos, centered and swipeable.
@@ -166,11 +154,11 @@ export function FolkGallery({ data }: Props) {
                   type="button"
                   onClick={() => setActive(i)}
                   aria-label={`Lihat foto ${i + 1}`}
-                  className={`snap-center shrink-0 overflow-hidden rounded-[4px] border-2 transition ${
+                  className={`snap-center shrink-0 self-center overflow-hidden rounded-[10px] border-2 transition ${
                     isActive ? "border-[#700f06]" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <span className="block h-[52px] w-[72px] bg-[#E8D6C2]">
+                  <span className={`block bg-[#E8D6C2] ${THUMB_SIZES[i % THUMB_SIZES.length]}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- presigned/public R2 URL; next/image would re-proxy and break the short-lived signature */}
                     <img
                       src={photo.url}
@@ -187,13 +175,5 @@ export function FolkGallery({ data }: Props) {
         </div>
       )}
     </section>
-  );
-}
-
-function Chevron({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 12 20" width="12" height="20" fill="none" aria-hidden="true" className={className}>
-      <path d="M2 2l8 8-8 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
