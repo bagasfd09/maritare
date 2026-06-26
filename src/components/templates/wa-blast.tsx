@@ -62,6 +62,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
   );
   const [templateId, setTemplateId] = useState("undangan");
   const [filter, setFilter] = useState<"all" | "unsent" | "sent" | "followup">("all");
+  const [sideFilter, setSideFilter] = useState<Guest["side"] | null>(null);
   const [query, setQuery] = useState("");
   const [focus, setFocus] = useState(false);
   const [cooldownSecs, setCooldownSecs] = useState(15);
@@ -125,6 +126,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
       if (filter === "unsent" && st !== "unsent") return false;
       if (filter === "sent" && st === "unsent") return false;
       if (filter === "followup" && !followupIds.includes(g.id)) return false;
+      if (sideFilter && g.side !== sideFilter) return false;
       if (q) {
         return (
           g.name.toLowerCase().includes(q) ||
@@ -134,7 +136,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
       }
       return true;
     });
-  }, [guests, sentLocal, filter, query, followupIds]);
+  }, [guests, sentLocal, filter, sideFilter, query, followupIds]);
 
   const nextGuest = useMemo(() => guests.find((g) => effStatus(g, sentLocal) === "unsent") ?? null, [guests, sentLocal]);
 
@@ -143,6 +145,11 @@ export function WaBlast({ data }: { data: WaBlastData }) {
     ["unsent", `Belum ${remaining}`],
     ["sent", `Terkirim ${sentCount}`],
     ["followup", `Follow-up ${followupIds.length}`],
+  ];
+  const SIDE_FILTERS: Array<[Guest["side"] | null, string]> = [
+    [null, "Semua"],
+    ["bride", "Wanita"],
+    ["groom", "Pria"],
   ];
   const PIPELINE: Array<[string, number, string]> = [
     ["Belum", remaining, "var(--color-terracotta)"],
@@ -283,6 +290,27 @@ export function WaBlast({ data }: { data: WaBlastData }) {
                         cursor: "pointer",
                         color: filter === k ? "var(--color-cream)" : "var(--color-muted-ink)",
                         background: filter === k ? "var(--color-charcoal)" : "transparent",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 4, background: "var(--color-cream)", border: "1px solid var(--color-beige)", borderRadius: 999, padding: 3, width: "fit-content" }}>
+                  {SIDE_FILTERS.map(([k, label]) => (
+                    <button
+                      key={label}
+                      onClick={() => setSideFilter(k)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 999,
+                        fontSize: 11,
+                        letterSpacing: "0.04em",
+                        fontWeight: 600,
+                        border: "none",
+                        cursor: "pointer",
+                        color: sideFilter === k ? "var(--color-cream)" : "var(--color-muted-ink)",
+                        background: sideFilter === k ? "var(--color-charcoal)" : "transparent",
                       }}
                     >
                       {label}
@@ -440,7 +468,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
 
       {focus && (
         <WaFocusMode
-          guests={guests}
+          guests={filtered}
           sentLocal={sentLocal}
           markSent={markSent}
           slug={slug}

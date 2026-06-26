@@ -32,6 +32,13 @@ const FILTERS: { label: string; status: GuestRow["status"] | null }[] = [
   { label: "Tidak", status: "declined" },
 ];
 
+// Side filter pills — label → bride/groom side (null = no filter).
+const SIDE_FILTERS: { label: string; side: GuestRow["side"] | null }[] = [
+  { label: "Semua", side: null },
+  { label: "Wanita", side: "bride" },
+  { label: "Pria", side: "groom" },
+];
+
 // Rows per page — small enough that the seeded list demonstrates real paging.
 const PAGE_SIZE = 6;
 
@@ -70,6 +77,7 @@ export function Guests({ data, chrome }: GuestsProps) {
   // Live search + status filter + pagination over the (real or fallback) rows.
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<GuestRow["status"] | null>(null);
+  const [sideFilter, setSideFilter] = useState<GuestRow["side"] | null>(null);
   const [page, setPage] = useState(1);
   const [importOpen, setImportOpen] = useState(false);
   const [qrGuest, setQrGuest] = useState<{ id: string; name: string } | null>(null);
@@ -122,6 +130,7 @@ export function Guests({ data, chrome }: GuestsProps) {
     const q = query.trim().toLowerCase();
     return rows.filter((g) => {
       if (statusFilter && g.status !== statusFilter) return false;
+      if (sideFilter && g.side !== sideFilter) return false;
       if (!q) return true;
       return (
         g.name.toLowerCase().includes(q) ||
@@ -129,7 +138,7 @@ export function Guests({ data, chrome }: GuestsProps) {
         (g.phone ?? "").toLowerCase().includes(q)
       );
     });
-  }, [rows, query, statusFilter]);
+  }, [rows, query, statusFilter, sideFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   // Clamp instead of resetting state so stale page values can never overflow.
@@ -210,6 +219,21 @@ export function Guests({ data, chrome }: GuestsProps) {
                   className={cn(
                     "px-3 py-[6px] rounded-full text-[11px] tracking-[0.1em] uppercase font-semibold cursor-pointer transition-colors",
                     statusFilter === t.status ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 bg-paper border border-line rounded-full p-[3px]">
+              {SIDE_FILTERS.map((t) => (
+                <button
+                  key={t.label}
+                  type="button"
+                  onClick={() => { setSideFilter(t.side); setPage(1); }}
+                  className={cn(
+                    "px-3 py-[6px] rounded-full text-[11px] tracking-[0.1em] uppercase font-semibold cursor-pointer transition-colors",
+                    sideFilter === t.side ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
                   )}
                 >
                   {t.label}
