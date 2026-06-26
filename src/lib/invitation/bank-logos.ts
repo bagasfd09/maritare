@@ -19,7 +19,7 @@
 // can list every bank safely, even before its logo file exists.
 const LOGO_BY_SLUG: Record<string, string> = {
   bca: "/invitation/banks/bca.webp",
-  // mandiri: "/invitation/banks/mandiri.webp",
+  mandiri: "/invitation/banks/mandiri.webp",
   // bni: "/invitation/banks/bni.webp",
   // bri: "/invitation/banks/bri.webp",
   // ...
