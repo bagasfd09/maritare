@@ -36,7 +36,8 @@ const THUMB_SIZES = [
 export function FolkGallery({ data }: Props) {
   const selected = new Set(data.sections.galeri.selectedPhotoIds);
   const photos = data.photos.filter((p) => !p.isCover && !p.isClosing && selected.has(p.id));
-  const [active, setActive] = useState(0);
+  // Start with the MIDDLE photo featured (not the first), like a center carousel.
+  const [active, setActive] = useState(() => Math.floor(photos.length / 2));
 
   if (photos.length === 0) {
     return null;
