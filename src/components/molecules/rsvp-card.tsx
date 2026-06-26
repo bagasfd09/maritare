@@ -11,6 +11,7 @@ type RsvpCardProps = {
   invited: number;
   respondedPct: number;
   groups: RsvpGroup[];
+  bySide: RsvpGroup[];
 };
 
 // RSVP / attendance breakdown for the overview — all values wired from real data.
@@ -21,6 +22,7 @@ export function RsvpCard({
   invited,
   respondedPct,
   groups,
+  bySide,
 }: RsvpCardProps) {
   const legend = [
     { c: "bg-sage", n: confirmed, l: "Hadir" },
@@ -77,6 +79,24 @@ export function RsvpCard({
             </div>
           ))}
         </div>
+
+        {/* per side (bride / groom) */}
+        {bySide.length > 0 && (
+          <div className="mb-5">
+            <LabelSc className="mb-3">Respons per pihak</LabelSc>
+            <div className="flex flex-col gap-3">
+              {bySide.map((r) => (
+                <div key={r.label} className="flex items-center gap-3">
+                  <span className="w-[88px] text-[12px] font-medium text-charcoal shrink-0">{r.label}</span>
+                  <ProgressBar value={r.pct} height={6} />
+                  <span className="w-[56px] text-right text-[11px] text-muted-ink shrink-0 [font-variant:small-caps] tracking-[0.06em]">
+                    {r.confirmed} / {r.total}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* per group */}
         {groups.length > 0 && (

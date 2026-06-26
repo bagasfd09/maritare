@@ -81,6 +81,7 @@ export function Overview({ data }: OverviewProps) {
               invited={data.rsvp.invited}
               respondedPct={data.rsvp.respondedPct}
               groups={data.rsvpByGroup}
+              bySide={data.rsvpBySide}
             />
             <ActivityFeed items={data.activity} />
           </div>

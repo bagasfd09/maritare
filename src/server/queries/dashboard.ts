@@ -388,6 +388,8 @@ export type OverviewData = {
   };
   /** Per-group RSVP breakdown (top groups), real aggregation. */
   rsvpByGroup: RsvpGroup[];
+  /** RSVP confirmed/total split by bride/groom side. */
+  rsvpBySide: RsvpGroup[];
   wishes: { total: number; pending: number };
   photos: { used: number; limit: number | null };
   visits: number;
@@ -409,6 +411,12 @@ export async function getOverviewData(): Promise<OverviewData | null> {
       confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
       pending: sql<number>`count(*) filter (where ${guests.status} = 'pending')::int`,
       declined: sql<number>`count(*) filter (where ${guests.status} = 'declined')::int`,
+      brideTotal: sql<number>`count(*) filter (where ${guests.side} = 'bride')::int`,
+      brideConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'bride' and ${guests.status} = 'confirmed')::int`,
+      groomTotal: sql<number>`count(*) filter (where ${guests.side} = 'groom')::int`,
+      groomConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'groom' and ${guests.status} = 'confirmed')::int`,
+      bothTotal: sql<number>`count(*) filter (where ${guests.side} = 'both')::int`,
+      bothConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'both' and ${guests.status} = 'confirmed')::int`,
     })
     .from(guests)
     .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)));
@@ -419,6 +427,21 @@ export async function getOverviewData(): Promise<OverviewData | null> {
   const declined = guestRow?.declined ?? 0;
   const respondedPct =
     invited > 0 ? Math.round(((confirmed + declined) / invited) * 100) : 0;
+
+  // Confirmed/total split per bride/groom side ("both" only shown when present).
+  const mkSide = (label: string, c: number, t: number): RsvpGroup => ({
+    label,
+    confirmed: c,
+    total: t,
+    pct: t > 0 ? Math.round((c / t) * 100) : 0,
+  });
+  const rsvpBySide: RsvpGroup[] = [
+    mkSide("Wanita", guestRow?.brideConfirmed ?? 0, guestRow?.brideTotal ?? 0),
+    mkSide("Pria", guestRow?.groomConfirmed ?? 0, guestRow?.groomTotal ?? 0),
+    ...((guestRow?.bothTotal ?? 0) > 0
+      ? [mkSide("Bersama", guestRow?.bothConfirmed ?? 0, guestRow?.bothTotal ?? 0)]
+      : []),
+  ];
 
   // Wish tallies (total + pending) in one round-trip.
   const [wishRow] = await db
@@ -456,6 +479,7 @@ export async function getOverviewData(): Promise<OverviewData | null> {
     completionPct: completionPercent(wedding, photosUsed),
     rsvp: { confirmed, declined, pending, invited, respondedPct },
     rsvpByGroup,
+    rsvpBySide,
     wishes: { total: wishTotal, pending: wishPending },
     photos: { used: photosUsed, limit: resolved.photoLimit },
     visits: wedding.visitCount,
