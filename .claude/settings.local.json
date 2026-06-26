@@ -7,7 +7,8 @@
       "Bash(rm -rf \"src/app/\\(dashboard\\)/dashboard\")",
       "Bash(cd *)",
       "Bash(ngrok version *)",
-      "WebFetch(domain:claude.ai)"
+      "WebFetch(domain:claude.ai)",
+      "Bash(python -c ' *)"
     ]
   }
 }

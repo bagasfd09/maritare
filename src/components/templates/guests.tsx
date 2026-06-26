@@ -35,6 +35,19 @@ const FILTERS: { label: string; status: GuestRow["status"] | null }[] = [
 // Rows per page — small enough that the seeded list demonstrates real paging.
 const PAGE_SIZE = 6;
 
+// Windowed page numbers with gaps so the bar stays short: 1 … 4 5 6 … 20.
+function pageList(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  const out: (number | "…")[] = [1];
+  if (start > 2) out.push("…");
+  for (let n = start; n <= end; n++) out.push(n);
+  if (end < total - 1) out.push("…");
+  out.push(total);
+  return out;
+}
+
 const TH = "font-body text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-ink px-[14px] py-3 border-b border-beige";
 const TD = "p-[14px] border-b border-line align-middle";
 
@@ -320,20 +333,29 @@ export function Guests({ data, chrome }: GuestsProps) {
                 >
                   ‹
                 </CircleButton>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setPage(n)}
-                    className={cn(
-                      "min-w-[30px] h-[30px] rounded-full border border-[rgba(26,26,26,0.18)]",
-                      "text-[12px] font-display font-bold cursor-pointer transition-colors",
-                      n === safePage ? "bg-charcoal text-cream" : "bg-transparent text-charcoal",
-                    )}
-                  >
-                    {n}
-                  </button>
-                ))}
+                {pageList(safePage, totalPages).map((n, i) =>
+                  n === "…" ? (
+                    <span
+                      key={`gap-${i}`}
+                      className="min-w-[30px] h-[30px] grid place-items-center text-[12px] text-muted-ink select-none"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setPage(n)}
+                      className={cn(
+                        "min-w-[30px] h-[30px] rounded-full border border-[rgba(26,26,26,0.18)]",
+                        "text-[12px] font-display font-bold cursor-pointer transition-colors",
+                        n === safePage ? "bg-charcoal text-cream" : "bg-transparent text-charcoal",
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
                 <CircleButton
                   size={30}
                   onClick={() => setPage(Math.min(totalPages, safePage + 1))}

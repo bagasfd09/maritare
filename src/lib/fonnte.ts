@@ -31,7 +31,7 @@ export async function sendFonnteMessage(input: {
       method: "POST",
       headers: {
         Authorization: token,
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
       },
       body,
     });
