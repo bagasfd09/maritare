@@ -82,7 +82,7 @@ export function demoInvitation(templateSlug: string): InvitationView {
       // No audio in the catalog preview.
       musik: { enabled: false, source: "preset" },
       rsvp: { enabled: true, maxPartySize: 2 },
-      hero: { fullSize: false },
+      hero: { fullSize: false, heroFullWidth: false },
     },
     // Hero/cover = couple3_silhouette (isCover); gallery = the dummy placeholders.
     // Couple profile photos fall back to the template defaults (couplePhotoUrls

@@ -182,6 +182,12 @@ export const heroDataSchema = z.object({
    * image/video below takes precedence.
    */
   fullSize: z.boolean().default(false),
+  /**
+   * Folk hero display mode for the uploaded hero asset. false (default) = show it
+   * inside the ornate cover template frame (ScarletCover). true = show the
+   * uploaded image/video FULL-BLEED, edge-to-edge, without the frame.
+   */
+  heroFullWidth: z.boolean().default(false),
   // Dedicated HERO asset — separate from the gate/cover photo (isCover). Shown
   // FULL-BLEED at the very top of the opened invitation. Either an image or a
   // video (R2 object keys, like musik.audioKey). The *Url fields are resolved

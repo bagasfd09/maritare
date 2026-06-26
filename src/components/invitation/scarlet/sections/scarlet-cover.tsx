@@ -13,7 +13,16 @@ import type { InvitationView } from "@/server/queries/invitation";
 import { formatFullDateId } from "../../flora/format";
 import { InvImage } from "../inv-image";
 
-type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
+type Props = {
+  data: InvitationView;
+  mode: "public" | "ownerPreview" | "editorPreview";
+  /**
+   * Override for the framed cover photo. When set (e.g. the Folk hero, which uses
+   * the dedicated "Hero (Atas)" upload), it replaces the isCover photo so the
+   * gate and the hero can show different images in the same ornate frame.
+   */
+  imageUrl?: string;
+};
 
 // Display name = the editable "Nama lengkap" (pasangan.fullName) first word,
 // falling back to the wedding's top-level name. Editing the form updates this.
@@ -22,8 +31,9 @@ function firstName(fullName: string | undefined, fallback: string): string {
   return n.split(/\s+/)[0] || fallback;
 }
 
-export function ScarletCover({ data }: Props) {
+export function ScarletCover({ data, imageUrl }: Props) {
   const coverPhoto = data.photos.find((p) => p.isCover) ?? data.photos[0];
+  const frameSrc = imageUrl ?? coverPhoto?.url ?? "/invitation/scarlet/default-cover.webp";
   const dateSource = data.sections.acara.events[0]?.date ?? data.eventDate;
   const showHeroText = data.sections.pasangan.showHeroText;
   const groomFirst = firstName(data.sections.pasangan.groom.fullName, data.groomName);
@@ -150,7 +160,7 @@ export function ScarletCover({ data }: Props) {
                     >
                       <InvImage
                         priority
-                        src={coverPhoto?.url ?? "/invitation/scarlet/default-cover.webp"}
+                        src={frameSrc}
                         alt={coverPhoto?.label ?? `Foto ${brideFirst} & ${groomFirst}`}
                       />
                     </div>

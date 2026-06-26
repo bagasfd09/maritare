@@ -17,7 +17,7 @@ import type { EditorPhoto } from "@/components/templates/editor-types";
 import type { HeroData } from "@/lib/invitation/sections";
 import { Icon } from "@/components/atoms/icon";
 import { UploadProgress } from "@/components/atoms/upload-progress";
-import { DoneToggle, FormHeading } from "@/components/molecules/editor-forms/form-ui";
+import { DoneToggle, FormHeading, Toggle } from "@/components/molecules/editor-forms/form-ui";
 import { useSectionAutosave } from "@/components/molecules/editor-forms/use-section-autosave";
 import { uploadToR2 } from "@/lib/upload";
 import { addPhoto, deletePhoto, setClosingPhoto, setCoverPhoto } from "@/server/actions/photos";
@@ -519,6 +519,7 @@ type HeroFormProps = {
 function toHeroPayload(data: HeroData): Record<string, unknown> {
   return {
     fullSize: data.fullSize,
+    heroFullWidth: data.heroFullWidth,
     imageKey: data.imageKey,
     videoKey: data.videoKey,
     closingVideoKey: data.closingVideoKey,
@@ -599,6 +600,20 @@ export function HeroForm({ value, onChange, photos, onStatusChange }: HeroFormPr
           }
           onClear={() => patchHero({ imageKey: undefined, videoKey: undefined })}
         />
+
+        {(value.data.imageKey || value.data.videoKey) && (
+          <div className="mt-5">
+            <Toggle
+              checked={value.data.heroFullWidth}
+              onChange={(next) => patchHero({ heroFullWidth: next })}
+              label="Tampilkan full (tanpa bingkai template)"
+            />
+            <p className="text-[12px] text-[rgba(245,239,230,0.5)] leading-[1.5] mt-2">
+              Aktif = foto/video hero tampil penuh selebar layar. Nonaktif = tampil
+              di dalam bingkai cover seperti section Buka Undangan.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Closing asset (photo OR video) — a SEPARATE upload, shown at the very bottom. */}

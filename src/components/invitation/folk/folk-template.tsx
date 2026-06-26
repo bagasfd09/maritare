@@ -16,6 +16,7 @@ import { ScarletAudio } from "../scarlet/scarlet-audio";
 import { ScarletEmbed } from "../scarlet/scarlet-embed";
 import { ScarletAgenda } from "../scarlet/sections/scarlet-agenda";
 import { ScarletCouple } from "../scarlet/sections/scarlet-couple";
+import { ScarletCover } from "../scarlet/sections/scarlet-cover";
 import { ScarletFootnote } from "../scarlet/sections/scarlet-footnote";
 import { ScarletGift } from "../scarlet/sections/scarlet-gift";
 import { ScarletQuote } from "../scarlet/sections/scarlet-quote";
@@ -42,11 +43,6 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
   const brideFirst = firstName(data.sections.pasangan.bride.fullName, data.brideName);
   const qrDate = data.sections.acara.events[0]?.date ?? data.eventDate;
 
-  // Dedicated full-bleed HERO asset (separate from the gate cover): video wins,
-  // else a hero image. Absent → no full-bleed hero (the gate cover stands alone).
-  const heroVideoUrl = data.sections.hero.videoUrl;
-  const heroImageUrl = data.sections.hero.imageUrl;
-
   return (
     <>
       {/* Opening "Buka Undangan" gate (the framed cover photo). Rendered in EVERY
@@ -55,17 +51,23 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
           ancestor), so it fills the phone rather than the whole page. */}
       <FolkCoverGate data={data} mode={mode} guestName={guestName} checkin={checkin} />
       <ScarletEmbed>
-      {/* The dedicated full-bleed hero asset (image or video), when uploaded. */}
-      {heroVideoUrl ? (
-        <FolkHeroVideo src={heroVideoUrl} poster={heroImageUrl} />
-      ) : heroImageUrl ? (
+      {/* HERO — two display modes for the dedicated "Hero (Atas)" upload:
+          • heroFullWidth → the uploaded image/video FULL-BLEED, edge-to-edge.
+          • otherwise (default) → the same ornate cover frame as the gate, but
+            using hero.imageUrl instead of the isCover photo (falls back to the
+            cover photo when no hero image is uploaded). */}
+      {data.sections.hero.heroFullWidth && data.sections.hero.videoUrl ? (
+        <FolkHeroVideo src={data.sections.hero.videoUrl} poster={data.sections.hero.imageUrl} />
+      ) : data.sections.hero.heroFullWidth && data.sections.hero.imageUrl ? (
         <InvImage
           priority
-          src={heroImageUrl}
+          src={data.sections.hero.imageUrl}
           alt={`${data.groomName} & ${data.brideName}`}
           className="block w-full object-cover"
         />
-      ) : null}
+      ) : (
+        <ScarletCover data={data} mode={mode} imageUrl={data.sections.hero.imageUrl} />
+      )}
       {/* Folk shows each name once: big script above the photo. Hide the full
           name that otherwise repeats just above the parents line. */}
       <ScarletCouple data={data} mode={mode} hideFullName />
