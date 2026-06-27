@@ -10,6 +10,8 @@ import {
   Roboto,
 } from "next/font/google";
 
+import { ScrollTopOnLoad } from "@/components/invitation/scroll-top-on-load";
+
 // /inv is fully public — guests are anonymous, so unlike (guestbook) there is
 // deliberately NO auth gate here (proxy.ts also excludes the path).
 
@@ -94,6 +96,7 @@ export default function InvitationLayout({ children }: { children: React.ReactNo
     <div
       className={`${fraunces.variable} ${instrumentSans.variable} ${cormorant.variable} ${ovo.variable} ${roboto.variable} ${caveat.variable} ${pinyon.variable} ${lancelot.variable} ${cormorantGaramond.variable} font-body antialiased`}
     >
+      <ScrollTopOnLoad />
       {children}
     </div>
   );

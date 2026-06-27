@@ -16,7 +16,8 @@
     "db:studio": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "node --env-file=.env.local scripts/seed.ts",
     "optimize:hero": "node scripts/optimize-hero.mjs",
-    "optimize:scarlet": "node scripts/optimize-scarlet.mjs"
+    "optimize:scarlet": "node scripts/optimize-scarlet.mjs",
+    "optimize:folk": "node scripts/optimize-folk-garden.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",

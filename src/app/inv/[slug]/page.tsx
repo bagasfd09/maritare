@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { InvitationPreloader } from "@/components/invitation/invitation-preloader";
 import { getInvitationTemplate } from "@/components/invitation/registry";
 import { isRenderableTemplateSlug } from "@/components/invitation/slugs";
 import { getInvitationCheckinByCode } from "@/server/queries/guest-qr";
@@ -115,6 +116,9 @@ export default async function InvitationPage({ params, searchParams }: PageProps
 
   return (
     <>
+      {/* Opening gate: hold the half-painted page behind a loader until the
+          critical images + fonts settle, then fade to reveal the invitation. */}
+      <InvitationPreloader />
       {lookup.kind === "ownerPreview" && (
         <div className="fixed inset-x-0 top-0 z-[60] bg-burgundy px-4 py-2 text-center font-body text-[11px] tracking-[0.08em] text-ivory shadow-md">
           Mode pratinjau — undangan ini belum dipublikasikan. Hanya kamu yang bisa melihatnya.

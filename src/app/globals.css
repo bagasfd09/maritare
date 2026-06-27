@@ -5325,3 +5325,118 @@
   transition: border-color .2s ease;
 }
 .maritare .auth-page .alt-action a:hover { border-bottom-color: var(--primary-burgundy); }
+
+/* ============================================================
+   Invitation preloader ("Maritare Loader") — full-screen gate
+   held until critical images + fonts + window load settle, then
+   faded out. Markup: components/invitation/invitation-preloader.tsx
+   ============================================================ */
+.inv-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: radial-gradient(120% 90% at 50% 42%, #FAF6F1 0%, #F5EFE6 62%, #EFE6D8 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  opacity: 1;
+  transition: opacity .7s ease;
+}
+.inv-loader.is-leaving { opacity: 0; pointer-events: none; }
+
+/* lockup: wordmark + flower float together as one calm unit */
+.inv-loader__lockup { position: relative; animation: ldrFloat 4.5s ease-in-out infinite; }
+@keyframes ldrFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+.inv-loader__word {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 900;
+  font-variation-settings: "opsz" 144;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: #1A1A1A;
+  text-transform: lowercase;
+  margin: 0;
+  padding-right: 6px;
+}
+
+.inv-loader__flower {
+  position: absolute;
+  top: -14px;
+  right: -16px;
+  width: 30px;
+  height: 30px;
+  transform-origin: 50% 50%;
+  animation: ldrSpin 9s linear infinite;
+}
+@keyframes ldrSpin { to { transform: rotate(360deg); } }
+.inv-loader__flower svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.inv-loader__petal { fill: #B66B4D; }
+.inv-loader__petal-inner { fill: #D4906F; }
+.inv-loader__core { fill: #7C2D2D; }
+.inv-loader__stamen { fill: #EAD3C2; }
+
+.inv-loader__petal-group {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  animation: ldrPetal 2.6s ease-in-out infinite;
+}
+.inv-loader__petal-group.p-1 { animation-delay: 0s; }
+.inv-loader__petal-group.p-2 { animation-delay: .1s; }
+.inv-loader__petal-group.p-3 { animation-delay: .2s; }
+.inv-loader__petal-group.p-4 { animation-delay: .3s; }
+.inv-loader__petal-group.p-5 { animation-delay: .4s; }
+@keyframes ldrPetal { 0%, 100% { transform: scale(.9); } 50% { transform: scale(1.05); } }
+
+.inv-loader__progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.inv-loader__rail {
+  width: 156px;
+  height: 2px;
+  background: rgba(124,45,45,0.12);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.inv-loader__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #B66B4D, #7C2D2D);
+  transition: width .35s cubic-bezier(.4,0,.2,1);
+}
+.inv-loader__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: translateX(-100%);
+  animation: ldrShimmer 1.4s ease-in-out infinite;
+}
+@keyframes ldrShimmer { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(220%); } }
+.inv-loader__pct {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: .04em;
+  color: #7C2D2D;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inv-loader__lockup,
+  .inv-loader__petal-group,
+  .inv-loader__fill::after { animation: none !important; }
+  .inv-loader__flower { animation: none !important; }
+}

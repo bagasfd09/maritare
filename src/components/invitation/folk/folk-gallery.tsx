@@ -39,17 +39,28 @@ export function FolkGallery({ data }: Props) {
   // Start with the MIDDLE photo featured (not the first), like a center carousel.
   const [active, setActive] = useState(() => Math.floor(photos.length / 2));
 
+  // Clamp against a shrinking set (the editor live-edits the selection).
+  const idx = Math.min(active, photos.length - 1);
+  // Center the active thumbnail in the strip. Scroll the strip element itself
+  // (NOT scrollIntoView, which also scrolls the WINDOW vertically and would jump
+  // the whole page down to the gallery on mount). Hooks stay above the early
+  // return so they run in the same order every render.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const activeThumbRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const strip = stripRef.current;
+    const btn = activeThumbRef.current;
+    if (!strip || !btn) return;
+    const stripRect = strip.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const delta = btnRect.left + btnRect.width / 2 - (stripRect.left + stripRect.width / 2);
+    strip.scrollBy({ left: delta });
+  }, [idx]);
+
   if (photos.length === 0) {
     return null;
   }
 
-  // Clamp against a shrinking set (the editor live-edits the selection).
-  const idx = Math.min(active, photos.length - 1);
-  // Keep the active thumbnail scrolled to the center of the strip.
-  const activeThumbRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    activeThumbRef.current?.scrollIntoView({ block: "nearest", inline: "center" });
-  }, [idx]);
   const current = photos[idx] ?? photos[0];
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
 
@@ -151,7 +162,10 @@ export function FolkGallery({ data }: Props) {
           center-mode photo-slider). */}
       {photos.length > 1 && (
         <div className="-mx-5 mt-8">
-          <div className="flex gap-1.5 overflow-x-auto px-[calc(50%-36px)] pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            ref={stripRef}
+            className="flex gap-1.5 overflow-x-auto px-[calc(50%-36px)] pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {photos.map((photo, i) => {
               const isActive = photo.id === current.id;
               return (
@@ -168,7 +182,7 @@ export function FolkGallery({ data }: Props) {
                   <span className={`block bg-[#E8D6C2] ${THUMB_SIZES[i % THUMB_SIZES.length]}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- presigned/public R2 URL; next/image would re-proxy and break the short-lived signature */}
                     <img
-                      src={photo.url}
+                      src={photo.thumbUrl}
                       alt=""
                       loading="lazy"
                       draggable={false}

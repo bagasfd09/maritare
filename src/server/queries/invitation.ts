@@ -32,6 +32,9 @@ import { resolveEditorUserId } from "@/server/queries/wedding";
 export type InvitationPhoto = {
   id: string;
   url: string;
+  /** Tiny variant (~200px) for thumbnail strips so a 50px box doesn't fetch the
+   *  full 1280px image. Equals `url` on drafts / no-CDN (presign can't resize). */
+  thumbUrl: string;
   label: string | null;
   isCover: boolean;
   /** Dedicated closing-section photo (falls back to the cover when none set). */
@@ -145,7 +148,14 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   // Folk hero cover asset (a dedicated image or video, separate from the gate's
   // cover photo) — resolved to short-lived presigned GET URLs, like the music.
   const hero = parseSectionData("hero", raw.hero?.data);
-  hero.imageUrl = hero.imageKey ? await getViewUrl(hero.imageKey) : undefined;
+  // Hero still IMAGE: live views get the cacheable CDN-resized URL (like momen /
+  // gallery); drafts fall back to presigned. Key is anchored to weddings/{id}/hero/
+  // at save time (actions/wedding.ts), so it's safe for publicImageUrl. The VIDEO
+  // stays presigned — Cloudflare Image Resizing doesn't transform video.
+  hero.imageUrl = hero.imageKey
+    ? (kind === "public" ? publicImageUrl(hero.imageKey, { width: 1280 }) : null) ??
+      (await getViewUrl(hero.imageKey))
+    : undefined;
   hero.videoUrl = hero.videoKey ? await getViewUrl(hero.videoKey) : undefined;
   // Closing-section video (folk) — presigned like the hero video above.
   hero.closingVideoUrl = hero.closingVideoKey ? await getViewUrl(hero.closingVideoKey) : undefined;
@@ -197,9 +207,13 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
   const signedPhotos: InvitationPhoto[] = await Promise.all(
     photoRows.map(async (row) => {
       const cdn = kind === "public" ? publicImageUrl(row.objectKey, { width: 1280 }) : null;
+      // Presign at most once: reuse it for both url and thumbUrl on the no-CDN path.
+      const url = cdn ?? (await getViewUrl(row.objectKey));
+      const thumb = kind === "public" ? publicImageUrl(row.objectKey, { width: 200 }) : null;
       return {
         id: row.id,
-        url: cdn ?? (await getViewUrl(row.objectKey)),
+        url,
+        thumbUrl: thumb ?? url,
         label: row.label,
         isCover: row.isCover,
         isClosing: row.isClosing,

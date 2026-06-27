@@ -91,6 +91,7 @@ export function demoInvitation(templateSlug: string): InvitationView {
       {
         id: "demo-cover",
         url: "/invitation/scarlet/default-cover.jpg",
+        thumbUrl: "/invitation/scarlet/default-cover.jpg",
         label: null,
         isCover: true,
         isClosing: false,
@@ -98,6 +99,7 @@ export function demoInvitation(templateSlug: string): InvitationView {
       ...DEMO_GALLERY.map((file, i) => ({
         id: `demo-${i}`,
         url: `/invitation/scarlet/${file}`,
+        thumbUrl: `/invitation/scarlet/${file}`,
         label: null,
         isCover: false,
         isClosing: false,

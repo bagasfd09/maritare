@@ -31,6 +31,43 @@ export type UploadOptions = {
   onProgress?: (percent: number) => void;
 };
 
+// Shrink a user photo BEFORE upload: cap the longest edge and re-encode to WebP.
+// Phone photos are routinely 4000px / 5-10MB; guests then download them at full
+// resolution (the CDN resize only kicks in once a custom domain is configured —
+// on r2.dev the /cdn-cgi/image params are ignored). Capping at the source helps
+// every delivery path and shrinks R2 storage/egress. Pure browser APIs — no dep.
+//
+// ponytail: 1600px cap + q0.82 is plenty for the ≤600px invitation column at
+// retina; raise MAX_EDGE if a future full-bleed layout needs more detail.
+const MAX_EDGE = 1600;
+
+async function compressImage(file: File): Promise<File> {
+  // Skip non-raster (svg/gif keep their own encoding) — only re-encode photos.
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/webp", 0.82),
+    );
+    // Fall back to the original if encoding failed or didn't actually save bytes.
+    if (!blob || blob.size >= file.size) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") + ".webp";
+    return new File([blob], name, { type: "image/webp" });
+  } catch {
+    return file; // decode unsupported / OOM — upload the original untouched.
+  }
+}
+
 // PUT bytes to a presigned URL via XHR so we can report real upload progress.
 // Resolves (never rejects) with ok/error so callers can branch without try/catch.
 function putWithProgress(
@@ -78,6 +115,12 @@ export async function uploadToR2(file: File, opts: UploadOptions = {}): Promise<
 
   // Reset the indicator to 0 while we sign (the PUT progress takes over after).
   onProgress?.(0);
+
+  // Image kinds get resized/re-encoded client-side; audio/video pass through.
+  // Sign with the (possibly) compressed file so name/type/size all match the PUT.
+  if (kind !== "audio" && kind !== "video") {
+    file = await compressImage(file);
+  }
 
   let signRes: Response;
   try {

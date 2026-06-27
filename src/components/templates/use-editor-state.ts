@@ -108,6 +108,7 @@ export function useEditorState(data: EditorData | null): EditorState {
     const photos = gallery.photos.map((p) => ({
       id: p.id,
       url: p.url,
+      thumbUrl: p.url, // editor preview: presigned, no CDN resize available
       label: p.label,
       isCover: p.isCover,
       isClosing: p.isClosing,
