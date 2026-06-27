@@ -7,6 +7,8 @@
 // the couple photo (<a class="img-wrap" href> + <img class="img" src>) with an
 // initial-letter fallback when a photo is undefined.
 
+import { Fragment } from "react";
+
 import { COUPLE_INTRO_DEFAULTS, type PasanganData } from "@/lib/invitation/sections";
 import type { InvitationView } from "@/server/queries/invitation";
 
@@ -22,16 +24,15 @@ type Props = {
 
 type Person = PasanganData["groom"];
 
-/** "Putra pertama dari" + "Bapak <father> & Ibu <mother>" â€” omit absent parts. */
-function parentsLine(person: Person): string | null {
-  const parents = [
-    person.fatherName ? `Bapak ${person.fatherName}` : null,
-    person.motherName ? `Ibu ${person.motherName}` : null,
-  ]
-    .filter(Boolean)
-    .join(" & ");
-  if (!person.childOrder && !parents) return null;
-  return [person.childOrder, parents].filter(Boolean).join(" ");
+/** Parents block as separate lines: child order, father, mother — each on its
+ *  own line, absent parts omitted. "& " prefixes the mother only when there's a
+ *  father line above her. */
+function parentsLines(person: Person): string[] {
+  const lines: string[] = [];
+  if (person.childOrder) lines.push(person.childOrder);
+  if (person.fatherName) lines.push(`Bapak ${person.fatherName}`);
+  if (person.motherName) lines.push(`${person.fatherName ? "& " : ""}Ibu ${person.motherName}`);
+  return lines;
 }
 
 type CoupleInfoProps = {
@@ -50,7 +51,7 @@ function CoupleInfo({ person, shortName, photoUrl, side, hideFullName }: CoupleI
   const displayName = (person.fullName ?? "").trim() || shortName;
   // Big script name = first word of the editable full name (falls back to short).
   const bigName = displayName.split(/\s+/)[0] || shortName;
-  const parents = parentsLine(person);
+  const parents = parentsLines(person);
   const photoAos = side === "groom" ? "zoom-in" : "zoom-in-right";
   // Default template photo when the couple hasn't uploaded one yet.
   const fallbackUrl =
@@ -208,9 +209,14 @@ function CoupleInfo({ person, shortName, photoUrl, side, hideFullName }: CoupleI
             {displayName}
           </h1>
         )}
-        {parents && (
+        {parents.length > 0 && (
           <p className="couple-parents" data-aos="fade-up" data-aos-duration="1000">
-            {parents}
+            {parents.map((line, i) => (
+              <Fragment key={i}>
+                {i > 0 && <br />}
+                {line}
+              </Fragment>
+            ))}
           </p>
         )}
         {person.instagram && (

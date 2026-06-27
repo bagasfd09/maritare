@@ -44,7 +44,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
   const { groomName, brideName, ogImageUrl, ogImageWidth, ogImageHeight } = lookup.data;
   const title = `The Wedding of ${groomName} & ${brideName}`;
-  const description = `Dengan penuh sukacita, kami mengundangmu hadir di hari bahagia ${groomName} & ${brideName}.`;
 
   // Link-preview (WhatsApp/social): when an image is available, ship a
   // large-image card; otherwise a plain text card. The image is the editable
@@ -65,19 +64,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ]
     : undefined;
 
+  // Image-forward share card: no description paragraph — couples want the photo
+  // to dominate the WhatsApp preview, not a block of copy. Title stays (WhatsApp
+  // needs one to render a rich card; with none it falls back to the bare link).
   return {
     title,
-    description,
     openGraph: {
       title,
-      description,
       type: "website",
       ...(images ? { images } : {}),
     },
     twitter: {
       card: ogImageUrl ? "summary_large_image" : "summary",
       title,
-      description,
       ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },
   };
