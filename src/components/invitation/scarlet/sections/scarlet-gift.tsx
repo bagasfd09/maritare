@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { resolveBankLogo } from "@/lib/invitation/bank-logos";
+import type { PartySide } from "@/lib/invitation/sections";
 import type { InvitationView } from "@/server/queries/invitation";
 
 type Props = {
@@ -23,10 +24,23 @@ type Props = {
   /** Folk: render the account number un-bold and drop the (icon-less) copy
    *  button circle. Scarlet keeps the bold number + copy button. */
   plainNumber?: boolean;
+  /** The viewing guest's family side (from their personalized ?g= link). When
+   *  set to groom/bride, only that side's accounts (plus "both") show. Absent or
+   *  "both" → show every account (generic link / owner preview). */
+  guestSide?: PartySide;
 };
 
-export function ScarletGift({ data, logoOnly, plainNumber }: Props) {
-  const { accounts, ewallets, giftAddress } = data.sections.amplop;
+// An account shows when the guest has no specific side, or the account is for
+// everyone ("both"), or it matches the guest's side.
+function visibleForSide(accountSide: PartySide, guestSide?: PartySide): boolean {
+  if (!guestSide || guestSide === "both") return true;
+  return accountSide === "both" || accountSide === guestSide;
+}
+
+export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
+  const { accounts: allAccounts, ewallets: allEwallets, giftAddress } = data.sections.amplop;
+  const accounts = allAccounts.filter((a) => visibleForSide(a.side, guestSide));
+  const ewallets = allEwallets.filter((w) => visibleForSide(w.side, guestSide));
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

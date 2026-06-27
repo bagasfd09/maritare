@@ -1,3 +1,4 @@
+import type { InvitationCheckin } from "@/server/queries/guest-qr";
 import type { InvitationView } from "@/server/queries/invitation";
 
 /**
@@ -18,6 +19,6 @@ export type InvitationTemplateProps = {
    * there's no guest context (owner preview, generic link) — templates that
    * show a QR section fall back to a sample.
    */
-  checkin?: { guestId: string; guestName: string; responded: boolean } | null;
+  checkin?: InvitationCheckin | null;
   mode: "public" | "ownerPreview" | "editorPreview";
 };

@@ -7,6 +7,7 @@
 
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/atoms/icon";
+import type { PartySide } from "@/lib/invitation/sections";
 
 // Small-caps field label (matches editor-canvas label styling).
 export function FieldLabel({
@@ -149,6 +150,46 @@ export function Toggle({
       </span>
       <span className="text-[13px] font-medium text-cream">{label}</span>
     </button>
+  );
+}
+
+// 3-way "which family" picker for a gift account. "Keduanya" (both) is the safe
+// default; pick a side to show that account only to guests invited by that family.
+const SIDE_OPTIONS: { value: PartySide; label: string }[] = [
+  { value: "both", label: "Keduanya" },
+  { value: "groom", label: "Pihak pria" },
+  { value: "bride", label: "Pihak wanita" },
+];
+
+export function SideField({
+  value,
+  onChange,
+}: {
+  value: PartySide;
+  onChange: (next: PartySide) => void;
+}) {
+  return (
+    <div className="flex gap-1.5">
+      {SIDE_OPTIONS.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "flex-1 rounded-[8px] border px-2 py-2 text-[12px] font-medium transition-colors cursor-pointer",
+              active
+                ? "border-sage bg-sage/15 text-cream"
+                : "border-[rgba(245,239,230,0.14)] text-[rgba(245,239,230,0.55)] hover:border-[rgba(245,239,230,0.3)]",
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

@@ -3,13 +3,14 @@
 import { useCallback } from "react";
 
 import type { EditorSaveStatus } from "@/components/molecules/editor-canvas";
-import type { AmplopData } from "@/lib/invitation/sections";
+import type { AmplopData, PartySide } from "@/lib/invitation/sections";
 import {
   AddButton,
   DoneToggle,
   FieldLabel,
   FormHeading,
   RepeaterCard,
+  SideField,
   TextArea,
   TextField,
 } from "@/components/molecules/editor-forms/form-ui";
@@ -17,8 +18,8 @@ import { useSectionAutosave } from "@/components/molecules/editor-forms/use-sect
 
 const MAX_ROWS = 4;
 
-type Account = { bank: string; number: string; holder: string };
-type Ewallet = { provider: string; number: string; holder: string };
+type Account = { bank: string; number: string; holder: string; side: PartySide };
+type Ewallet = { provider: string; number: string; holder: string; side: PartySide };
 
 export type AmplopValue = { done: boolean; data: AmplopData };
 
@@ -40,13 +41,14 @@ function toPayload(data: AmplopData): Record<string, unknown> {
   return {
     accounts: data.accounts
       .filter(nonEmptyAccount)
-      .map((a) => ({ bank: a.bank.trim(), number: a.number.trim(), holder: a.holder.trim() })),
+      .map((a) => ({ bank: a.bank.trim(), number: a.number.trim(), holder: a.holder.trim(), side: a.side })),
     ewallets: data.ewallets
       .filter(nonEmptyEwallet)
       .map((e) => ({
         provider: e.provider.trim(),
         number: e.number.trim(),
         holder: e.holder.trim(),
+        side: e.side,
       })),
     giftAddress: data.giftAddress?.trim() ? data.giftAddress.trim() : undefined,
   };
@@ -133,12 +135,24 @@ export function AmplopForm({ value, onChange, onStatusChange }: AmplopFormProps)
               onBlur={flush}
               placeholder="Nama pemilik rekening"
               maxLength={80}
+              className="mb-4"
+            />
+            <FieldLabel>Tampil untuk</FieldLabel>
+            <SideField
+              value={a.side}
+              onChange={(side) =>
+                patchData({
+                  accounts: accounts.map((x, idx) => (idx === i ? { ...x, side } : x)),
+                })
+              }
             />
           </RepeaterCard>
         ))}
         {accounts.length < MAX_ROWS && (
           <AddButton
-            onClick={() => patchData({ accounts: [...accounts, { bank: "", number: "", holder: "" }] })}
+            onClick={() =>
+              patchData({ accounts: [...accounts, { bank: "", number: "", holder: "", side: "both" }] })
+            }
           >
             Tambah rekening
           </AddButton>
@@ -198,13 +212,23 @@ export function AmplopForm({ value, onChange, onStatusChange }: AmplopFormProps)
               onBlur={flush}
               placeholder="Nama pemilik"
               maxLength={80}
+              className="mb-4"
+            />
+            <FieldLabel>Tampil untuk</FieldLabel>
+            <SideField
+              value={w.side}
+              onChange={(side) =>
+                patchData({
+                  ewallets: ewallets.map((x, idx) => (idx === i ? { ...x, side } : x)),
+                })
+              }
             />
           </RepeaterCard>
         ))}
         {ewallets.length < MAX_ROWS && (
           <AddButton
             onClick={() =>
-              patchData({ ewallets: [...ewallets, { provider: "", number: "", holder: "" }] })
+              patchData({ ewallets: [...ewallets, { provider: "", number: "", holder: "", side: "both" }] })
             }
           >
             Tambah e-wallet

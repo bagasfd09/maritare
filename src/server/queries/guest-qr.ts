@@ -24,6 +24,9 @@ export type GuestQrInfo = {
 export type InvitationCheckin = {
   guestId: string;
   guestName: string;
+  /** Which family invited this guest — drives the wedding-gift section to show
+   *  only that side's accounts. "both" (the default) shows all. */
+  side: "groom" | "bride" | "both";
   /** True once the guest has answered the RSVP (status confirmed/declined) — the
    *  Folk gate uses this to show the attendance step only on the first visit. */
   responded: boolean;
@@ -38,7 +41,7 @@ export async function getInvitationCheckinByCode(
     return null;
   }
   const [row] = await db
-    .select({ guestId: guests.id, guestName: guests.name, status: guests.status })
+    .select({ guestId: guests.id, guestName: guests.name, side: guests.side, status: guests.status })
     .from(guests)
     .innerJoin(weddings, eq(guests.weddingId, weddings.id))
     .where(
@@ -55,6 +58,7 @@ export async function getInvitationCheckinByCode(
   return {
     guestId: row.guestId,
     guestName: row.guestName,
+    side: row.side,
     responded: row.status !== "pending",
   };
 }

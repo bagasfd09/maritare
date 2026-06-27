@@ -42,42 +42,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (lookup.kind === "notFound") {
     return { title: "Undangan tidak ditemukan · Maritare" };
   }
-  const { groomName, brideName, ogImageUrl, ogImageWidth, ogImageHeight } = lookup.data;
+  const { groomName, brideName } = lookup.data;
   const title = `The Wedding of ${groomName} & ${brideName}`;
 
-  // Link-preview (WhatsApp/social): when an image is available, ship a
-  // large-image card; otherwise a plain text card. The image is the editable
-  // "Bagikan" image, falling back to the cover photo (resolved in the query).
-  // Live views ship a fixed 1200×630 card and declare its size — that's what
-  // makes WhatsApp render the LARGE preview rather than a small thumbnail. The
-  // presigned fallback (drafts / no CDN) is the untouched original, so we leave
-  // its dimensions undeclared and let the crawler read the bytes.
-  const images = ogImageUrl
-    ? [
-        {
-          url: ogImageUrl,
-          alt: title,
-          ...(ogImageWidth && ogImageHeight
-            ? { width: ogImageWidth, height: ogImageHeight }
-            : {}),
-        },
-      ]
-    : undefined;
-
-  // Image-forward share card: no description paragraph — couples want the photo
-  // to dominate the WhatsApp preview, not a block of copy. Title stays (WhatsApp
-  // needs one to render a rich card; with none it falls back to the bare link).
+  // og:image comes from ./opengraph-image — a 1200×630 landscape card cropped
+  // from the cover photo so WhatsApp/social render the LARGE preview. That file
+  // convention injects og:image + its width/height/type, so we deliberately do
+  // NOT set openGraph.images here (a second image tag would conflict). No
+  // description either: couples want the photo to dominate, not a block of copy.
   return {
     title,
     openGraph: {
       title,
       type: "website",
-      ...(images ? { images } : {}),
     },
     twitter: {
-      card: ogImageUrl ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
-      ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },
   };
 }

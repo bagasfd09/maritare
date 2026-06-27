@@ -76,7 +76,7 @@ export function demoInvitation(templateSlug: string): InvitationView {
       // Catalog preview curates all demo gallery photos so the grid still shows.
       galeri: { selectedPhotoIds: DEMO_GALLERY.map((_, i) => `demo-${i}`) },
       amplop: {
-        accounts: [{ bank: "BCA", number: "1234567890", holder: "Bride" }],
+        accounts: [{ bank: "BCA", number: "1234567890", holder: "Bride", side: "both" }],
         ewallets: [],
       },
       // No audio in the catalog preview.

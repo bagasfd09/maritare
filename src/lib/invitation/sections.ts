@@ -100,6 +100,12 @@ export const acaraDataSchema = z.object({
 // Amplop — digital gifts
 // ─────────────────────────────────────────────────────────────────
 
+// Which couple's family an account belongs to. The invitation shows only the
+// matching side's accounts to a guest opened via their personalized ?g= link
+// (whose guests.side is groom/bride); "both" always shows. Legacy stored
+// accounts have no side → default "both" (shown to everyone, as before).
+export const partySideSchema = z.enum(["groom", "bride", "both"]).default("both");
+
 export const amplopDataSchema = z.object({
   accounts: z
     .array(
@@ -107,6 +113,7 @@ export const amplopDataSchema = z.object({
         bank: z.string().trim().min(1).max(40),
         number: z.string().trim().min(4).max(30).regex(/^[\d\s-]+$/, "Hanya angka"),
         holder: z.string().trim().min(1).max(80),
+        side: partySideSchema,
       }),
     )
     .max(4)
@@ -117,6 +124,7 @@ export const amplopDataSchema = z.object({
         provider: z.string().trim().min(1).max(30),
         number: z.string().trim().min(4).max(30),
         holder: z.string().trim().min(1).max(80),
+        side: partySideSchema,
       }),
     )
     .max(4)
@@ -285,6 +293,7 @@ export type MomenData = z.infer<typeof momenDataSchema>;
 export type AcaraEvent = z.infer<typeof acaraEventSchema>;
 export type AcaraData = z.infer<typeof acaraDataSchema>;
 export type AmplopData = z.infer<typeof amplopDataSchema>;
+export type PartySide = z.infer<typeof partySideSchema>;
 export type MusikData = z.infer<typeof musikDataSchema>;
 export type RsvpData = z.infer<typeof rsvpDataSchema>;
 export type HeroData = z.infer<typeof heroDataSchema>;
