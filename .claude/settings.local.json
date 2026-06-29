@@ -8,7 +8,8 @@
       "Bash(cd *)",
       "Bash(ngrok version *)",
       "WebFetch(domain:claude.ai)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "PowerShell(pnpm typecheck *)"
     ]
   }
 }

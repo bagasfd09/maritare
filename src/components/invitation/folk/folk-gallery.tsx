@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { InvitationView } from "@/server/queries/invitation";
+import type { InvitationPhoto, InvitationView } from "@/server/queries/invitation";
 
 import { Reveal } from "../flora/reveal";
 import { InvImage } from "../scarlet/inv-image";
@@ -34,8 +34,13 @@ const THUMB_SIZES = [
 ];
 
 export function FolkGallery({ data }: Props) {
-  const selected = new Set(data.sections.galeri.selectedPhotoIds);
-  const photos = data.photos.filter((p) => !p.isCover && !p.isClosing && selected.has(p.id));
+  // Render in the owner's curated ORDER: walk selectedPhotoIds (the drag order
+  // set in the editor) and resolve each to its photo, skipping cover/closing and
+  // any stale/deleted id. Equals the old sortOrder filter until the owner drags.
+  const byId = new Map(data.photos.map((p) => [p.id, p]));
+  const photos = data.sections.galeri.selectedPhotoIds
+    .map((id) => byId.get(id))
+    .filter((p): p is InvitationPhoto => !!p && !p.isCover && !p.isClosing);
   // Start with the MIDDLE photo featured (not the first), like a center carousel.
   const [active, setActive] = useState(() => Math.floor(photos.length / 2));
 

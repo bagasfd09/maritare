@@ -2,7 +2,7 @@
 // The static 20-cell .photo-grid is replaced by data.photos.map(...) â†’ one
 // .photo-cell per photo, keeping the exact cell markup (data-aos="zoom-in").
 
-import type { InvitationView } from "@/server/queries/invitation";
+import type { InvitationPhoto, InvitationView } from "@/server/queries/invitation";
 
 import { InvImage } from "../inv-image";
 
@@ -12,10 +12,13 @@ export function ScarletGallery({ data }: Props) {
   // Only curated photos appear in the grid: the owner picks which gallery photos
   // show in the invitation (empty selection = no gallery). The cover/hero and the
   // dedicated closing photo live in their own sections, never the grid.
-  const selected = new Set(data.sections.galeri.selectedPhotoIds);
-  const galleryPhotos = data.photos.filter(
-    (p) => !p.isCover && !p.isClosing && selected.has(p.id),
-  );
+  // Render in the owner's curated ORDER (the drag order from the editor): walk
+  // selectedPhotoIds and resolve each to its photo, skipping cover/closing and any
+  // stale/deleted id. Equals the old sortOrder filter until the owner drags.
+  const byId = new Map(data.photos.map((p) => [p.id, p]));
+  const galleryPhotos = data.sections.galeri.selectedPhotoIds
+    .map((id) => byId.get(id))
+    .filter((p): p is InvitationPhoto => !!p && !p.isCover && !p.isClosing);
   if (galleryPhotos.length === 0) {
     return null;
   }
