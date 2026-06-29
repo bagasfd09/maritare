@@ -261,18 +261,34 @@ export const galeriDataSchema = z.object({
 });
 
 // ─────────────────────────────────────────────────────────────────
-// Registry — sectionId → data schema
+// Cerita — "Our Story" as ordered chapters/slides. Each item is one
+// slide: an optional gallery photo (photoId, like pasangan) + a short
+// title + body. The section heading stays on the section's own `title`
+// field (legacy `body` free-text is still read as a fallback when there
+// are no items — see folk-story).
 // ─────────────────────────────────────────────────────────────────
 
-// cerita keeps using the section's title/body fields. It accepts any object so
-// future extras survive a round-trip.
-const passthroughSchema = z.looseObject({});
+export const storyItemSchema = z.object({
+  // Gallery photo reference — resolved against THIS wedding's photos at render
+  // (client-side, like FolkGallery). Optional: a text-only chapter is fine.
+  photoId: z.uuid().optional(),
+  title: z.string().trim().max(120).optional(),
+  body: z.string().trim().max(1200).optional(),
+});
+
+export const ceritaDataSchema = z.object({
+  items: z.array(storyItemSchema).max(12).default([]),
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Registry — sectionId → data schema
+// ─────────────────────────────────────────────────────────────────
 
 export const SECTION_DATA_SCHEMAS = {
   pasangan: pasanganDataSchema,
   momen: momenDataSchema,
   acara: acaraDataSchema,
-  cerita: passthroughSchema,
+  cerita: ceritaDataSchema,
   galeri: galeriDataSchema,
   amplop: amplopDataSchema,
   musik: musikDataSchema,
@@ -289,6 +305,8 @@ export type SectionId = keyof typeof SECTION_DATA_SCHEMAS;
 export const SECTION_IDS = Object.keys(SECTION_DATA_SCHEMAS) as [SectionId, ...SectionId[]];
 
 export type PasanganData = z.infer<typeof pasanganDataSchema>;
+export type StoryItem = z.infer<typeof storyItemSchema>;
+export type CeritaData = z.infer<typeof ceritaDataSchema>;
 export type MomenData = z.infer<typeof momenDataSchema>;
 export type AcaraEvent = z.infer<typeof acaraEventSchema>;
 export type AcaraData = z.infer<typeof acaraDataSchema>;
@@ -304,6 +322,7 @@ export const SECTION_DATA_DEFAULTS: {
   pasangan: PasanganData;
   momen: MomenData;
   acara: AcaraData;
+  cerita: CeritaData;
   galeri: GaleriData;
   amplop: AmplopData;
   musik: MusikData;
@@ -314,6 +333,7 @@ export const SECTION_DATA_DEFAULTS: {
   pasangan: pasanganDataSchema.parse({}),
   momen: momenDataSchema.parse({}),
   acara: acaraDataSchema.parse({}),
+  cerita: ceritaDataSchema.parse({}),
   galeri: galeriDataSchema.parse({}),
   amplop: amplopDataSchema.parse({}),
   musik: musikDataSchema.parse({}),

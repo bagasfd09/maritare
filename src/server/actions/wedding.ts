@@ -180,6 +180,30 @@ export async function saveWeddingSection(
       }
     }
 
+    // 4f. cerita item photoIds are client-supplied references — drop any that
+    //     don't point at THIS wedding's own (non-deleted) photos, like galeri
+    //     (a text-only chapter just loses its image rather than failing the save).
+    if (sectionData !== undefined && sectionId === "cerita") {
+      const items = (sectionData as { items?: { photoId?: string }[] }).items ?? [];
+      const ids = items.map((it) => it.photoId).filter((id): id is string => !!id);
+      if (ids.length > 0) {
+        const owned = await db
+          .select({ id: photos.id })
+          .from(photos)
+          .where(
+            and(
+              inArray(photos.id, ids),
+              eq(photos.weddingId, wedding.id),
+              isNull(photos.deletedAt),
+            ),
+          );
+        const ownedSet = new Set(owned.map((r) => r.id));
+        for (const it of items) {
+          if (it.photoId && !ownedSet.has(it.photoId)) it.photoId = undefined;
+        }
+      }
+    }
+
     // 5. Merge: preserve other sections; `title`/`body`/`done` overwrite only
     //    when provided. A provided `data` replaces the section's data wholesale
     //    (forms always submit the complete object); omitted `data` preserves it.

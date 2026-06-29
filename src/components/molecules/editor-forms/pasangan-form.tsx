@@ -5,11 +5,11 @@ import { useCallback } from "react";
 import type { EditorSaveStatus } from "@/components/molecules/editor-canvas";
 import { COUPLE_INTRO_DEFAULTS, type PasanganData } from "@/lib/invitation/sections";
 import type { EditorPhoto } from "@/components/templates/editor-types";
-import { cn } from "@/lib/utils";
 import {
   DoneToggle,
   FieldLabel,
   FormHeading,
+  PhotoPicker,
   TextArea,
   TextField,
   Toggle,
@@ -135,52 +135,6 @@ function PersonColumn({
         selected={person.photoId}
         onSelect={(photoId) => onPatch({ photoId })}
       />
-    </div>
-  );
-}
-
-function PhotoPicker({
-  photos,
-  selected,
-  onSelect,
-}: {
-  photos: EditorPhoto[];
-  selected: string | undefined;
-  onSelect: (photoId: string | undefined) => void;
-}) {
-  if (photos.length === 0) {
-    return (
-      <div className="text-[12px] text-[rgba(245,239,230,0.55)] leading-[1.6]">
-        Belum ada foto —{" "}
-        <a
-          href="/dashboard/gallery"
-          className="text-peach underline underline-offset-2 hover:text-cream"
-        >
-          upload di Galeri
-        </a>
-      </div>
-    );
-  }
-  return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
-      {photos.map((p) => {
-        const isSel = p.id === selected;
-        return (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => onSelect(isSel ? undefined : p.id)}
-            className={cn(
-              "relative w-[58px] h-[58px] shrink-0 rounded-[8px] overflow-hidden border-2 transition-colors cursor-pointer",
-              isSel ? "border-peach" : "border-transparent hover:border-[rgba(245,239,230,0.3)]",
-            )}
-            title={p.label ?? undefined}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL, not a static asset */}
-            <img src={p.url} alt={p.label ?? ""} className="w-full h-full object-cover" />
-          </button>
-        );
-      })}
     </div>
   );
 }

@@ -72,6 +72,7 @@ export function ActiveSectionForm({
       return (
         <CeritaForm
           value={sections.cerita}
+          photos={photos}
           onChange={(v) => setSections((s) => ({ ...s, cerita: v }))}
           onStatusChange={onStatusChange}
         />

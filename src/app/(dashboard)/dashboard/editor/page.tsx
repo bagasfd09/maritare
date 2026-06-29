@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { Editor } from "@/components/templates/editor";
 import { EditorMobile } from "@/components/templates/editor-mobile";
+import { parseStoryChapters } from "@/components/invitation/folk/folk-story-parse";
 import { parseSectionData } from "@/lib/invitation/sections";
 import { getViewUrl } from "@/lib/r2";
 import { getDashboardChrome } from "@/server/queries/dashboard";
@@ -52,6 +53,16 @@ export default async function Page() {
     const momenData = parseSectionData("momen", raw.momen?.data);
     if (momenData.imageKey) momenData.imageUrl = await getViewUrl(momenData.imageKey);
 
+    // Our Story slides. Migrate a legacy free-text body into entries the first
+    // time the new editor opens, so an existing story shows up as editable slides.
+    const ceritaData = parseSectionData("cerita", raw.cerita?.data);
+    if (ceritaData.items.length === 0 && (cerita.body ?? "").trim()) {
+      ceritaData.items = parseStoryChapters(cerita.body ?? "").map((c) => ({
+        title: c.title,
+        body: c.body,
+      }));
+    }
+
     editorData = {
       meta: {
         slug: wedding.slug,
@@ -80,6 +91,7 @@ export default async function Page() {
           done: Boolean(cerita.done),
           title: cerita.title ?? "",
           body: cerita.body ?? "",
+          data: ceritaData,
         },
         galeri: {
           done: Boolean(raw.galeri?.done),

@@ -22,11 +22,11 @@ import { ScarletGift } from "../scarlet/sections/scarlet-gift";
 import { ScarletQuote } from "../scarlet/sections/scarlet-quote";
 import { ScarletSaveDate } from "../scarlet/sections/scarlet-savedate";
 import { ScarletThankYou } from "../scarlet/sections/scarlet-thankyou";
-import { ScarletStory } from "../scarlet/scarlet-story";
 import { FolkCoverGate } from "./folk-cover-gate";
 import { FolkGallery } from "./folk-gallery";
 import { FolkHeroVideo } from "./folk-hero-video";
 import { FolkMomen } from "./folk-momen";
+import { FolkStory } from "./folk-story";
 import { FolkQr } from "./folk-qr";
 import { FolkWishes } from "./folk-wishes";
 
@@ -74,8 +74,11 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       {/* "Momen" — folk-only section right after the couple: a custom title + an
           uploaded illustration (e.g. a map). Self-hides when both are empty. */}
       <FolkMomen title={data.sections.momen.title} imageUrl={data.sections.momen.imageUrl} />
-      {/* "Cerita kami" (Our Story) — folk-only chapter; self-hides when empty. */}
-      <ScarletStory title={data.sections.cerita.title} body={data.sections.cerita.body} />
+      {/* "Cerita kami" (Our Story) — folk slideshow: one swipeable slide per
+          chapter (framed photo + maroon panel, olive frame, grass border). Reads
+          cerita.items (with photoId resolved against data.photos), falling back to
+          the legacy free-text body. Self-hides when empty. */}
+      <FolkStory data={data} />
       <FolkGallery data={data} mode={mode} />
       <ScarletSaveDate data={data} mode={mode} />
       <ScarletAgenda data={data} mode={mode} />

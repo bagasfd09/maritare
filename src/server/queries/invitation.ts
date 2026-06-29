@@ -24,6 +24,7 @@ import {
   type MusikData,
   type PasanganData,
   type RsvpData,
+  type StoryItem,
 } from "@/lib/invitation/sections";
 import { publicImageUrl } from "@/lib/image-url";
 import { getViewUrl } from "@/lib/r2";
@@ -54,7 +55,9 @@ export type InvitationView = {
     pasangan: PasanganData;
     momen: MomenData;
     acara: AcaraData;
-    cerita: { title?: string; body?: string };
+    // cerita: section heading (title) + ordered story slides (items). `body` is
+    // the legacy free-text fallback used only when there are no items.
+    cerita: { title?: string; body?: string; items: StoryItem[] };
     galeri: GaleriData;
     amplop: AmplopData;
     musik: MusikData;
@@ -278,7 +281,11 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
         pasangan,
         momen,
         acara: parseSectionData("acara", raw.acara?.data),
-        cerita: { title: raw.cerita?.title, body: raw.cerita?.body },
+        cerita: {
+          title: raw.cerita?.title,
+          body: raw.cerita?.body,
+          items: parseSectionData("cerita", raw.cerita?.data).items,
+        },
         galeri: parseSectionData("galeri", raw.galeri?.data),
         amplop: parseSectionData("amplop", raw.amplop?.data),
         musik,

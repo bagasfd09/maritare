@@ -72,7 +72,27 @@ export function demoInvitation(templateSlug: string): InvitationView {
           },
         ],
       },
-      cerita: { title: "", body: "" },
+      cerita: {
+        title: "Our Story",
+        body: "",
+        items: [
+          {
+            photoId: "demo-2",
+            title: "Awal Pertemuan",
+            body: "Kisah kami bermula dari sebuah pertemuan sederhana yang tak pernah kami sangka akan menjadi awal dari perjalanan panjang ini.",
+          },
+          {
+            photoId: "demo-0",
+            title: "Saling Menguatkan",
+            body: "Waktu membawa kami semakin mengenal, memahami, dan menguatkan satu sama lain di setiap langkah.",
+          },
+          {
+            photoId: "demo-1",
+            title: "Memilih Selamanya",
+            body: "Dengan penuh rasa syukur, kami memilih satu sama lain — hari ini, esok, dan selamanya.",
+          },
+        ],
+      },
       // Catalog preview curates all demo gallery photos so the grid still shows.
       galeri: { selectedPhotoIds: DEMO_GALLERY.map((_, i) => `demo-${i}`) },
       amplop: {

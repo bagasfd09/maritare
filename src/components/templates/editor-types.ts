@@ -8,6 +8,7 @@ import type {
   AcaraData,
   AmplopData,
   BagikanData,
+  CeritaData,
   GaleriData,
   HeroData,
   MomenData,
@@ -60,7 +61,9 @@ export type EditorSections = {
   // momen (folk only): a custom-title + uploaded-illustration section after the couple.
   momen: { done: boolean; data: MomenData };
   acara: { done: boolean; data: AcaraData };
-  cerita: { done: boolean; title: string; body: string };
+  // cerita: section heading (title) + ordered story slides (data.items). `body`
+  // is the legacy free-text, kept so existing stories migrate into items.
+  cerita: { done: boolean; title: string; body: string; data: CeritaData };
   // galeri.data.selectedPhotoIds: which gallery photos appear in the invitation.
   galeri: { done: boolean; data: GaleriData };
   amplop: { done: boolean; data: AmplopData };
