@@ -12,6 +12,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { packages, photos, weddings } from "@/lib/db/schema";
+import { publicImageUrl } from "@/lib/image-url";
 import { getViewUrl } from "@/lib/r2";
 import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
@@ -21,6 +22,9 @@ export type GalleryPhoto = {
   objectKey: string;
   /** Short-lived presigned GET URL (expires in 1h) so the browser fetches from R2 directly. */
   viewUrl: string;
+  /** Tiny CDN-resized variant (~200px) for dense grids/thumbnails so a 70px tile
+   *  doesn't decode the full original. Equals `viewUrl` when no public CDN is set. */
+  thumbUrl: string;
   isCover: boolean;
   isClosing: boolean;
   sortOrder: number;
@@ -107,16 +111,22 @@ export async function getMyGallery(): Promise<Gallery> {
   // Sign a presigned GET URL per photo (expires in 1h). Done in parallel so the
   // gallery does not serialize one network round-trip per image.
   const gallery = await Promise.all(
-    rows.map(async (row) => ({
-      id: row.id,
-      label: row.label,
-      objectKey: row.objectKey,
-      viewUrl: await getViewUrl(row.objectKey),
-      isCover: row.isCover,
-      isClosing: row.isClosing,
-      sortOrder: row.sortOrder,
-      createdAt: row.createdAt,
-    })),
+    rows.map(async (row) => {
+      const viewUrl = await getViewUrl(row.objectKey);
+      return {
+        id: row.id,
+        label: row.label,
+        objectKey: row.objectKey,
+        viewUrl,
+        // Light thumbnail for the editor's dense grids; falls back to the full
+        // presigned URL when no public CDN is configured (e.g. local dev).
+        thumbUrl: publicImageUrl(row.objectKey, { width: 200 }) ?? viewUrl,
+        isCover: row.isCover,
+        isClosing: row.isClosing,
+        sortOrder: row.sortOrder,
+        createdAt: row.createdAt,
+      };
+    }),
   );
 
   return {

@@ -37,6 +37,9 @@ export type EditorMeta = {
 export type EditorPhoto = {
   id: string;
   url: string;
+  /** Light CDN-resized variant (~200px) for dense thumbnail grids; equals `url`
+   *  when no public CDN is configured (local dev). */
+  thumbUrl: string;
   label: string | null;
   isCover: boolean;
   /** Dedicated closing-section photo (folk only; falls back to cover when unset). */

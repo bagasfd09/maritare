@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -113,9 +113,13 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
     commit([...selected, id]);
   }
 
-  function remove(id: string) {
-    commit(selected.filter((pid) => pid !== id));
-  }
+  // Stable identity (mirrored via an effect, like the autosave hook) so memoized
+  // tiles don't re-render on every drag tick just because the callback changed.
+  const removeRef = useRef<(id: string) => void>(() => {});
+  useEffect(() => {
+    removeRef.current = (id: string) => commit(selected.filter((pid) => pid !== id));
+  });
+  const onRemove = useCallback((id: string) => removeRef.current(id), []);
 
   function selectAll() {
     // Append the not-yet-picked photos after the current ordered selection.
@@ -203,7 +207,7 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
                       key={p.id}
                       photo={p}
                       index={i}
-                      onRemove={() => remove(p.id)}
+                      onRemove={onRemove}
                     />
                   ))}
                 </div>
@@ -227,8 +231,10 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL, not a static asset */}
                     <img
-                      src={p.url}
+                      src={p.thumbUrl}
                       alt={p.label ?? ""}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover opacity-45 group-hover:opacity-70 transition"
                     />
                     <span className="absolute inset-0 flex items-center justify-center">
@@ -259,15 +265,16 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
 // One draggable tile in the 4-column gallery-order grid. The whole tile is the
 // drag handle (compact — no separate grip); the ✕ stops pointer propagation so
 // removing never starts a drag. `isDragging` lifts the tile above its neighbours
-// while dnd-kit reflows the rest.
-function SortableTile({
+// while dnd-kit reflows the rest. Memoized + given a stable `onRemove` so a drag
+// only re-renders the tiles that actually shift, not the whole grid every tick.
+const SortableTile = memo(function SortableTile({
   photo,
   index,
   onRemove,
 }: {
   photo: EditorPhoto;
   index: number;
-  onRemove: () => void;
+  onRemove: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: photo.id });
@@ -295,14 +302,16 @@ function SortableTile({
       </span>
       {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL, not a static asset */}
       <img
-        src={photo.url}
+        src={photo.thumbUrl}
         alt={photo.label ?? ""}
         draggable={false}
+        loading="lazy"
+        decoding="async"
         className="pointer-events-none h-full w-full object-cover"
       />
       <button
         type="button"
-        onClick={onRemove}
+        onClick={() => onRemove(photo.id)}
         onPointerDown={(e) => e.stopPropagation()}
         aria-label="Hapus dari galeri"
         className="absolute right-1 top-1 z-10 rounded-full bg-[rgba(20,12,12,0.65)] p-1 text-cream opacity-0 transition hover:bg-burgundy focus-visible:opacity-100 group-hover:opacity-100"
@@ -311,4 +320,4 @@ function SortableTile({
       </button>
     </div>
   );
-}
+});

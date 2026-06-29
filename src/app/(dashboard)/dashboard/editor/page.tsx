@@ -110,6 +110,7 @@ export default async function Page() {
         photos: gallery.photos.map((p) => ({
           id: p.id,
           url: p.viewUrl,
+          thumbUrl: p.thumbUrl,
           label: p.label,
           isCover: p.isCover,
           isClosing: p.isClosing,
