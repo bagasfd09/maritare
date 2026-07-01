@@ -15,6 +15,9 @@
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "db:studio": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "node --env-file=.env.local scripts/seed.ts",
+    "db:seed:ivory": "node --env-file=.env.local scripts/seed-ivory.ts",
+    "db:seed:sienna": "node --env-file=.env.local scripts/seed-sienna.ts",
+    "db:seed:plum": "node --env-file=.env.local scripts/seed-plum.ts",
     "optimize:hero": "node scripts/optimize-hero.mjs",
     "optimize:scarlet": "node scripts/optimize-scarlet.mjs",
     "optimize:folk": "node scripts/optimize-folk-garden.mjs"
