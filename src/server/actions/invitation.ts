@@ -26,6 +26,11 @@ const submitSchema = z
     attending: z.boolean().optional(),
     partySize: z.number().int().min(1).max(10).optional(),
     message: z.string().trim().max(600).optional(),
+    // Guest resolved from a personalized link (?g=<code>). The UUID is a bearer
+    // token the same way the ?g code is — unguessable per guest. When present
+    // with `attending`, the RSVP is keyed to that guest (dashboard status +
+    // headcount) instead of an anonymous row.
+    guestId: z.string().uuid().optional(),
     // Honeypot: real guests never fill this hidden field. Non-empty → pretend
     // success, write nothing.
     website: z.string().optional(),
@@ -43,10 +48,12 @@ export type SubmitInvitationResponseResult =
 /**
  * Record a guest's RSVP and/or wish from the public invitation page.
  *
- * - RSVP (`attending` provided) → `rsvps` row (guestId null — anonymous form).
+ * - RSVP (`attending` provided) → `rsvps` row. With a resolved `guestId` the
+ *   row is keyed to that guest and their dashboard status/headcount is updated;
+ *   otherwise the row is anonymous.
  * - Wish (`message` non-empty) → `wishes` row, status `pending` (moderated in
  *   the dashboard before it appears publicly).
- * Both inserts happen in one transaction when both are present.
+ * All writes happen in one transaction.
  */
 export async function submitInvitationResponse(
   input: SubmitInvitationResponseInput,
@@ -58,7 +65,8 @@ export async function submitInvitationResponse(
       error: parsed.error.issues[0]?.message ?? "Data tidak valid. Periksa lagi isianmu.",
     };
   }
-  const { slug, name, attending, partySize, message, website } = parsed.data;
+  const { slug, name, partySize, message, guestId, website } = parsed.data;
+  let { attending } = parsed.data;
 
   // Honeypot tripped → silently accept (don't tip off the bot), write nothing.
   if (website) {
@@ -68,7 +76,7 @@ export async function submitInvitationResponse(
   try {
     // Public writes only land on LIVE invitations.
     const wedding = await db.query.weddings.findFirst({
-      columns: { id: true },
+      columns: { id: true, sections: true },
       where: and(
         eq(weddings.slug, slug),
         eq(weddings.status, "live"),
@@ -79,14 +87,62 @@ export async function submitInvitationResponse(
       return { ok: false, error: "Undangan ini belum menerima konfirmasi." };
     }
 
+    // Host-configured RSVP rules, enforced at the trust boundary — the client
+    // merely hides the attendance input, and the action is a POST-able endpoint.
+    // A stale tab can still show the input after the host closes RSVP (or the
+    // deadline passes): then drop only the attendance and keep the wish, so the
+    // guest's message never fails on a rule they couldn't see. Error out only
+    // when there's nothing else to save.
+    if (attending !== undefined) {
+      const rsvp = parseSectionData("rsvp", wedding.sections?.rsvp?.data);
+      const closed = !rsvp.enabled
+        ? "Konfirmasi kehadiran sedang ditutup."
+        : rsvp.deadline && format(new Date(), "yyyy-MM-dd") > rsvp.deadline
+          ? "Batas konfirmasi kehadiran sudah lewat."
+          : null;
+      if (closed) {
+        if (!message) {
+          return { ok: false, error: closed };
+        }
+        attending = undefined;
+      }
+    }
+
+    // Resolve the guest for a personalized link. A stale/deleted guest falls
+    // back to an anonymous RSVP rather than blocking the submission.
+    const guest =
+      guestId && attending !== undefined
+        ? await db.query.guests.findFirst({
+            columns: { id: true },
+            where: and(
+              eq(guests.id, guestId),
+              eq(guests.weddingId, wedding.id),
+              isNull(guests.deletedAt),
+            ),
+          })
+        : undefined;
+
     await db.transaction(async (tx) => {
       if (attending !== undefined) {
         await tx.insert(rsvps).values({
           weddingId: wedding.id,
+          guestId: guest?.id,
           attending,
           partySize: partySize ?? 1,
           message: message || null,
         });
+        if (guest) {
+          // Mirror the response onto the guest so the dashboard status flips.
+          await tx
+            .update(guests)
+            .set({
+              status: attending ? "confirmed" : "declined",
+              // Only set the headcount when attending; a decline leaves it untouched.
+              ...(attending ? { partySize: partySize ?? 1 } : {}),
+              updatedAt: new Date(),
+            })
+            .where(eq(guests.id, guest.id));
+        }
       }
       if (message) {
         await tx.insert(wishes).values({
@@ -107,110 +163,3 @@ export async function submitInvitationResponse(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Per-guest RSVP from the Folk Garden opening gate
-// ─────────────────────────────────────────────────────────────────
-
-// Unlike the public form above, this is keyed to a SPECIFIC invited guest: the
-// caller has resolved a personalized link (/inv/<slug>?g=<code>) so it knows the
-// guest's UUID. We trust that UUID the same way we trust the ?g code — both are
-// unguessable per-guest tokens — but still verify it belongs to THIS live
-// wedding before writing. Records the response on the guest (dashboard status +
-// headcount) and appends an `rsvps` row (latest wins, per the table's design).
-const guestRsvpSchema = z.object({
-  slug: z
-    .string()
-    .regex(/^[a-z0-9-]+$/)
-    .max(80),
-  guestId: z.string().uuid(),
-  attending: z.boolean(),
-  // Attendance type → headcount. "family" carries no exact number; we store the
-  // configured max as an estimate. Omitted / ignored when not attending.
-  party: z.enum(["solo", "couple", "family"]).optional(),
-});
-
-export type SubmitGuestRsvpInput = z.input<typeof guestRsvpSchema>;
-export type SubmitGuestRsvpResult = { ok: true } | { ok: false; error: string };
-
-export async function submitGuestRsvp(
-  input: SubmitGuestRsvpInput,
-): Promise<SubmitGuestRsvpResult> {
-  const parsed = guestRsvpSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: "Data tidak valid. Coba lagi ya." };
-  }
-  const { slug, guestId, attending, party } = parsed.data;
-
-  try {
-    // Per-guest writes only land on LIVE invitations.
-    const wedding = await db.query.weddings.findFirst({
-      columns: { id: true, sections: true },
-      where: and(
-        eq(weddings.slug, slug),
-        eq(weddings.status, "live"),
-        isNull(weddings.deletedAt),
-      ),
-    });
-    if (!wedding) {
-      return { ok: false, error: "Undangan ini belum menerima konfirmasi." };
-    }
-
-    // The client gate also checks these, but they're host-configured rules, so we
-    // enforce them at the trust boundary — the action is a POST-able endpoint.
-    const rsvp = parseSectionData("rsvp", wedding.sections?.rsvp?.data);
-    if (!rsvp.enabled) {
-      return { ok: false, error: "Konfirmasi kehadiran sedang ditutup." };
-    }
-    if (rsvp.deadline && format(new Date(), "yyyy-MM-dd") > rsvp.deadline) {
-      return { ok: false, error: "Batas konfirmasi kehadiran sudah lewat." };
-    }
-
-    // The guest UUID is a bearer token; confirm it belongs to this wedding.
-    const guest = await db.query.guests.findFirst({
-      columns: { id: true },
-      where: and(
-        eq(guests.id, guestId),
-        eq(guests.weddingId, wedding.id),
-        isNull(guests.deletedAt),
-      ),
-    });
-    if (!guest) {
-      return { ok: false, error: "Tamu tidak ditemukan untuk undangan ini." };
-    }
-
-    // Map the attendance choice → headcount: sendiri = 1, pasangan = 2,
-    // keluarga = 4 (a fixed family estimate). Irrelevant when not attending.
-    const partySize = !attending
-      ? 1
-      : party === "couple"
-        ? 2
-        : party === "family"
-          ? 4
-          : 1; // solo / unspecified
-
-    const now = new Date();
-    await db.transaction(async (tx) => {
-      await tx
-        .update(guests)
-        .set({
-          status: attending ? "confirmed" : "declined",
-          // Only set the headcount when attending; a decline leaves it untouched.
-          ...(attending ? { partySize } : {}),
-          updatedAt: now,
-        })
-        .where(and(eq(guests.id, guestId), eq(guests.weddingId, wedding.id)));
-
-      await tx.insert(rsvps).values({
-        weddingId: wedding.id,
-        guestId,
-        attending,
-        partySize,
-      });
-    });
-
-    return { ok: true };
-  } catch (error) {
-    console.error("submitGuestRsvp failed", error);
-    return { ok: false, error: "Gagal mengirim. Coba lagi ya." };
-  }
-}

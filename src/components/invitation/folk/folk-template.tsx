@@ -49,7 +49,7 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
           mode so the editor preview matches the live invitation — its `fixed`
           overlay is contained by the editor's scaled preview frame (a transformed
           ancestor), so it fills the phone rather than the whole page. */}
-      <FolkCoverGate data={data} mode={mode} guestName={guestName} checkin={checkin} />
+      <FolkCoverGate data={data} mode={mode} guestName={guestName} />
       <ScarletEmbed>
       {/* HERO — two display modes for the dedicated "Hero (Atas)" upload:
           • heroFullWidth → the uploaded image/video FULL-BLEED, edge-to-edge.
@@ -91,9 +91,15 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       {/* Folk shows the bank's logo only (no bank-name text) when a logo exists.
           guestSide hides the other family's accounts on personalized ?g= links. */}
       <ScarletGift data={data} mode={mode} logoOnly plainNumber guestSide={checkin?.side} />
-      {/* Pre-fill the wish form's name with the invitation's guest (?g= guest,
-          else ?to=); empty on generic links. The guest can still edit it. */}
-      <FolkWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
+      {/* Wishes + RSVP (Hadir/Berhalangan pills live in this form). Pre-fill the
+          name with the invitation's guest (?g= guest, else ?to=); empty on
+          generic links. checkin keys the RSVP to the resolved guest. */}
+      <FolkWishes
+        data={data}
+        mode={mode}
+        guestName={checkin?.guestName ?? guestName}
+        checkin={checkin}
+      />
       {/* Quote / verse (kutipan ayat) — the full Scarlet quote design (gold
           baroque crown + joglo pavilion + burgundy florals), reused here since
           Folk shares ScarletEmbed's theme CSS. Sits right above the closing
