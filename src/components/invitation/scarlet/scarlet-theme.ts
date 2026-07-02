@@ -2640,13 +2640,8 @@ export const SCARLET_THEME_CSS = String.raw`
     margin-bottom: 0px;
 }
 /* Folk wishes only (scoped via .folk-wish so the Scarlet template is untouched):
-   white cards (soft shadow), red inputs (border + text, incl. focus), red send. */
-.scarlet-inv .folk-wish .comment-item {
-    background: #FBF8F2;
-    border-radius: 9px;
-    padding: 18px 20px;
-    box-shadow: 0 1px 3px -1px rgba(60, 15, 6, 0.04);
-}
+   red inputs (border + text, incl. focus), red send. Wish cards are styled
+   inline (Tailwind) in folk-wishes.tsx. */
 .scarlet-inv .folk-wish .wedding-wish-form .form-control {
     border: 1px solid #700F06;
     border-radius: 12px;

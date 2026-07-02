@@ -42,7 +42,9 @@ const submitSchema = z
 export type SubmitInvitationResponseInput = z.input<typeof submitSchema>;
 
 export type SubmitInvitationResponseResult =
-  | { ok: true }
+  // attendanceSaved is false when a closed RSVP made us drop the attendance
+  // part (see below) — the client must not claim "kehadiran tercatat" then.
+  | { ok: true; attendanceSaved: boolean }
   | { ok: false; error: string };
 
 /**
@@ -70,7 +72,7 @@ export async function submitInvitationResponse(
 
   // Honeypot tripped → silently accept (don't tip off the bot), write nothing.
   if (website) {
-    return { ok: true };
+    return { ok: true, attendanceSaved: attending !== undefined };
   }
 
   try {
@@ -122,6 +124,13 @@ export async function submitInvitationResponse(
           })
         : undefined;
 
+    // A keyed, wish-less RSVP whose guest can't be resolved would land as an
+    // anonymous row carrying no name at all — reject it instead of recording
+    // attendance nobody can attribute.
+    if (guestId && attending !== undefined && !guest && !message) {
+      return { ok: false, error: "Data tamu tidak ditemukan. Coba muat ulang halaman ya." };
+    }
+
     await db.transaction(async (tx) => {
       if (attending !== undefined) {
         await tx.insert(rsvps).values({
@@ -156,7 +165,7 @@ export async function submitInvitationResponse(
       }
     });
 
-    return { ok: true };
+    return { ok: true, attendanceSaved: attending !== undefined };
   } catch (error) {
     console.error("submitInvitationResponse failed", error);
     return { ok: false, error: "Gagal mengirim. Coba lagi ya." };

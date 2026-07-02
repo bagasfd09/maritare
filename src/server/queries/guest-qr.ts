@@ -27,6 +27,12 @@ export type InvitationCheckin = {
   /** Which family invited this guest — drives the wedding-gift section to show
    *  only that side's accounts. "both" (the default) shows all. */
   side: "groom" | "bride" | "both";
+  /** The guest's recorded RSVP (dashboard status): true = confirmed, false =
+   *  declined, null = not answered yet. Lets the invitation show a "sudah
+   *  konfirmasi" summary instead of the attendance form on a return visit. */
+  attending: boolean | null;
+  /** Recorded headcount (incl. themselves); meaningful only when attending. */
+  partySize: number | null;
 };
 
 export async function getInvitationCheckinByCode(
@@ -38,7 +44,13 @@ export async function getInvitationCheckinByCode(
     return null;
   }
   const [row] = await db
-    .select({ guestId: guests.id, guestName: guests.name, side: guests.side })
+    .select({
+      guestId: guests.id,
+      guestName: guests.name,
+      side: guests.side,
+      status: guests.status,
+      partySize: guests.partySize,
+    })
     .from(guests)
     .innerJoin(weddings, eq(guests.weddingId, weddings.id))
     .where(
@@ -52,7 +64,13 @@ export async function getInvitationCheckinByCode(
     .limit(1);
 
   if (!row) return null;
-  return row;
+  return {
+    guestId: row.guestId,
+    guestName: row.guestName,
+    side: row.side,
+    attending: row.status === "confirmed" ? true : row.status === "declined" ? false : null,
+    partySize: row.partySize,
+  };
 }
 
 export async function getGuestQrInfo(id: string): Promise<GuestQrInfo | null> {
