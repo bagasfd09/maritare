@@ -13,7 +13,15 @@
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { photos, templates, weddingMembers, weddings, wishes } from "@/lib/db/schema";
+import {
+  guestGroups,
+  guests,
+  photos,
+  templates,
+  weddingMembers,
+  weddings,
+  wishes,
+} from "@/lib/db/schema";
 import {
   parseSectionData,
   type AcaraData,
@@ -68,8 +76,18 @@ export type InvitationView = {
   photos: InvitationPhoto[];
   /** Profile photos resolved from pasangan.photoId against THIS wedding only. */
   couplePhotoUrls: { groom?: string; bride?: string };
-  /** Approved wishes only (pinned first, newest next), capped at 60. */
-  wishes: { fromName: string; body: string; createdAt: string }[];
+  /** Approved wishes only (pinned first, newest next), capped at 60. `badgeUrl`
+   *  is the guest's group badge icon (VIP/Sahabat/…) — optional so templates'
+   *  optimistic prepends and demo fixtures don't have to carry it. */
+  wishes: {
+    fromName: string;
+    body: string;
+    createdAt: string;
+    groupName?: string | null;
+    badgeUrl?: string | null;
+    /** Badge placement (per-group Grup Tamu setting); defaults to "name". */
+    badgeStyle?: "name" | "avatar" | null;
+  }[];
   /**
    * Absolute URL for the link-share preview (Open Graph / WhatsApp), or
    * undefined when there's nothing to show. Source: the editable "Bagikan"
@@ -190,8 +208,30 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
         fromName: wishes.fromName,
         body: wishes.body,
         createdAt: wishes.createdAt,
+        // Group badge: wish → keyed guest → their group's configured icon.
+        // groupName comes from guest_groups (NOT guests.group) on purpose: the
+        // raw label is internal dashboard categorization and must reach the
+        // PUBLIC payload only when the couple opted in by decorating the group.
+        groupName: guestGroups.name,
+        badgeIconKey: guestGroups.iconKey,
+        badgeStyle: guestGroups.iconStyle,
       })
       .from(wishes)
+      .leftJoin(
+        guests,
+        and(
+          eq(wishes.guestId, guests.id),
+          // Belt-and-braces: writers already scope guestId to this wedding, but
+          // the join must never be the thing that lets a future writer leak a
+          // cross-wedding label; removed guests drop their badge too.
+          eq(guests.weddingId, wishes.weddingId),
+          isNull(guests.deletedAt),
+        ),
+      )
+      .leftJoin(
+        guestGroups,
+        and(eq(guestGroups.weddingId, wishes.weddingId), eq(guestGroups.name, guests.group)),
+      )
       .where(
         and(
           eq(wishes.weddingId, wedding.id),
@@ -266,6 +306,15 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
     }
   }
 
+  // Resolve each DISTINCT group-badge icon once (many wishes share a group).
+  // Live views get the CDN URL; drafts / no-CDN fall back to presigned GETs.
+  const badgeUrlByKey = new Map<string, string>();
+  for (const w of wishRows) {
+    if (!w.badgeIconKey || badgeUrlByKey.has(w.badgeIconKey)) continue;
+    const cdn = kind === "public" ? publicImageUrl(w.badgeIconKey, { width: 96 }) : null;
+    badgeUrlByKey.set(w.badgeIconKey, cdn ?? (await getViewUrl(w.badgeIconKey)));
+  }
+
   return {
     kind,
     data: {
@@ -298,6 +347,9 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
         fromName: w.fromName,
         body: w.body,
         createdAt: w.createdAt.toISOString(),
+        groupName: w.groupName ?? null,
+        badgeUrl: w.badgeIconKey ? (badgeUrlByKey.get(w.badgeIconKey) ?? null) : null,
+        badgeStyle: w.badgeStyle ?? null,
       })),
       ogImageUrl,
       ogImageWidth,

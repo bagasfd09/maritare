@@ -80,6 +80,8 @@ export function Overview({ data }: OverviewProps) {
               pending={data.rsvp.pending}
               invited={data.rsvp.invited}
               respondedPct={data.rsvp.respondedPct}
+              paxConfirmed={data.rsvp.paxConfirmed}
+              paxInvited={data.rsvp.paxInvited}
               groups={data.rsvpByGroup}
               bySide={data.rsvpBySide}
             />

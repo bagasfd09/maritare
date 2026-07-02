@@ -28,6 +28,9 @@ export const guestSide = pgEnum("guest_side", ["groom", "bride", "both"]);
 export const guestStatus = pgEnum("guest_status", ["pending", "confirmed", "declined"]);
 export const invitationStatus = pgEnum("invitation_status", ["none", "sent", "opened"]);
 export const wishStatus = pgEnum("wish_status", ["pending", "approved", "hidden"]);
+// Where a guest-group badge renders on wish cards: beside the name, or pinned
+// to the avatar/medallion corner.
+export const guestGroupIconStyle = pgEnum("guest_group_icon_style", ["name", "avatar"]);
 export const orderStatus = pgEnum("order_status", ["pending", "paid", "failed", "refunded"]);
 export const templateStatus = pgEnum("template_status", ["draft", "published"]);
 export const promoDiscountType = pgEnum("promo_discount_type", ["percent", "fixed"]);
@@ -287,6 +290,34 @@ export const rsvps = pgTable("rsvps", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
+
+// ─────────────────────────────────────────────────────────────────
+// Guest groups (badge icons for the free-text guests.group labels)
+// ─────────────────────────────────────────────────────────────────
+
+// Maps a wedding's free-text guest-group label (guests.group, matched verbatim)
+// to an uploaded badge icon shown beside that group's guests — e.g. a VIP mark
+// on wish cards. Rows exist only for groups the couple decorated; the groups
+// themselves keep living as free text on guests. Pure config (not user-facing
+// content) → hard-delete, which also keeps the unique index simple so a group
+// can be re-decorated after its icon is removed.
+export const guestGroups = pgTable(
+  "guest_groups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    weddingId: uuid("wedding_id")
+      .notNull()
+      .references(() => weddings.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // R2 object key of the badge icon (weddings/{weddingId}/badges/…).
+    iconKey: text("icon_key").notNull(),
+    // Per-group render style, customizable from the Grup Tamu menu.
+    iconStyle: guestGroupIconStyle("icon_style").default("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("guest_groups_wedding_name_unique").on(t.weddingId, t.name)],
+);
 
 // ─────────────────────────────────────────────────────────────────
 // Wishes (buku ucapan)

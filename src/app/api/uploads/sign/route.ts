@@ -29,6 +29,13 @@ const IMAGE_TYPE_EXT: Record<string, string> = {
   "image/webp": ".webp",
   "image/avif": ".avif",
 };
+// Group badges additionally allow SVG (stays crisp at ~16px). Safe because a
+// badge is only ever rendered via <img> (scripts inside SVG don't execute
+// there) and the bytes are served from the R2/CDN origin, never inlined.
+const BADGE_TYPE_EXT: Record<string, string> = {
+  ...IMAGE_TYPE_EXT,
+  "image/svg+xml": ".svg",
+};
 const AUDIO_TYPE_EXT: Record<string, string> = {
   "audio/mpeg": ".mp3",
   "audio/mp4": ".m4a",
@@ -46,6 +53,9 @@ const VIDEO_TYPE_EXT: Record<string, string> = {
 };
 
 const MAX_IMAGE_BYTES = 10_000_000; // 10 MB.
+// Badges render at ~18px; 2 MB is already generous and caps the cost of
+// looping quota-free presigned PUTs into badges/.
+const MAX_BADGE_BYTES = 2_000_000;
 const MAX_AUDIO_BYTES = 15_000_000; // 15 MB — a long MP3 at high bitrate.
 const MAX_VIDEO_BYTES = 50_000_000; // 50 MB — a short looping cover clip.
 
@@ -54,10 +64,11 @@ const signRequestSchema = z.object({
   contentType: z.string().min(1).max(100),
   size: z.number().int().positive(),
   // "photo" (gallery, quota-checked); "audio" (background music), "video",
-  // "hero-image" (folk hero cover), "share-image" (link-preview/OG image), and
-  // "momen-image" (folk Momen illustration) are single section assets — no quota.
+  // "hero-image" (folk hero cover), "share-image" (link-preview/OG image),
+  // "momen-image" (folk Momen illustration), and "group-badge" (guest-group
+  // badge icon) are single section assets — no quota.
   kind: z
-    .enum(["photo", "audio", "video", "hero-image", "share-image", "momen-image"])
+    .enum(["photo", "audio", "video", "hero-image", "share-image", "momen-image", "group-badge"])
     .default("photo"),
 });
 
@@ -86,7 +97,13 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // 1b. Validate the content type + size against the rules for this kind.
     const extMap =
-      kind === "audio" ? AUDIO_TYPE_EXT : kind === "video" ? VIDEO_TYPE_EXT : IMAGE_TYPE_EXT;
+      kind === "audio"
+        ? AUDIO_TYPE_EXT
+        : kind === "video"
+          ? VIDEO_TYPE_EXT
+          : kind === "group-badge"
+            ? BADGE_TYPE_EXT
+            : IMAGE_TYPE_EXT;
     const ext = extMap[contentType];
     if (!ext) {
       return json(
@@ -103,7 +120,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
     const maxBytes =
-      kind === "audio" ? MAX_AUDIO_BYTES : kind === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+      kind === "audio"
+        ? MAX_AUDIO_BYTES
+        : kind === "video"
+          ? MAX_VIDEO_BYTES
+          : kind === "group-badge"
+            ? MAX_BADGE_BYTES
+            : MAX_IMAGE_BYTES;
     if (size > maxBytes) {
       return json(
         { ok: false, error: `File kegedean (maks ${Math.round(maxBytes / 1_000_000)} MB).` },
@@ -171,7 +194,9 @@ export async function POST(request: NextRequest): Promise<Response> {
               ? "share"
               : kind === "momen-image"
                 ? "momen"
-                : "photos";
+                : kind === "group-badge"
+                  ? "badges"
+                  : "photos";
     const objectKey = `weddings/${wedding.weddingId}/${folder}/${crypto.randomUUID()}${ext}`;
 
     // 6. Sign a short-lived PUT URL (Content-Type + Content-Length signed).

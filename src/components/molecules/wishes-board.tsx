@@ -151,6 +151,8 @@ export function WishesBoard({ wishes }: { wishes: WishRow[] }) {
                 attending: w.attending,
                 status: w.status === "pending" ? "pending" : "approved",
                 pinned: w.pinned,
+                groupName: w.groupName,
+                badgeUrl: w.badgeUrl,
               }}
               tone={AVATAR_TONES[i % 5]}
             />

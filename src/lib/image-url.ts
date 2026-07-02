@@ -26,6 +26,11 @@ export function publicImageUrl(
   opts?: { width?: number; height?: number; quality?: number; fit?: "cover" | "contain" | "scale-down" },
 ): string | null {
   if (!PUBLIC_BASE) return null;
+  // Cloudflare Image Resizing can't process SVG (group-badge icons) — serve
+  // the vector as-is from the public domain; it's already tiny and scalable.
+  if (objectKey.endsWith(".svg")) {
+    return `${PUBLIC_BASE}/${objectKey}`;
+  }
   const width = opts?.width ?? 1280;
   const quality = opts?.quality ?? 75;
   const params = [`width=${width}`];

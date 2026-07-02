@@ -12,6 +12,10 @@ export type Wish = {
   attending: boolean | null;
   status: "pending" | "approved";
   pinned?: boolean;
+  /** Guest-group badge (Grup Tamu icon); placement is a per-group setting. */
+  groupName?: string | null;
+  badgeUrl?: string | null;
+  badgeStyle?: "name" | "avatar" | null;
 };
 
 type AvatarTone = "sage" | "peach" | "blush" | "burgundy" | "dark";
@@ -37,13 +41,33 @@ export function WishCard({ wish, tone }: WishCardProps) {
         </div>
       )}
 
-      <Avatar tone={tone} size={40} className="text-[14px]">
-        {initials(wish.from)}
-      </Avatar>
+      <div className="relative self-start">
+        <Avatar tone={tone} size={40} className="text-[14px]">
+          {initials(wish.from)}
+        </Avatar>
+        {wish.badgeUrl && wish.badgeStyle === "avatar" && (
+          /* eslint-disable-next-line @next/next/no-img-element -- presigned/CDN URL; next/image would break short-lived signatures */
+          <img
+            src={wish.badgeUrl}
+            alt={wish.groupName ?? ""}
+            title={wish.groupName ?? undefined}
+            className="absolute -bottom-1 -right-1 h-[18px] w-[18px] rounded-full border-[1.5px] border-paper bg-white object-cover"
+          />
+        )}
+      </div>
 
       <div className="min-w-0">
         <div className="flex items-baseline gap-[10px] mb-1">
           <div className="font-display italic text-[17px] text-charcoal">{wish.from}</div>
+          {wish.badgeUrl && wish.badgeStyle !== "avatar" && (
+            /* eslint-disable-next-line @next/next/no-img-element -- presigned/CDN URL; next/image would break short-lived signatures */
+            <img
+              src={wish.badgeUrl}
+              alt={wish.groupName ?? ""}
+              title={wish.groupName ?? undefined}
+              className="h-4 w-4 shrink-0 self-center object-contain"
+            />
+          )}
           {wish.status === "pending" && (
             <span className="text-[9px] px-[7px] py-[2px] rounded-full bg-peach text-[#5a2a18] font-bold tracking-[0.14em] uppercase">
               Menunggu

@@ -15,6 +15,7 @@ const TOP: NavItem[] = [
   { id: "editor", icon: "edit", label: "Editor", href: "/dashboard/editor" },
   { id: "templates", icon: "template", label: "Template", href: "/dashboard/templates" },
   { id: "guests", icon: "users", label: "Tamu", href: "/dashboard/guests" },
+  { id: "groups", icon: "sparkle", label: "Grup Tamu", href: "/dashboard/guests/groups" },
   { id: "wishes", icon: "heart", label: "Ucapan", href: "/dashboard/wishes", badge: "5" },
   { id: "photos", icon: "image", label: "Galeri", href: "/dashboard/gallery" },
   { id: "petugas", icon: "users", label: "Petugas Resepsi", href: "/dashboard/petugas" },

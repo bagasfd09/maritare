@@ -8,13 +8,14 @@ import { CircleButton } from "@/components/atoms/circle-button";
 import { logout } from "@/server/actions/auth";
 
 export type MobileNavKey =
-  | "beranda" | "editor" | "tamu" | "template" | "ucapan"
+  | "beranda" | "editor" | "tamu" | "grup" | "template" | "ucapan"
   | "galeri" | "amplop" | "tagihan" | "pengaturan";
 
 const ROUTES: Record<MobileNavKey, string> = {
   beranda: "/dashboard",
   editor: "/dashboard/editor",
   tamu: "/dashboard/guests",
+  grup: "/dashboard/guests/groups",
   template: "/dashboard/templates",
   ucapan: "/dashboard/wishes",
   galeri: "/dashboard/gallery",
@@ -27,6 +28,7 @@ const ROUTES: Record<MobileNavKey, string> = {
 const MORE: { key: MobileNavKey; icon: IconName; title: string; sub: string }[] = [
   { key: "template", icon: "template", title: "Galeri Template", sub: "Ganti tema undangan" },
   { key: "galeri", icon: "image", title: "Galeri Foto", sub: "18 dari 30 foto" },
+  { key: "grup", icon: "sparkle", title: "Grup Tamu", sub: "Badge VIP, sahabat, dll." },
   { key: "tagihan", icon: "card", title: "Tagihan & Paket", sub: "Paket Gold aktif" },
   { key: "pengaturan", icon: "settings", title: "Pengaturan", sub: "Akun, domain, notifikasi" },
 ];

@@ -152,6 +152,13 @@ export function OverviewMobile({ data, chrome }: OverviewMobileProps) {
             sudah merespons · {data.rsvp.confirmed + data.rsvp.declined} / {data.rsvp.invited}
           </div>
         </div>
+        {/* headcount (pax) — guests bring companions, so people ≠ invitations */}
+        <div className="mb-3 text-[11.5px] text-muted-ink">
+          <span className="font-display font-extrabold text-[15px] text-charcoal">
+            {data.rsvp.paxConfirmed}
+          </span>{" "}
+          orang akan datang · dari ± {data.rsvp.paxInvited} orang jika semua hadir
+        </div>
         <div className="flex h-[11px] rounded-full overflow-hidden gap-[2px] mb-3">
           <div className="bg-sage" style={{ flexGrow: data.rsvp.confirmed }} />
           <div className="bg-terracotta" style={{ flexGrow: data.rsvp.declined }} />

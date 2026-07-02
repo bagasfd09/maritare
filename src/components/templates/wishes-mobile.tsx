@@ -133,9 +133,22 @@ export function WishesMobile({ data }: WishesMobileProps) {
                     {initials(wish.fromName)}
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between">
-                      <span className="font-display italic text-base">{wish.fromName}</span>
-                      <span className="text-[10px] text-faint [font-variant:small-caps] tracking-[0.08em]">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate font-display italic text-base">
+                          {wish.fromName}
+                        </span>
+                        {wish.badgeUrl && (
+                          /* eslint-disable-next-line @next/next/no-img-element -- presigned/CDN URL; next/image would break short-lived signatures */
+                          <img
+                            src={wish.badgeUrl}
+                            alt={wish.groupName ?? ""}
+                            title={wish.groupName ?? undefined}
+                            className="h-4 w-4 shrink-0 object-contain"
+                          />
+                        )}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-faint [font-variant:small-caps] tracking-[0.08em]">
                         {relativeTimeId(wish.createdAt)}
                       </span>
                     </div>

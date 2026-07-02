@@ -13,6 +13,7 @@ import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
+  guestGroups,
   guests,
   orders,
   packages,
@@ -25,6 +26,7 @@ import {
   wishes,
 } from "@/lib/db/schema";
 import { relativeTimeId } from "@/lib/datetime";
+import { publicImageUrl } from "@/lib/image-url";
 import { parseSectionData } from "@/lib/invitation/sections";
 import { getViewUrl } from "@/lib/r2";
 import {
@@ -385,6 +387,10 @@ export type OverviewData = {
     pending: number;
     invited: number;
     respondedPct: number;
+    /** Headcount (pax): sum of partySize (null → 1). `paxConfirmed` counts
+     *  confirmed guests only; `paxInvited` counts every non-deleted guest. */
+    paxConfirmed: number;
+    paxInvited: number;
   };
   /** Per-group RSVP breakdown (top groups), real aggregation. */
   rsvpByGroup: RsvpGroup[];
@@ -417,6 +423,9 @@ export async function getOverviewData(): Promise<OverviewData | null> {
       groomConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'groom' and ${guests.status} = 'confirmed')::int`,
       bothTotal: sql<number>`count(*) filter (where ${guests.side} = 'both')::int`,
       bothConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'both' and ${guests.status} = 'confirmed')::int`,
+      // Headcount (pax): partySize is nullable — an unset value counts as 1.
+      paxConfirmed: sql<number>`coalesce(sum(coalesce(${guests.partySize}, 1)) filter (where ${guests.status} = 'confirmed'), 0)::int`,
+      paxInvited: sql<number>`coalesce(sum(coalesce(${guests.partySize}, 1)), 0)::int`,
     })
     .from(guests)
     .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)));
@@ -477,7 +486,15 @@ export async function getOverviewData(): Promise<OverviewData | null> {
     dateLabel: formatDateLabel(eventDate),
     venueLabel: formatVenueLabel(wedding.venue, wedding.city),
     completionPct: completionPercent(wedding, photosUsed),
-    rsvp: { confirmed, declined, pending, invited, respondedPct },
+    rsvp: {
+      confirmed,
+      declined,
+      pending,
+      invited,
+      respondedPct,
+      paxConfirmed: guestRow?.paxConfirmed ?? 0,
+      paxInvited: guestRow?.paxInvited ?? 0,
+    },
     rsvpByGroup,
     rsvpBySide,
     wishes: { total: wishTotal, pending: wishPending },
@@ -627,6 +644,12 @@ export type WishesData = {
     status: "pending" | "approved" | "hidden";
     pinned: boolean;
     createdAt: Date;
+    /** Guest-group badge (Grup Tamu icon). Null when the wish is anonymous or
+     *  the group has no icon configured. */
+    groupName: string | null;
+    badgeUrl: string | null;
+    /** Badge placement (per-group Grup Tamu setting). */
+    badgeStyle: "name" | "avatar" | null;
   }>;
   counts: { total: number; pending: number; approved: number };
 };
@@ -648,8 +671,25 @@ export async function getWishesData(): Promise<WishesData | null> {
       status: wishes.status,
       pinned: wishes.pinned,
       createdAt: wishes.createdAt,
+      // Group badge: wish → keyed guest → their group's configured icon.
+      groupName: guests.group,
+      badgeIconKey: guestGroups.iconKey,
+      badgeStyle: guestGroups.iconStyle,
     })
     .from(wishes)
+    .leftJoin(
+      guests,
+      and(
+        eq(wishes.guestId, guests.id),
+        // Same-wedding + non-deleted guard as the public invitation query.
+        eq(guests.weddingId, wishes.weddingId),
+        isNull(guests.deletedAt),
+      ),
+    )
+    .leftJoin(
+      guestGroups,
+      and(eq(guestGroups.weddingId, wishes.weddingId), eq(guestGroups.name, guests.group)),
+    )
     .where(and(eq(wishes.weddingId, wedding.id), isNull(wishes.deletedAt)))
     .orderBy(desc(wishes.pinned), desc(wishes.createdAt));
 
@@ -662,6 +702,16 @@ export async function getWishesData(): Promise<WishesData | null> {
     }
   }
 
+  // Resolve each DISTINCT badge icon once (many wishes share a group).
+  const badgeUrlByKey = new Map<string, string>();
+  for (const w of rows) {
+    if (!w.badgeIconKey || badgeUrlByKey.has(w.badgeIconKey)) continue;
+    badgeUrlByKey.set(
+      w.badgeIconKey,
+      publicImageUrl(w.badgeIconKey, { width: 96 }) ?? (await getViewUrl(w.badgeIconKey)),
+    );
+  }
+
   return {
     chrome: buildChrome(
       wedding,
@@ -669,7 +719,10 @@ export async function getWishesData(): Promise<WishesData | null> {
       resolved.packageName,
       counts.pending,
     ),
-    wishes: rows,
+    wishes: rows.map(({ badgeIconKey, ...w }) => ({
+      ...w,
+      badgeUrl: badgeIconKey ? (badgeUrlByKey.get(badgeIconKey) ?? null) : null,
+    })),
     counts,
   };
 }

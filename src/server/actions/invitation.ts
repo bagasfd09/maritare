@@ -110,19 +110,19 @@ export async function submitInvitationResponse(
       }
     }
 
-    // Resolve the guest for a personalized link. A stale/deleted guest falls
-    // back to an anonymous RSVP rather than blocking the submission.
-    const guest =
-      guestId && attending !== undefined
-        ? await db.query.guests.findFirst({
-            columns: { id: true },
-            where: and(
-              eq(guests.id, guestId),
-              eq(guests.weddingId, wedding.id),
-              isNull(guests.deletedAt),
-            ),
-          })
-        : undefined;
+    // Resolve the guest for a personalized link — keys the RSVP to them and
+    // links the wish (guestId drives e.g. the group badge on wish cards). A
+    // stale/deleted guest falls back to anonymous rather than blocking.
+    const guest = guestId
+      ? await db.query.guests.findFirst({
+          columns: { id: true },
+          where: and(
+            eq(guests.id, guestId),
+            eq(guests.weddingId, wedding.id),
+            isNull(guests.deletedAt),
+          ),
+        })
+      : undefined;
 
     // A keyed, wish-less RSVP whose guest can't be resolved would land as an
     // anonymous row carrying no name at all — reject it instead of recording
@@ -156,6 +156,7 @@ export async function submitInvitationResponse(
       if (message) {
         await tx.insert(wishes).values({
           weddingId: wedding.id,
+          guestId: guest?.id,
           fromName: name,
           body: message,
           attending: attending ?? null,

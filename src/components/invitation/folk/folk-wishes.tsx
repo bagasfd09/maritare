@@ -204,11 +204,13 @@ export function FolkWishes({ data, mode, guestName, checkin }: Props) {
         slug,
         name: trimmedName,
         message: trimmedMessage || undefined,
+        // Always attach the resolved guest — it links the wish to them (group
+        // badge on wish cards), independent of whether an RSVP rides along.
+        guestId: checkin?.guestId,
         ...(showAttendance && rsvp
           ? {
               attending: rsvp.attending,
               partySize: rsvp.attending ? sizeFor(rsvp.party) : undefined,
-              guestId: checkin?.guestId,
             }
           : {}),
         website,
@@ -224,6 +226,9 @@ export function FolkWishes({ data, mode, guestName, checkin }: Props) {
             fromName: trimmedName,
             body: trimmedMessage,
             createdAt: new Date().toISOString(),
+            // Own badge not known client-side; it appears once approved.
+            groupName: null,
+            badgeUrl: null,
             pendingModeration: true,
           },
           ...prev,
@@ -518,18 +523,41 @@ export function FolkWishes({ data, mode, guestName, checkin }: Props) {
                     >
                       &rdquo;
                     </div>
+                    {/* Group badge (Grup Tamu icon) — placement is a per-group
+                        setting: beside the name (default) or pinned to the
+                        medallion corner ("Di foto"). */}
                     <div className="relative flex items-center gap-3 pr-9">
-                      <div
-                        className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-[13px] font-bold italic text-[#F5EFE0]",
-                          AVATAR_TONES[i % AVATAR_TONES.length],
+                      <div className="relative shrink-0">
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-full font-display text-[13px] font-bold italic text-[#F5EFE0]",
+                            AVATAR_TONES[i % AVATAR_TONES.length],
+                          )}
+                        >
+                          {initials(wish.fromName)}
+                        </div>
+                        {wish.badgeUrl && wish.badgeStyle === "avatar" && (
+                          <img
+                            src={wish.badgeUrl}
+                            alt={wish.groupName ?? ""}
+                            title={wish.groupName ?? undefined}
+                            className="absolute -bottom-1 -right-1 h-[18px] w-[18px] rounded-full border-[1.5px] border-[#F5EFE0] bg-white object-cover"
+                          />
                         )}
-                      >
-                        {initials(wish.fromName)}
                       </div>
                       <div className="min-w-0">
-                        <div className="truncate font-display text-[16px] font-bold italic text-[#700F06] [font-variation-settings:'opsz'_96]">
-                          {wish.fromName}
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <div className="truncate font-display text-[16px] font-bold italic text-[#700F06] [font-variation-settings:'opsz'_96]">
+                            {wish.fromName}
+                          </div>
+                          {wish.badgeUrl && wish.badgeStyle !== "avatar" && (
+                            <img
+                              src={wish.badgeUrl}
+                              alt={wish.groupName ?? ""}
+                              title={wish.groupName ?? undefined}
+                              className="h-[30px] w-[30px] shrink-0 select-none object-contain"
+                            />
+                          )}
                         </div>
                         <div className="mt-0.5 font-body text-[9px] font-semibold uppercase tracking-[0.18em] text-[#52602F]">
                           {wish.pendingModeration

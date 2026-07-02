@@ -13,7 +13,8 @@ export type UploadKind =
   | "video"
   | "hero-image"
   | "share-image"
-  | "momen-image";
+  | "momen-image"
+  | "group-badge";
 
 type SignResponse =
   | { ok: true; uploadUrl: string; objectKey: string }

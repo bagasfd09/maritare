@@ -10,6 +10,9 @@ type RsvpCardProps = {
   pending: number;
   invited: number;
   respondedPct: number;
+  /** Headcount (pax) coming vs pax across every invited guest. */
+  paxConfirmed: number;
+  paxInvited: number;
   groups: RsvpGroup[];
   bySide: RsvpGroup[];
 };
@@ -21,6 +24,8 @@ export function RsvpCard({
   pending,
   invited,
   respondedPct,
+  paxConfirmed,
+  paxInvited,
   groups,
   bySide,
 }: RsvpCardProps) {
@@ -57,6 +62,20 @@ export function RsvpCard({
             tamu sudah merespons
             <br />
             <span className="text-faint">{responded} dari {invited} diundang</span>
+          </div>
+        </div>
+
+        {/* headcount (pax) — guests bring companions, so people ≠ invitations */}
+        <div className="mb-4 flex items-center gap-[10px] rounded-[12px] border border-line bg-cream px-4 py-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sage-soft text-charcoal">
+            <Icon name="users" size={14} />
+          </div>
+          <div className="text-[12px] leading-[1.4] text-muted-ink">
+            <span className="font-display text-[17px] font-extrabold text-charcoal">
+              {paxConfirmed}
+            </span>{" "}
+            orang akan datang
+            <span className="text-faint"> · dari ± {paxInvited} orang jika semua hadir</span>
           </div>
         </div>
 
