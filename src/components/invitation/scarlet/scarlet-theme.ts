@@ -2250,6 +2250,10 @@ export const SCARLET_THEME_CSS = String.raw`
     position: relative;
     width: 100%;
     overflow-y: auto;
+    /* Keep the framed box a consistent height even when only the "Buka Amplop"
+       button shows (gated state) — otherwise it collapses and looks empty.
+       Tune this to match the decorative frame art. */
+    min-height: 220px;
 }
 .scarlet-inv .wedding-gift-inner .gift-frame .frame-wrap {
     width: 100%;
@@ -2278,6 +2282,9 @@ export const SCARLET_THEME_CSS = String.raw`
     position: relative;
     width: 100%;
     height: 100%;
+    min-height: inherit;
+    display: flex;
+    flex-direction: column;
 }
 .scarlet-inv .wedding-gift-bank-wrap {
     
@@ -2402,7 +2409,7 @@ export const SCARLET_THEME_CSS = String.raw`
     justify-content: center;
     width: fit-content;
     padding: 12px 32px;
-    margin: 24px auto;
+    margin: auto;
     border-radius: 999px;
     font-family: var(--body-text-family);
     font-size: var(--body-text-size);
