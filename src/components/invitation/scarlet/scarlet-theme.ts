@@ -2223,6 +2223,12 @@ export const SCARLET_THEME_CSS = String.raw`
     max-width: 650px;
     margin: 0 auto;
 }
+/* frame-bank.webp is 1100x1572; its height is the whole section's layout.
+   Reserve that height up front so the section can't collapse while (or if)
+   the image is still loading — the iOS Safari "only flowers left" bug. */
+.scarlet-inv .frame-bank > .image-wrap {
+    aspect-ratio: 1100 / 1572;
+}
 .scarlet-inv .wedding-gift-content {
     position: absolute;
     width: 100%;

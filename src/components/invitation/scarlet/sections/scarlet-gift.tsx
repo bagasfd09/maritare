@@ -106,7 +106,10 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide, gated }: P
               data-aos-duration="1000"
               data-aos-delay="600"
             >
-              <img loading="lazy" decoding="async" src="/invitation/scarlet/frame-bank.webp" alt="orn-cover" />
+              {/* Eager: this image's height IS the section's layout — lazy-loading
+                  it inside an AOS opacity-0 wrapper collapses the whole section on
+                  iOS Safari (deferred lazy images in invisible subtrees). */}
+              <img loading="eager" decoding="async" src="/invitation/scarlet/frame-bank.webp" alt="orn-cover" />
             </div>
 
             <div className="ornaments-wrapper">
@@ -231,13 +234,13 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide, gated }: P
               data-aos-delay="700"
             >
               <div className="wedding-gift-body">
+                {/* No data-aos here: the button is the only way to reach the account
+                    numbers, so it must never be stuck at the reveal's opacity 0. */}
                 {!revealed && (
                   <button
                     type="button"
                     className="wedding-gift-reveal-btn"
                     onClick={() => setRevealed(true)}
-                    data-aos="zoom-in"
-                    data-aos-duration="1000"
                   >
                     Buka Amplop
                   </button>
