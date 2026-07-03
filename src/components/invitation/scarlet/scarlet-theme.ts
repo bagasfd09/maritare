@@ -2393,6 +2393,30 @@ export const SCARLET_THEME_CSS = String.raw`
     align-items: center;
     gap: 4px;
 }
+.scarlet-inv .wedding-gift-reveal-btn {
+    border: none;
+    outline: none;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: 12px 32px;
+    margin: 24px auto;
+    border-radius: 999px;
+    font-family: var(--body-text-family);
+    font-size: var(--body-text-size);
+    letter-spacing: 0.02em;
+    background-color: var(--button-background-primary);
+    color: var(--button-text-primary);
+    cursor: pointer;
+    transition-duration: 0.25s;
+    transition-property: background-color;
+}
+.scarlet-inv .wedding-gift-reveal-btn:hover {
+    background-color: var(--button-background-secondary);
+    color: var(--button-text-secondary);
+}
 .scarlet-inv .wedding-gift-bank-wrap .bank-copy {
     border: none;
     outline: none;
@@ -2433,6 +2457,16 @@ export const SCARLET_THEME_CSS = String.raw`
 .scarlet-inv .custom-wedding-gifts-wrap .wedding-gift-address-wrap {
     align-items: center;
     gap: 12px;
+}
+.scarlet-inv .gift-address-divider {
+    margin-top: 28px;
+    margin-bottom: 20px;
+}
+.scarlet-inv .wedding-gift-address-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
 }
 .scarlet-inv .wedding-gift-address-wrap .inner-recipient-info {
     font-size: calc(var(--body-text-size));

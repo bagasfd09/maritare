@@ -28,6 +28,9 @@ type Props = {
    *  set to groom/bride, only that side's accounts (plus "both") show. Absent or
    *  "both" → show every account (generic link / owner preview). */
   guestSide?: PartySide;
+  /** Folk: hide the account cards behind a "Buka Amplop" button — guests must
+   *  click to reveal the numbers instead of seeing them straight away. */
+  gated?: boolean;
 };
 
 // An account shows when the guest has no specific side, or the account is for
@@ -37,11 +40,12 @@ function visibleForSide(accountSide: PartySide, guestSide?: PartySide): boolean 
   return accountSide === "both" || accountSide === guestSide;
 }
 
-export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
+export function ScarletGift({ data, logoOnly, plainNumber, guestSide, gated }: Props) {
   const { accounts: allAccounts, ewallets: allEwallets, giftAddress } = data.sections.amplop;
   const accounts = allAccounts.filter((a) => visibleForSide(a.side, guestSide));
   const ewallets = allEwallets.filter((w) => visibleForSide(w.side, guestSide));
 
+  const [revealed, setRevealed] = useState(!gated);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -227,6 +231,19 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
               data-aos-delay="700"
             >
               <div className="wedding-gift-body">
+                {!revealed && (
+                  <button
+                    type="button"
+                    className="wedding-gift-reveal-btn"
+                    onClick={() => setRevealed(true)}
+                    data-aos="zoom-in"
+                    data-aos-duration="1000"
+                  >
+                    Buka Amplop
+                  </button>
+                )}
+                {revealed && (
+                <>
                 {/* Bank Wrap */}
                 <div className="wedding-gift-bank-wrap">
                   {cards.map((card) => {
@@ -316,10 +333,21 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
                 </div>
 
                 {giftAddress && (
-                  <div className="wedding-gift-address-wrap" data-aos="fade-up" data-aos-duration="1200">
-                    <p className="inner-recipient-info name">Kirim Kado</p>
-                    <p className="inner-address-info">{giftAddress}</p>
-                  </div>
+                  <>
+                    {cards.length > 0 && (
+                      <div className="cp-top gift-address-divider">
+                        <div className="image-wrap" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="500">
+                          <img loading="lazy" decoding="async" src="/invitation/scarlet/Orn-cp.webp" alt="orn-cover" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="wedding-gift-address-wrap" data-aos="fade-up" data-aos-duration="1200">
+                      <p className="inner-recipient-info name">Kirim Kado</p>
+                      <p className="inner-address-info">{giftAddress}</p>
+                    </div>
+                  </>
+                )}
+                </>
                 )}
               </div>
             </div>

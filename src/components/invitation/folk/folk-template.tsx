@@ -90,7 +90,7 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       />
       {/* Folk shows the bank's logo only (no bank-name text) when a logo exists.
           guestSide hides the other family's accounts on personalized ?g= links. */}
-      <ScarletGift data={data} mode={mode} logoOnly plainNumber guestSide={checkin?.side} />
+      <ScarletGift data={data} mode={mode} logoOnly plainNumber gated={mode === "public"} guestSide={checkin?.side} />
       {/* Wishes + RSVP (Hadir/Berhalangan pills live in this form). Pre-fill the
           name with the invitation's guest (?g= guest, else ?to=); empty on
           generic links. checkin keys the RSVP to the resolved guest. */}
