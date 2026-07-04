@@ -52,8 +52,8 @@ export function WaBlast({ data }: { data: WaBlastData }) {
   const guests = data.guests;
 
   const defaults = useMemo(
-    () => defaultTemplates(coupleLabel, data.dateLabel, data.venueLabel),
-    [coupleLabel, data.dateLabel, data.venueLabel],
+    () => defaultTemplates(coupleLabel, data.dateLabel, data.venueLabel, data.timeLabel),
+    [coupleLabel, data.dateLabel, data.venueLabel, data.timeLabel],
   );
 
   const [sentLocal, setSentLocal] = useState<Set<string>>(new Set());

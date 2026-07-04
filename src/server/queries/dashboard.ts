@@ -573,9 +573,25 @@ export type WaBlastData = {
   dateLabel: string | null;
   /** "Pendopo Kayon · Yogyakarta" — seeds the default message template. */
   venueLabel: string | null;
+  /** "Akad: 09.00 s/d Selesai, Resepsi: 12.30 s/d Selesai" from the acara events. */
+  timeLabel: string | null;
   /** The signed-in user's own template edits for this wedding (per-user). */
   savedTemplates: Record<string, string>;
 };
+
+/** "Akad: 09.00 s/d Selesai, Resepsi: 12.30 s/d 15.00" — Indonesian dot-style times. */
+function formatTimeLabel(events: Array<{ name: string; timeStart: string; timeEnd?: string }>): string | null {
+  if (events.length === 0) {
+    return null;
+  }
+  return events
+    .map((e) => {
+      const start = e.timeStart.replace(":", ".");
+      const end = e.timeEnd ? e.timeEnd.replace(":", ".") : "Selesai";
+      return `${e.name}: ${start} s/d ${end}`;
+    })
+    .join(", ");
+}
 
 export async function getWaBlastData(): Promise<WaBlastData | null> {
   const resolved = await resolveWedding();
@@ -603,6 +619,7 @@ export async function getWaBlastData(): Promise<WaBlastData | null> {
 
   const pendingWishes = await countPendingWishes(wedding.id);
   const eventDate = parseEventDate(wedding.eventDate);
+  const acara = parseSectionData("acara", wedding.sections?.acara?.data);
 
   const meRow = await db.query.users.findFirst({
     columns: { waTemplates: true },
@@ -617,6 +634,7 @@ export async function getWaBlastData(): Promise<WaBlastData | null> {
     brideName: wedding.brideName,
     dateLabel: formatDateLabel(eventDate),
     venueLabel: formatVenueLabel(wedding.venue, wedding.city),
+    timeLabel: formatTimeLabel(acara.events),
     savedTemplates: meRow?.waTemplates?.[wedding.id] ?? {},
   };
 }

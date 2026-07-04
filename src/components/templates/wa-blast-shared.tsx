@@ -43,22 +43,38 @@ export function defaultTemplates(
   coupleLabel: string,
   dateLabel: string | null,
   venueLabel: string | null,
+  timeLabel: string | null,
 ) {
-  const when = dateLabel ? `🗓️ ${dateLabel}\n` : "";
   const where = venueLabel ? `📍 ${venueLabel}\n` : "";
+  // Detail block for the formal invite; lines with missing data are dropped.
+  const details = [
+    dateLabel ? `🗓️ ${dateLabel}` : null,
+    timeLabel ? `🕘 ${timeLabel}` : null,
+    venueLabel ? `📍 ${venueLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
   return [
     {
       id: "undangan",
       name: "Undangan",
       phase: "Pertama kali",
-      text: `Halo {nama} 👋
+      text: `Assalamualaikum Warahmatullahi Wabarakatuh
+Kepada Yth.
+Bapak/Ibu/Saudara/i {nama}
 
-Dengan penuh kebahagiaan, kami mengundangmu ke pernikahan *${coupleLabel}* 💍
-${when}${where}
-Undangan, konfirmasi kehadiran (RSVP), & QR check-in kamu ada di tautan ini:
+Dengan penuh kebahagiaan, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara pernikahan kami.
+${details ? `\n${details}\n` : ""}
+Undangan, konfirmasi kehadiran (RSVP), & QR check-in ada di tautan ini:
 {link}
 
-Merupakan suatu kehormatan jika kamu berkenan hadir. Terima kasih 🙏`,
+Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir dan memberikan doa restu.
+
+Terima kasih
+Wassalamualaikum Warahmatullahi Wabarakatuh
+
+Hormat kami,
+*${coupleLabel}*`,
     },
     {
       id: "reminder",
