@@ -573,6 +573,8 @@ export type WaBlastData = {
   dateLabel: string | null;
   /** "Pendopo Kayon · Yogyakarta" — seeds the default message template. */
   venueLabel: string | null;
+  /** The signed-in user's own template edits for this wedding (per-user). */
+  savedTemplates: Record<string, string>;
 };
 
 export async function getWaBlastData(): Promise<WaBlastData | null> {
@@ -602,6 +604,11 @@ export async function getWaBlastData(): Promise<WaBlastData | null> {
   const pendingWishes = await countPendingWishes(wedding.id);
   const eventDate = parseEventDate(wedding.eventDate);
 
+  const meRow = await db.query.users.findFirst({
+    columns: { waTemplates: true },
+    where: eq(users.id, resolved.userId),
+  });
+
   return {
     chrome: buildChrome(wedding, resolved.user, resolved.packageName, pendingWishes),
     guests: rows,
@@ -610,6 +617,7 @@ export async function getWaBlastData(): Promise<WaBlastData | null> {
     brideName: wedding.brideName,
     dateLabel: formatDateLabel(eventDate),
     venueLabel: formatVenueLabel(wedding.venue, wedding.city),
+    savedTemplates: meRow?.waTemplates?.[wedding.id] ?? {},
   };
 }
 

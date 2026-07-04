@@ -2,9 +2,12 @@
 // wa-blast.tsx + the mobile variant). Pure helpers and presentational pieces
 // only — each screen owns its own layout, state, and send wiring.
 
+import { useState } from "react";
+
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { inviteUrl } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
+import { saveWaTemplates } from "@/server/actions/settings";
 import type { WaBlastData } from "@/server/queries/dashboard";
 
 export type Guest = WaBlastData["guests"][number];
@@ -86,6 +89,26 @@ Detail & lokasi acara:
   ];
 }
 export type Template = ReturnType<typeof defaultTemplates>[number];
+
+// Per-user template edits: seeded from the server-saved copy (users.wa_templates,
+// so two members of one wedding each keep their own), persisted on blur. Only
+// texts that diverge from the defaults are stored, so untouched templates keep
+// following live wedding info (date/venue edits).
+export function useWaTemplates(defaults: Template[], saved: Record<string, string>) {
+  const [tplText, setTplText] = useState<Record<string, string>>(() =>
+    Object.fromEntries(defaults.map((t) => [t.id, saved[t.id] ?? t.text])),
+  );
+  function persist() {
+    const edits: Record<string, string> = {};
+    for (const t of defaults) {
+      const text = tplText[t.id] ?? t.text;
+      if (text !== t.text) edits[t.id] = text;
+    }
+    // Fire-and-forget; the local state is already the source of truth on screen.
+    void saveWaTemplates({ templates: edits });
+  }
+  return { tplText, setTplText, persist };
+}
 
 export function fillTemplate(tpl: string, g: Guest, slug: string): string {
   const link = inviteUrl(slug, { to: g.name, code: g.code ?? undefined });

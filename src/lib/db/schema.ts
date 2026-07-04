@@ -68,6 +68,13 @@ export const users = pgTable("users", {
       tips: { email: false, wa: false },
     })
     .notNull(),
+  // Per-user WhatsApp invite template edits, keyed by wedding id then template
+  // id ("undangan" | "reminder" | "terimakasih"). Only texts that diverge from
+  // the generated defaults are stored.
+  waTemplates: jsonb("wa_templates")
+    .$type<Record<string, Record<string, string>>>()
+    .default({})
+    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

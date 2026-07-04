@@ -6,7 +6,7 @@
 // tap Kirim → WhatsApp opens → swipe back and the row has flipped to Terkirim,
 // the next "Belum" guest is tagged Berikutnya. Pacing is the human round-trip.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MobileShell } from "@/components/templates/mobile-shell";
@@ -25,6 +25,7 @@ import {
   effStatus,
   validPhone,
   defaultTemplates,
+  useWaTemplates,
   type Template,
   fillTemplate,
   WAGlyph,
@@ -36,7 +37,6 @@ export function WaBlastMobile({ data }: { data: WaBlastData }) {
   const slug = data.weddingSlug;
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
   const guests = data.guests;
-  const tplKey = `maritare_wa_tpl_${slug}`;
 
   const defaults = useMemo(
     () => defaultTemplates(coupleLabel, data.dateLabel, data.venueLabel),
@@ -44,31 +44,17 @@ export function WaBlastMobile({ data }: { data: WaBlastData }) {
   );
 
   const [sentLocal, setSentLocal] = useState<Set<string>>(new Set());
-  const [tplText, setTplText] = useState<Record<string, string>>(() =>
-    Object.fromEntries(defaults.map((t) => [t.id, t.text])),
-  );
+  const { tplText, setTplText, persist } = useWaTemplates(defaults, data.savedTemplates);
   const [templateId, setTemplateId] = useState("undangan");
   const [filter, setFilter] = useState<"all" | "unsent" | "sent" | "followup">("all");
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Closing unmounts the textarea before its onBlur fires — persist here too.
+  function closeSheet() {
+    persist();
+    setSheetOpen(false);
+  }
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(tplKey) || "null");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved && typeof saved === "object") setTplText((p) => ({ ...p, ...saved }));
-    } catch {
-      /* ignore */
-    }
-  }, [tplKey]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(tplKey, JSON.stringify(tplText));
-    } catch {
-      /* ignore */
-    }
-  }, [tplKey, tplText]);
 
   const template = tplText[templateId] ?? "";
   const templates: Template[] = defaults.map((t) => ({ ...t, text: tplText[t.id] ?? t.text }));
@@ -330,7 +316,7 @@ export function WaBlastMobile({ data }: { data: WaBlastData }) {
           <button
             type="button"
             aria-label="Tutup"
-            onClick={() => setSheetOpen(false)}
+            onClick={closeSheet}
             className="fixed inset-0 z-40 bg-charcoal/40"
           />
           <div className="fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-t-2xl bg-paper border-t border-line px-4 pt-4 pb-7 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -341,7 +327,7 @@ export function WaBlastMobile({ data }: { data: WaBlastData }) {
               </div>
               <button
                 type="button"
-                onClick={() => setSheetOpen(false)}
+                onClick={closeSheet}
                 className="w-8 h-8 rounded-full border border-line inline-flex items-center justify-center"
               >
                 <Icon name="x" size={15} />
@@ -359,6 +345,7 @@ export function WaBlastMobile({ data }: { data: WaBlastData }) {
             <textarea
               value={template}
               onChange={(e) => setTplText((p) => ({ ...p, [templateId]: e.target.value }))}
+              onBlur={persist}
               spellCheck={false}
               rows={7}
               className="w-full resize-none bg-cream border border-beige rounded-[12px] px-[14px] py-3 font-body text-[13px] leading-[1.55] text-charcoal outline-none focus:border-burgundy"
@@ -387,7 +374,7 @@ export function WaBlastMobile({ data }: { data: WaBlastData }) {
 
             <button
               type="button"
-              onClick={() => setSheetOpen(false)}
+              onClick={closeSheet}
               className="mt-4 w-full h-[46px] rounded-full bg-burgundy text-cream font-semibold text-[13px] tracking-[0.04em]"
             >
               Selesai
