@@ -136,7 +136,8 @@ const guestFieldsSchema = z.object({
   name: z.string().trim().min(1, "Nama tamu wajib diisi").max(80),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   group: z.string().trim().max(80).optional().or(z.literal("")),
-  side: z.enum(["groom", "bride", "both"]).default("both"),
+  // Canonical "groom"/"bride"/"both" plus free-text custom sides.
+  side: z.string().trim().min(1, "Sisi wajib diisi").max(40).default("both"),
   status: z.enum(["pending", "confirmed", "declined"]).default("pending"),
   partySize: z.number().int().min(0).max(20).nullable().optional(),
   foodChoice: z.string().trim().max(80).optional().or(z.literal("")),

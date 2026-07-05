@@ -24,7 +24,6 @@ import type { NotificationPrefs } from "@/lib/notifications";
 
 export const userRole = pgEnum("user_role", ["customer", "admin"]);
 export const weddingStatus = pgEnum("wedding_status", ["draft", "pending", "live", "expired"]);
-export const guestSide = pgEnum("guest_side", ["groom", "bride", "both"]);
 export const guestStatus = pgEnum("guest_status", ["pending", "confirmed", "declined"]);
 export const invitationStatus = pgEnum("invitation_status", ["none", "sent", "opened"]);
 export const wishStatus = pgEnum("wish_status", ["pending", "approved", "hidden"]);
@@ -264,7 +263,9 @@ export const guests = pgTable("guests", {
   code: text("code").unique(),
   group: text("group"),
   phone: text("phone"),
-  side: guestSide("side").default("both").notNull(),
+  // Free-text side: "groom" | "bride" | "both" are canonical (drive labels,
+  // gift filtering, petugas scoping); customers may add custom values.
+  side: text("side").default("both").notNull(),
   status: guestStatus("status").default("pending").notNull(),
   // pax the guest is expected/confirmed to bring (incl. themselves)
   partySize: integer("party_size"),

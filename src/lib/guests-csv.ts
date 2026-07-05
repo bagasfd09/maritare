@@ -26,18 +26,37 @@ export type GuestImportData = {
   name: string;
   phone: string | null;
   group: string | null;
-  side: GuestSide; // default "both"
+  side: string; // canonical GuestSide or a custom value; default "both"
   partySize: number | null;
   foodChoice: string | null;
   note: string | null;
 };
 
-// Display labels for the `side` enum (used by export cells).
+// Display labels for the canonical sides (used by export cells; custom sides
+// export as-is).
 export const SIDE_LABELS: Record<GuestSide, string> = {
   groom: "Pria",
   bride: "Wanita",
   both: "Bersama",
 };
+
+/** Bahasa label for a side value — canonical trio mapped, custom passed through. */
+export function sideDisplayLabel(side: string): string {
+  return SIDE_LABELS[side as GuestSide] ?? side;
+}
+
+/** Distinct non-canonical side values, in first-seen order. */
+export function customSides(sides: Iterable<string>): string[] {
+  const seen = new Set<string>(["groom", "bride", "both"]);
+  const out: string[] = [];
+  for (const s of sides) {
+    if (!seen.has(s)) {
+      seen.add(s);
+      out.push(s);
+    }
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 // Template: header row + one example data row, as CSV text.
@@ -70,7 +89,7 @@ export function guestToCsvCells(g: {
   name: string;
   phone: string | null;
   group: string | null;
-  side: GuestSide;
+  side: string;
   partySize: number | null;
   foodChoice: string | null;
   note: string | null;
@@ -79,7 +98,7 @@ export function guestToCsvCells(g: {
     g.name,
     g.phone ?? "",
     g.group ?? "",
-    SIDE_LABELS[g.side],
+    sideDisplayLabel(g.side),
     g.partySize === null ? "" : String(g.partySize),
     g.foodChoice ?? "",
     g.note ?? "",
@@ -165,17 +184,21 @@ export function parseGuestImportRow(
   }
 
   // --- Sisi (optional; default "both") ---
-  let side: GuestSide = "both";
+  // Known labels map to the canonical values; anything else imports as a
+  // custom side (length-bounded to match the guest actions).
+  let side: string = "both";
   if (sideRaw.length > 0) {
     const mapped = SIDE_ALIASES[sideRaw.toLowerCase()];
-    if (mapped === undefined) {
+    if (mapped !== undefined) {
+      side = mapped;
+    } else if (sideRaw.length > 40) {
       return {
         ok: false,
-        message:
-          ERR_PREFIX + "sisi harus salah satu: Pria, Wanita, atau Bersama",
+        message: ERR_PREFIX + "sisi terlalu panjang (maks 40 karakter)",
       };
+    } else {
+      side = sideRaw;
     }
-    side = mapped;
   }
 
   // --- Jumlah (optional; non-negative integer, 0..20) ---

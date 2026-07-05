@@ -328,7 +328,8 @@ function daysUntil(eventDate: Date | null): number | null {
   }
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.ceil((eventDate.getTime() - today.getTime()) / 86_400_000);
+  // ponytail: clamp past events to 0 so the card never shows negative days
+  return Math.max(0, Math.ceil((eventDate.getTime() - today.getTime()) / 86_400_000));
 }
 
 /** "Sabtu · 14 Juni 2026" from the event date, or null when unset. */
@@ -411,15 +412,22 @@ export async function getOverviewData(): Promise<OverviewData | null> {
       confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
       pending: sql<number>`count(*) filter (where ${guests.status} = 'pending')::int`,
       declined: sql<number>`count(*) filter (where ${guests.status} = 'declined')::int`,
-      brideTotal: sql<number>`count(*) filter (where ${guests.side} = 'bride')::int`,
-      brideConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'bride' and ${guests.status} = 'confirmed')::int`,
-      groomTotal: sql<number>`count(*) filter (where ${guests.side} = 'groom')::int`,
-      groomConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'groom' and ${guests.status} = 'confirmed')::int`,
-      bothTotal: sql<number>`count(*) filter (where ${guests.side} = 'both')::int`,
-      bothConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'both' and ${guests.status} = 'confirmed')::int`,
     })
     .from(guests)
     .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)));
+
+  // Per-side split — side is free text now, so group dynamically instead of
+  // hardcoding the canonical trio.
+  const sideRows = await db
+    .select({
+      side: guests.side,
+      total: sql<number>`count(*)::int`,
+      confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
+    })
+    .from(guests)
+    .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)))
+    .groupBy(guests.side)
+    .orderBy(asc(guests.side));
 
   const invited = guestRow?.invited ?? 0;
   const confirmed = guestRow?.confirmed ?? 0;
@@ -428,19 +436,23 @@ export async function getOverviewData(): Promise<OverviewData | null> {
   const respondedPct =
     invited > 0 ? Math.round(((confirmed + declined) / invited) * 100) : 0;
 
-  // Confirmed/total split per bride/groom side ("both" only shown when present).
+  // Confirmed/total split per side. Wanita/Pria always show; "Bersama" and
+  // custom sides only when they have guests. Custom sides keep query order.
   const mkSide = (label: string, c: number, t: number): RsvpGroup => ({
     label,
     confirmed: c,
     total: t,
     pct: t > 0 ? Math.round((c / t) * 100) : 0,
   });
+  const bySide = new Map(sideRows.map((r) => [r.side, r]));
+  const bothRow = bySide.get("both");
   const rsvpBySide: RsvpGroup[] = [
-    mkSide("Wanita", guestRow?.brideConfirmed ?? 0, guestRow?.brideTotal ?? 0),
-    mkSide("Pria", guestRow?.groomConfirmed ?? 0, guestRow?.groomTotal ?? 0),
-    ...((guestRow?.bothTotal ?? 0) > 0
-      ? [mkSide("Bersama", guestRow?.bothConfirmed ?? 0, guestRow?.bothTotal ?? 0)]
-      : []),
+    mkSide("Wanita", bySide.get("bride")?.confirmed ?? 0, bySide.get("bride")?.total ?? 0),
+    mkSide("Pria", bySide.get("groom")?.confirmed ?? 0, bySide.get("groom")?.total ?? 0),
+    ...(bothRow ? [mkSide("Bersama", bothRow.confirmed, bothRow.total)] : []),
+    ...sideRows
+      .filter((r) => r.side !== "bride" && r.side !== "groom" && r.side !== "both")
+      .map((r) => mkSide(r.side, r.confirmed, r.total)),
   ];
 
   // Wish tallies (total + pending) in one round-trip.
@@ -508,7 +520,8 @@ export type GuestsData = {
     code: string | null;
     group: string | null;
     phone: string | null;
-    side: "groom" | "bride" | "both";
+    /** "groom" | "bride" | "both" or a customer-defined custom side. */
+    side: string;
     status: "pending" | "confirmed" | "declined";
     partySize: number | null;
     foodChoice: string | null;

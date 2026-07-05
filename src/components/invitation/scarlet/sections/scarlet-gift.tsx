@@ -25,18 +25,19 @@ type Props = {
    *  button circle. Scarlet keeps the bold number + copy button. */
   plainNumber?: boolean;
   /** The viewing guest's family side (from their personalized ?g= link). When
-   *  set to groom/bride, only that side's accounts (plus "both") show. Absent or
-   *  "both" → show every account (generic link / owner preview). */
-  guestSide?: PartySide;
+   *  set to groom/bride, only that side's accounts (plus "both") show. Absent,
+   *  "both", or a custom side → show every account (generic link / preview). */
+  guestSide?: string;
   /** Folk: hide the account cards behind a "Buka Amplop" button — guests must
    *  click to reveal the numbers instead of seeing them straight away. */
   gated?: boolean;
 };
 
 // An account shows when the guest has no specific side, or the account is for
-// everyone ("both"), or it matches the guest's side.
-function visibleForSide(accountSide: PartySide, guestSide?: PartySide): boolean {
-  if (!guestSide || guestSide === "both") return true;
+// everyone ("both"), or it matches the guest's side. Custom sides are neither
+// family specifically, so they see everything.
+function visibleForSide(accountSide: PartySide, guestSide?: string): boolean {
+  if (guestSide !== "groom" && guestSide !== "bride") return true;
   return accountSide === "both" || accountSide === guestSide;
 }
 

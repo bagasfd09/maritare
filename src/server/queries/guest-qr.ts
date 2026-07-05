@@ -25,8 +25,8 @@ export type InvitationCheckin = {
   guestId: string;
   guestName: string;
   /** Which family invited this guest — drives the wedding-gift section to show
-   *  only that side's accounts. "both" (the default) shows all. */
-  side: "groom" | "bride" | "both";
+   *  only that side's accounts. "both" (the default) and custom sides show all. */
+  side: string;
   /** The guest's recorded RSVP (dashboard status): true = confirmed, false =
    *  declined, null = not answered yet. Lets the invitation show a "sudah
    *  konfirmasi" summary instead of the attendance form on a return visit. */

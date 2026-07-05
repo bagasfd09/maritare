@@ -37,7 +37,8 @@ export function GuestbookConfirm({ header, guest }: GuestbookConfirmProps) {
   // prototype couple so copy never renders blank.
   const groom = header?.groomName ?? "Andi";
   const bride = header?.brideName ?? "Putri";
-  const sideLabel = guest.side === "groom" ? groom : guest.side === "bride" ? bride : "—";
+  const sideLabel =
+    guest.side === "groom" ? groom : guest.side === "bride" ? bride : guest.side === "both" ? "—" : guest.side;
 
   const info = [
     { l: "Grup", v: guest.group ?? "Tamu Undangan" },

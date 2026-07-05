@@ -14,6 +14,7 @@ import { GuestStatus } from "@/components/molecules/guest-status";
 import { GuestsImportModal } from "@/components/molecules/guests-import-modal";
 import { GuestQrModal } from "@/components/molecules/guest-qr-modal";
 import { GuestFormModal } from "@/components/molecules/guest-form-modal";
+import { customSides } from "@/lib/guests-csv";
 import { buildInviteMessage, waMeLink } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,8 @@ const FILTERS: { label: string; status: GuestRow["status"] | null }[] = [
   { label: "Tidak", status: "declined" },
 ];
 
-// Side filter pills — label → bride/groom side (null = no filter).
+// Side filter pills — label → bride/groom side (null = no filter). Custom
+// sides present in the guest list get appended dynamically.
 const SIDE_FILTERS: { label: string; side: GuestRow["side"] | null }[] = [
   { label: "Semua", side: null },
   { label: "Wanita", side: "bride" },
@@ -59,7 +61,13 @@ const TH = "font-body text-[10px] font-semibold tracking-[0.18em] uppercase text
 const TD = "p-[14px] border-b border-line align-middle";
 
 function sideLabel(side: GuestRow["side"]) {
-  return side === "bride" ? "Pengantin Wanita" : side === "groom" ? "Pengantin Pria" : "Bersama";
+  return side === "bride"
+    ? "Pengantin Wanita"
+    : side === "groom"
+      ? "Pengantin Pria"
+      : side === "both"
+        ? "Bersama"
+        : side;
 }
 
 type GuestsProps = {
@@ -125,6 +133,12 @@ export function Guests({ data, chrome }: GuestsProps) {
       router.refresh();
     });
   }
+
+  const extraSides = useMemo(() => customSides(rows.map((g) => g.side)), [rows]);
+  const sideFilters = useMemo(
+    () => [...SIDE_FILTERS, ...extraSides.map((s) => ({ label: s, side: s }))],
+    [extraSides],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -226,7 +240,7 @@ export function Guests({ data, chrome }: GuestsProps) {
               ))}
             </div>
             <div className="flex gap-1 bg-paper border border-line rounded-full p-[3px]">
-              {SIDE_FILTERS.map((t) => (
+              {sideFilters.map((t) => (
                 <button
                   key={t.label}
                   type="button"
@@ -400,6 +414,7 @@ export function Guests({ data, chrome }: GuestsProps) {
         key={`${formMode}-${editGuest?.id ?? "new"}-${formNonce}`}
         mode={formMode}
         guest={editGuest}
+        customSides={extraSides}
         open={formOpen}
         onClose={() => setFormOpen(false)}
       />

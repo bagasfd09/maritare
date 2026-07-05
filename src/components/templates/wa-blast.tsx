@@ -10,6 +10,7 @@ import { Icon } from "@/components/atoms/icon";
 import { Avatar, initials } from "@/components/atoms/avatar";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Em } from "@/components/atoms/typography";
+import { customSides } from "@/lib/guests-csv";
 import { waMeLink } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { markGuestInvited } from "@/server/actions/guests";
@@ -129,6 +130,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
     [null, "Semua"],
     ["bride", "Wanita"],
     ["groom", "Pria"],
+    ...customSides(guests.map((g) => g.side)).map((s): [string, string] => [s, s]),
   ];
   const PIPELINE: Array<[string, number, string]> = [
     ["Belum", remaining, "var(--color-terracotta)"],
