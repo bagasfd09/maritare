@@ -105,16 +105,12 @@ export function ShareSend({ data }: { data: ShareSendData }) {
 
   return (
     <div className="relative min-h-screen w-full bg-cream text-charcoal font-body">
-      {/* Sticky header: identity + countdown */}
+      {/* Sticky header: just logo + countdown + logout — identity lives in the
+          page heading below so the bar stays clean on small screens. */}
       <header className="sticky top-0 z-20 bg-paper/95 backdrop-blur border-b border-line">
         <div className="max-w-[560px] mx-auto px-5 py-3 flex items-center gap-3">
           <Logo size={22} />
-          <div className="flex-1 min-w-0">
-            <div className="font-display text-[15px] leading-tight truncate">
-              {data.groomName} & {data.brideName}
-            </div>
-            <div className="text-[11px] text-muted-ink truncate">{data.senderLabel}</div>
-          </div>
+          <div className="flex-1" />
           <span
             className={cn(
               "inline-flex items-center gap-1 px-3 py-[6px] rounded-full text-[12px] font-semibold tabular-nums",
@@ -137,13 +133,18 @@ export function ShareSend({ data }: { data: ShareSendData }) {
       </header>
 
       <main className="max-w-[560px] mx-auto px-5 py-5 pb-16">
-        <div className="flex items-center gap-[10px] mb-1">
+        <div className="flex items-center gap-[10px] mb-2">
           <FlowerMark size={12} />
           <span className="text-[10px] tracking-[0.28em] uppercase font-semibold text-muted-ink">
             Kirim undangan via WhatsApp
           </span>
         </div>
-        <p className="text-[13px] text-muted-ink leading-[1.55] mb-4">
+        <h1 className="font-display text-[26px] tracking-[-0.02em] leading-[1.15]">
+          {data.groomName} <span className="italic font-normal text-burgundy">&</span>{" "}
+          {data.brideName}
+        </h1>
+        <div className="text-[12px] text-muted-ink mt-1">Dikirim oleh {data.senderLabel}</div>
+        <p className="text-[13px] text-muted-ink leading-[1.55] mt-3 mb-4">
           Tekan <em className="font-display">Kirim</em> — WhatsApp terbuka dengan
           pesan undangan yang sudah jadi, tinggal kirim dari nomormu sendiri.
         </p>
