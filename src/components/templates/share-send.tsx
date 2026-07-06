@@ -15,7 +15,7 @@ import { Button } from "@/components/atoms/button";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Icon } from "@/components/atoms/icon";
 import { Logo } from "@/components/atoms/logo";
-import { buildInviteMessage, waMeLink } from "@/lib/invite-message";
+import { buildFamilyInviteMessage, waMeLink } from "@/lib/invite-message";
 import { sideDisplayLabel } from "@/lib/guests-csv";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -76,7 +76,7 @@ export function ShareSend({ data }: { data: ShareSendData }) {
   function handleSend(g: ShareSendData["guests"][number]) {
     const target = normalizePhoneIntl(g.phone);
     if (!target) return;
-    const message = buildInviteMessage({
+    const message = buildFamilyInviteMessage({
       guestName: g.name,
       groomName: data.groomName,
       brideName: data.brideName,

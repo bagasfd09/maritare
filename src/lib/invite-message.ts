@@ -51,6 +51,40 @@ export function buildInviteMessage(p: {
   ].join("\n");
 }
 
+/**
+ * Formal (salam-style) invite text used by the family "quick send" page
+ * (/kirim). Same link contract as buildInviteMessage; kept separate so the
+ * owner's WA Blast / manual send keep their own shorter default.
+ */
+export function buildFamilyInviteMessage(p: {
+  guestName: string;
+  groomName: string;
+  brideName: string;
+  slug: string;
+  /** Short per-guest code; embeds the in-invitation check-in QR via ?g=. */
+  guestCode?: string;
+}): string {
+  return [
+    "Assalamu'alaikum wr.wb.",
+    "Kepada Yth.",
+    `Bapak/Ibu/Saudara/i ${p.guestName}`,
+    "",
+    "Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara kami.",
+    "",
+    "Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :",
+    inviteUrl(p.slug, { to: p.guestName, code: p.guestCode }),
+    "",
+    "",
+    "Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir dan memberikan doa restu.",
+    "",
+    "Mohon maaf perihal undangan hanya di bagikan melalui pesan ini.",
+    "",
+    "Kami yang berbahagia:",
+    `${p.groomName} & ${p.brideName}`,
+    "Beserta Keluarga besar kedua mempelai.",
+  ].join("\n");
+}
+
 /** Build a wa.me deep link with the message prefilled (phone already normalized). */
 export function waMeLink(intlPhone: string, message: string): string {
   return `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;
