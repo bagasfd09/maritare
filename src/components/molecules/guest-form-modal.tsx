@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/button";
 import { Icon } from "@/components/atoms/icon";
 import { PhoneInput } from "@/components/atoms/phone-input";
+import { ADD_SIDE_SENTINEL } from "@/lib/guests-csv";
 import { addGuest, deleteGuest, updateGuest } from "@/server/actions/guests";
 import type { GuestsData } from "@/server/queries/dashboard";
 
@@ -24,8 +25,9 @@ const SIDES: { value: GuestRow["side"]; label: string }[] = [
   { value: "groom", label: "Pengantin Pria" },
   { value: "bride", label: "Pengantin Wanita" },
 ];
-// Sentinel <option> that swaps the select for a free-text input.
-const ADD_SIDE = "__add_side__";
+// Sentinel <option> that swaps the select for a free-text input. Shared with
+// the CSV/action validators, which reject it as a stored value.
+const ADD_SIDE = ADD_SIDE_SENTINEL;
 const STATUSES: { value: GuestRow["status"]; label: string }[] = [
   { value: "pending", label: "Belum balas" },
   { value: "confirmed", label: "Hadir" },
@@ -52,6 +54,8 @@ export function GuestFormModal({
   const [group, setGroup] = useState(guest?.group ?? "");
   const [side, setSide] = useState<GuestRow["side"]>(guest?.side ?? "both");
   const [addingSide, setAddingSide] = useState(false);
+  // What the select showed before "✚ Tambah sisi baru…" — restored on cancel.
+  const [sideBeforeAdd, setSideBeforeAdd] = useState<GuestRow["side"]>(guest?.side ?? "both");
   const [status, setStatus] = useState<GuestRow["status"]>(guest?.status ?? "pending");
   const [partySize, setPartySize] = useState(guest?.partySize != null ? String(guest.partySize) : "");
   const [foodChoice, setFoodChoice] = useState(guest?.foodChoice ?? "");
@@ -162,7 +166,7 @@ export function GuestFormModal({
                 />
                 <button
                   type="button"
-                  onClick={() => { setAddingSide(false); setSide(guest?.side ?? "both"); }}
+                  onClick={() => { setAddingSide(false); setSide(sideBeforeAdd); }}
                   aria-label="Batal tambah sisi"
                   className="w-7 h-7 shrink-0 rounded-full inline-flex items-center justify-center text-muted-ink hover:bg-cream cursor-pointer"
                 >
@@ -176,6 +180,7 @@ export function GuestFormModal({
                 value={side}
                 onChange={(e) => {
                   if (e.target.value === ADD_SIDE) {
+                    setSideBeforeAdd(side);
                     setAddingSide(true);
                     setSide("");
                   } else {

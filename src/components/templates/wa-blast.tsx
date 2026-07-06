@@ -277,10 +277,10 @@ export function WaBlast({ data }: { data: WaBlastData }) {
                     </button>
                   ))}
                 </div>
-                <div style={{ display: "flex", gap: 4, background: "var(--color-cream)", border: "1px solid var(--color-beige)", borderRadius: 999, padding: 3, width: "fit-content" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, background: "var(--color-cream)", border: "1px solid var(--color-beige)", borderRadius: 20, padding: 3, width: "fit-content" }}>
                   {SIDE_FILTERS.map(([k, label]) => (
                     <button
-                      key={label}
+                      key={k ?? "__all__"}
                       onClick={() => setSideFilter(k)}
                       style={{
                         padding: "6px 12px",

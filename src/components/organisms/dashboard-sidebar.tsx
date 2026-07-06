@@ -18,6 +18,7 @@ const TOP: NavItem[] = [
   { id: "wishes", icon: "heart", label: "Ucapan", href: "/dashboard/wishes", badge: "5" },
   { id: "photos", icon: "image", label: "Galeri", href: "/dashboard/gallery" },
   { id: "petugas", icon: "users", label: "Petugas Resepsi", href: "/dashboard/petugas" },
+  { id: "akses-keluarga", icon: "share", label: "Akses Keluarga", href: "/dashboard/akses-keluarga" },
 ];
 
 const BOTTOM: NavItem[] = [

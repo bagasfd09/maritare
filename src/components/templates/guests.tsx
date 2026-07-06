@@ -140,11 +140,16 @@ export function Guests({ data, chrome }: GuestsProps) {
     [extraSides],
   );
 
+  // Clamp like safePage below: a custom-side filter whose last guest was
+  // edited/deleted falls back to "Semua" instead of stranding an empty table.
+  const safeSideFilter =
+    sideFilter !== null && !sideFilters.some((t) => t.side === sideFilter) ? null : sideFilter;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((g) => {
       if (statusFilter && g.status !== statusFilter) return false;
-      if (sideFilter && g.side !== sideFilter) return false;
+      if (safeSideFilter && g.side !== safeSideFilter) return false;
       if (!q) return true;
       return (
         g.name.toLowerCase().includes(q) ||
@@ -152,7 +157,7 @@ export function Guests({ data, chrome }: GuestsProps) {
         (g.phone ?? "").toLowerCase().includes(q)
       );
     });
-  }, [rows, query, statusFilter, sideFilter]);
+  }, [rows, query, statusFilter, safeSideFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   // Clamp instead of resetting state so stale page values can never overflow.
@@ -212,8 +217,8 @@ export function Guests({ data, chrome }: GuestsProps) {
             ))}
           </div>
 
-          {/* Toolbar */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* Toolbar — wraps so dynamic custom-side pills can't overflow it. */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="flex items-center gap-[10px] bg-paper border border-line rounded-full px-4 py-2 flex-1 max-w-[360px]">
               <Icon name="search" size={14} stroke="var(--color-muted-ink)" />
               <input
@@ -239,15 +244,15 @@ export function Guests({ data, chrome }: GuestsProps) {
                 </button>
               ))}
             </div>
-            <div className="flex gap-1 bg-paper border border-line rounded-full p-[3px]">
+            <div className="flex flex-wrap gap-1 bg-paper border border-line rounded-[20px] p-[3px]">
               {sideFilters.map((t) => (
                 <button
-                  key={t.label}
+                  key={t.side ?? "__all__"}
                   type="button"
                   onClick={() => { setSideFilter(t.side); setPage(1); }}
                   className={cn(
                     "px-3 py-[6px] rounded-full text-[11px] tracking-[0.1em] uppercase font-semibold cursor-pointer transition-colors",
-                    sideFilter === t.side ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
+                    safeSideFilter === t.side ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
                   )}
                 >
                   {t.label}

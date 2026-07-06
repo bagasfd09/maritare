@@ -446,13 +446,26 @@ export async function getOverviewData(): Promise<OverviewData | null> {
   });
   const bySide = new Map(sideRows.map((r) => [r.side, r]));
   const bothRow = bySide.get("both");
+  // Cap custom rows like rsvpByGroup does (top 4 + remainder) so a messy CSV
+  // import can't flood the overview card.
+  const custom = sideRows
+    .filter((r) => r.side !== "bride" && r.side !== "groom" && r.side !== "both")
+    .sort((a, b) => b.total - a.total);
+  const customRest = custom.slice(4);
   const rsvpBySide: RsvpGroup[] = [
     mkSide("Wanita", bySide.get("bride")?.confirmed ?? 0, bySide.get("bride")?.total ?? 0),
     mkSide("Pria", bySide.get("groom")?.confirmed ?? 0, bySide.get("groom")?.total ?? 0),
     ...(bothRow ? [mkSide("Bersama", bothRow.confirmed, bothRow.total)] : []),
-    ...sideRows
-      .filter((r) => r.side !== "bride" && r.side !== "groom" && r.side !== "both")
-      .map((r) => mkSide(r.side, r.confirmed, r.total)),
+    ...custom.slice(0, 4).map((r) => mkSide(r.side, r.confirmed, r.total)),
+    ...(customRest.length > 0
+      ? [
+          mkSide(
+            `+${customRest.length} lainnya`,
+            customRest.reduce((s, r) => s + r.confirmed, 0),
+            customRest.reduce((s, r) => s + r.total, 0),
+          ),
+        ]
+      : []),
   ];
 
   // Wish tallies (total + pending) in one round-trip.

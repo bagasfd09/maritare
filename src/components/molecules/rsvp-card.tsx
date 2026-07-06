@@ -85,9 +85,11 @@ export function RsvpCard({
           <div className="mb-5">
             <LabelSc className="mb-3">Respons per pihak</LabelSc>
             <div className="flex flex-col gap-3">
-              {bySide.map((r) => (
-                <div key={r.label} className="flex items-center gap-3">
-                  <span className="w-[88px] text-[12px] font-medium text-charcoal shrink-0">{r.label}</span>
+              {/* key by index: labels are free text now (custom sides) and the
+                  list is a server snapshot with no reordering/per-row state. */}
+              {bySide.map((r, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="w-[88px] text-[12px] font-medium text-charcoal shrink-0 truncate" title={r.label}>{r.label}</span>
                   <ProgressBar value={r.pct} height={6} />
                   <span className="w-[56px] text-right text-[11px] text-muted-ink shrink-0 [font-variant:small-caps] tracking-[0.06em]">
                     {r.confirmed} / {r.total}

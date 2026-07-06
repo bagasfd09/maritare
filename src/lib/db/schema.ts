@@ -448,6 +448,29 @@ export const guestbookTokens = pgTable("guestbook_tokens", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }), // revoke = soft delete
 });
 
+// Family "quick send" access tokens. A family member (e.g. ibu pengantin pria)
+// gets a code from the owner, signs in WITHOUT a dashboard account, and lands
+// on a stripped WhatsApp quick-send page listing only the guests whose `side`
+// is in `sides`. The code arms on first login: `expiresAt` is set to +1 hour,
+// re-login is allowed while it lives (kicks the previous device, same as the
+// petugas tokens), and after that the code is dead until regenerated.
+export const shareTokens = pgTable("share_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  weddingId: uuid("wedding_id")
+    .notNull()
+    .references(() => weddings.id, { onDelete: "cascade" }),
+  label: text("label").notNull(), // e.g. "Ibu Pengantin Pria"
+  code: text("code").notNull().unique(), // login code given to the family member
+  sides: text("sides").array().notNull(), // guest side values this sender may see
+  sessionNonce: text("session_nonce"), // current active device's session secret
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // first login + 1h; null = unused
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  lastDevice: text("last_device"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), // revoke = soft delete
+});
+
 // Singleton app/admin settings (one row; keyed by a fixed id).
 export const appSettings = pgTable("app_settings", {
   id: text("id").primaryKey().default("singleton"),
