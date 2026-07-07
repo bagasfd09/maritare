@@ -164,6 +164,46 @@ export async function markGuestInvitedViaShare(input: {
   }
 }
 
+const templateSchema = z.object({
+  // null = reset to the generated default. A saved template MUST keep {link} so
+  // the invitation URL can never be edited away.
+  template: z
+    .string()
+    .trim()
+    .min(1, "Pesan tidak boleh kosong.")
+    .max(2000, "Pesan terlalu panjang.")
+    .refine((t) => t.includes("{link}"), "Pesan harus memuat {link}.")
+    .nullable(),
+});
+
+/** Save (or reset with null) the current sender's WA template. Share-session
+ *  scoped: the update targets only this session's token. */
+export async function saveShareTemplate(input: {
+  template: string | null;
+}): Promise<ShareResult> {
+  const parsed = templateSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0]?.message;
+    return { ok: false, error: first || "Pesan tidak valid." };
+  }
+
+  const session = await resolveShareSession();
+  if (!session) {
+    return { ok: false, error: "Sesi sudah berakhir. Masuk lagi dengan kode baru." };
+  }
+
+  try {
+    await db
+      .update(shareTokens)
+      .set({ template: parsed.data.template, updatedAt: new Date() })
+      .where(and(eq(shareTokens.id, session.tokenId), isNull(shareTokens.deletedAt)));
+    return { ok: true };
+  } catch (error) {
+    console.error("saveShareTemplate failed", error);
+    return { ok: false, error: "Gagal menyimpan pesan." };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Owner: manage tokens
 // ─────────────────────────────────────────────────────────────────

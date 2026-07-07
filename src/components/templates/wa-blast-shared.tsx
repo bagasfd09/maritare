@@ -128,12 +128,14 @@ export function useWaTemplates(defaults: Template[], saved: Record<string, strin
 
 export function fillTemplate(tpl: string, g: Guest, slug: string): string {
   const link = inviteUrl(slug, { to: g.name, code: g.code ?? undefined });
+  // Function replacements for the data-bearing tokens: an owner-typed name/group
+  // with `$&`, `$'`, `$1` etc. must insert literally, not as a replace pattern.
   return (tpl || "")
     .replace(/\{sapaan_lc\}/g, "")
     .replace(/\{sapaan\}/g, "")
-    .replace(/\{nama\}/g, g.name)
-    .replace(/\{grup\}/g, g.group ?? "")
-    .replace(/\{link\}/g, link)
+    .replace(/\{nama\}/g, () => g.name)
+    .replace(/\{grup\}/g, () => g.group ?? "")
+    .replace(/\{link\}/g, () => link)
     .replace(/[ \t]{2,}/g, " ");
 }
 

@@ -15,11 +15,15 @@ import { Button } from "@/components/atoms/button";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Icon } from "@/components/atoms/icon";
 import { Logo } from "@/components/atoms/logo";
-import { buildFamilyInviteMessage, waMeLink } from "@/lib/invite-message";
+import { familyInviteTemplate, fillFamilyTemplate, waMeLink } from "@/lib/invite-message";
 import { sideDisplayLabel } from "@/lib/guests-csv";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { cn } from "@/lib/utils";
-import { endShareSession, markGuestInvitedViaShare } from "@/server/actions/share";
+import {
+  endShareSession,
+  markGuestInvitedViaShare,
+  saveShareTemplate,
+} from "@/server/actions/share";
 import type { ShareSendData } from "@/server/queries/share";
 
 const AVATAR_TONES = ["peach", "sage", "blush", "burgundy", "dark"] as const;
@@ -39,6 +43,62 @@ export function ShareSend({ data }: { data: ShareSendData }) {
   // pass and hydration, so the first real value comes from the effect.
   const [remaining, setRemaining] = useState<number | null>(null);
   const [, startTransition] = useTransition();
+
+  // WA message template — the sender's saved copy, or the generated default.
+  const defaultTpl = useMemo(
+    () => familyInviteTemplate({ groomName: data.groomName, brideName: data.brideName }),
+    [data.groomName, data.brideName],
+  );
+  const [template, setTemplate] = useState(data.savedTemplate ?? defaultTpl);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(template);
+  const [tplMsg, setTplMsg] = useState<string | null>(null);
+  const [savingTpl, startSaveTpl] = useTransition();
+  const isCustom = template !== defaultTpl;
+
+  function openEditor() {
+    setDraft(template);
+    setTplMsg(null);
+    setEditing(true);
+  }
+
+  function saveTemplate() {
+    const text = draft.trim();
+    if (!text) {
+      setTplMsg("Pesan tidak boleh kosong.");
+      return;
+    }
+    if (!text.includes("{link}")) {
+      setTplMsg("Pesan harus memuat {link}.");
+      return;
+    }
+    // Mirror wa-blast's diff-store: text equal to the default persists null, so
+    // an unchanged save doesn't silently detach from live couple-name edits.
+    const toSave = text === defaultTpl ? null : text;
+    startSaveTpl(async () => {
+      const res = await saveShareTemplate({ template: toSave });
+      if (res.ok) {
+        setTemplate(toSave ?? defaultTpl);
+        setEditing(false);
+        setTplMsg(null);
+      } else {
+        setTplMsg(res.error);
+      }
+    });
+  }
+
+  function resetTemplate() {
+    startSaveTpl(async () => {
+      const res = await saveShareTemplate({ template: null });
+      if (res.ok) {
+        setTemplate(defaultTpl);
+        setDraft(defaultTpl);
+        setTplMsg(null);
+      } else {
+        setTplMsg(res.error);
+      }
+    });
+  }
 
   // 1-second countdown. Past zero the interval stays alive and keeps polling
   // refresh (every 3rd tick) until the SERVER agrees the session is dead and
@@ -76,10 +136,8 @@ export function ShareSend({ data }: { data: ShareSendData }) {
   function handleSend(g: ShareSendData["guests"][number]) {
     const target = normalizePhoneIntl(g.phone);
     if (!target) return;
-    const message = buildFamilyInviteMessage({
+    const message = fillFamilyTemplate(template, {
       guestName: g.name,
-      groomName: data.groomName,
-      brideName: data.brideName,
       slug: data.weddingSlug,
       guestCode: g.code ?? undefined,
     });
@@ -148,6 +206,78 @@ export function ShareSend({ data }: { data: ShareSendData }) {
           Tekan <em className="font-display">Kirim</em> — WhatsApp terbuka dengan
           pesan undangan yang sudah jadi, tinggal kirim dari nomormu sendiri.
         </p>
+
+        {/* WA message template editor — per-sender, persisted to their code. */}
+        <div className="bg-paper border border-line rounded-[14px] px-4 py-3 mb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[11px] tracking-[0.08em] uppercase font-semibold text-muted-ink">
+              <Icon name="wa" size={13} /> Pesan WhatsApp
+              {isCustom && (
+                <span className="normal-case tracking-normal text-[10px] px-2 py-[1px] rounded-full bg-cream border border-line text-charcoal">
+                  Diubah
+                </span>
+              )}
+            </div>
+            {!editing && (
+              <button
+                type="button"
+                onClick={openEditor}
+                className="text-[12px] font-semibold text-burgundy hover:underline cursor-pointer inline-flex items-center gap-1"
+              >
+                <Icon name="edit" size={12} /> Edit
+              </button>
+            )}
+          </div>
+
+          {editing ? (
+            <div className="mt-3">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={12}
+                maxLength={2000}
+                className="w-full bg-cream border border-beige rounded-[12px] px-3 py-3 font-body text-[13px] leading-[1.5] text-charcoal outline-none focus:border-burgundy resize-y"
+              />
+              <div className="text-[11px] text-muted-ink mt-2 leading-[1.5]">
+                <code className="bg-cream px-1 rounded">{"{nama}"}</code> = nama tamu ·{" "}
+                <code className="bg-cream px-1 rounded">{"{link}"}</code> = link undangan
+                (wajib ada, otomatis terisi per tamu)
+              </div>
+              {tplMsg && <div className="text-[12px] text-burgundy mt-2">{tplMsg}</div>}
+              <div className="flex items-center gap-2 mt-3">
+                <Button size="sm" variant="primary" disabled={savingTpl} onClick={saveTemplate}>
+                  {savingTpl ? "Menyimpan…" : "Simpan pesan"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={savingTpl}
+                  onClick={() => {
+                    setEditing(false);
+                    setTplMsg(null);
+                  }}
+                >
+                  Batal
+                </Button>
+                <div className="flex-1" />
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={resetTemplate}
+                    disabled={savingTpl}
+                    className="text-[12px] font-semibold text-muted-ink hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    Kembalikan ke default
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[12px] text-muted-ink mt-2 leading-[1.5] line-clamp-2 whitespace-pre-line">
+              {fillFamilyTemplate(template, { guestName: "Nama Tamu", slug: data.weddingSlug })}
+            </p>
+          )}
+        </div>
 
         {/* Search + progress */}
         <div className="flex items-center gap-[10px] bg-paper border border-line rounded-full px-4 py-[10px] mb-3">

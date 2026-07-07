@@ -462,6 +462,9 @@ export const shareTokens = pgTable("share_tokens", {
   label: text("label").notNull(), // e.g. "Ibu Pengantin Pria"
   code: text("code").notNull().unique(), // login code given to the family member
   sides: text("sides").array().notNull(), // guest side values this sender may see
+  // Per-sender WA message template ({nama}/{link} placeholders). Null = use the
+  // generated default; the family member edits their own copy on /kirim.
+  template: text("template"),
   sessionNonce: text("session_nonce"), // current active device's session secret
   expiresAt: timestamp("expires_at", { withTimezone: true }), // first login + 1h; null = unused
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),

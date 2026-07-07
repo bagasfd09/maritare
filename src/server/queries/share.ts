@@ -124,6 +124,8 @@ export type ShareSendData = {
   weddingSlug: string;
   groomName: string;
   brideName: string;
+  /** The sender's saved WA template ({nama}/{link}); null = use the default. */
+  savedTemplate: string | null;
   guests: ShareSendGuest[];
 };
 
@@ -168,6 +170,7 @@ export async function getShareSendData(): Promise<ShareSendData | null> {
     weddingSlug: wedding.slug,
     groomName: wedding.groomName,
     brideName: wedding.brideName,
+    savedTemplate: session.template,
     guests: rows,
   };
 }

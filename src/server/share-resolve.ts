@@ -12,11 +12,15 @@ import { shareTokens, weddings } from "@/lib/db/schema";
 import { readShareNonce } from "@/lib/share-session";
 
 export type ShareResolution = {
+  /** The share token id — for mutations scoped to this exact token. */
+  tokenId: string;
   weddingId: string;
   /** The token's label — shown as the sender identity, e.g. "Ibu Pengantin Pria". */
   label: string;
   /** Guest side values this sender may see. */
   sides: string[];
+  /** The sender's saved WA template ({nama}/{link}); null = use default. */
+  template: string | null;
   /** End of the 1-hour sending window. */
   expiresAt: Date;
 };
@@ -29,9 +33,11 @@ export async function resolveShareSession(): Promise<ShareResolution | null> {
 
   const [row] = await db
     .select({
+      tokenId: shareTokens.id,
       weddingId: shareTokens.weddingId,
       label: shareTokens.label,
       sides: shareTokens.sides,
+      template: shareTokens.template,
       expiresAt: shareTokens.expiresAt,
     })
     .from(shareTokens)
@@ -50,9 +56,11 @@ export async function resolveShareSession(): Promise<ShareResolution | null> {
     return null;
   }
   return {
+    tokenId: row.tokenId,
     weddingId: row.weddingId,
     label: row.label,
     sides: row.sides,
+    template: row.template,
     expiresAt: row.expiresAt,
   };
 }
