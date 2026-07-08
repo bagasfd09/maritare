@@ -9,7 +9,7 @@
 // assembled identically everywhere. This module must only ever be imported from
 // Server Components / Server Actions.
 
-import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -525,8 +525,25 @@ async function countPhotos(weddingId: string): Promise<number> {
 // Guests
 // ─────────────────────────────────────────────────────────────────
 
+/** Rows per page — the table/list is server-paged so huge guest lists never
+ *  ship to the client in one payload. */
+export const GUESTS_PAGE_SIZE = 20;
+
+/** Escape %/_/\ so a search string is matched literally inside ILIKE. */
+export function likePattern(q: string): string {
+  return `%${q.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
+export type GuestsFilters = {
+  q: string;
+  status: "pending" | "confirmed" | "declined" | null;
+  /** null = all sides; otherwise a canonical or custom side value. */
+  side: string | null;
+};
+
 export type GuestsData = {
   chrome: DashboardChrome | null;
+  /** The CURRENT PAGE of guests (filters applied server-side). */
   guests: Array<{
     id: string;
     name: string;
@@ -540,17 +557,84 @@ export type GuestsData = {
     foodChoice: string | null;
     invitationStatus: "none" | "sent" | "opened";
   }>;
+  /** Wedding-wide RSVP totals (NOT filtered) for the stat strip. */
   stats: { invited: number; confirmed: number; pending: number; declined: number };
   /** For building the per-guest WhatsApp invite link client-side. */
   weddingSlug: string;
+  /** Count of guests matching the filters (all pages). */
+  total: number;
+  /** 1-based page, clamped server-side so it can never overflow. */
+  page: number;
+  pageSize: number;
+  /** The filters actually applied — echoed back so the UI stays in sync. */
+  filters: GuestsFilters;
+  /** Distinct side values in use — feeds the side pills + guest form. */
+  availableSides: string[];
 };
 
-export async function getGuestsData(): Promise<GuestsData | null> {
+export async function getGuestsData(input?: {
+  page?: number;
+  q?: string;
+  status?: GuestsFilters["status"];
+  side?: string | null;
+}): Promise<GuestsData | null> {
   const resolved = await resolveWedding();
   if (!resolved) {
     return null;
   }
   const { wedding } = resolved;
+
+  const base = and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt));
+
+  const sideRows = await db
+    .select({ side: guests.side })
+    .from(guests)
+    .where(base)
+    .groupBy(guests.side)
+    .orderBy(asc(guests.side));
+  const availableSides = sideRows.map((s) => s.side);
+
+  // Cap mirrors the share feed's Zod bound — an oversized pattern only buys
+  // worst-case ILIKE scans.
+  const q = (input?.q ?? "").trim().slice(0, 120);
+  const status = input?.status ?? null;
+  // A side filter whose last guest was edited/deleted falls back to "all"
+  // instead of stranding an empty table.
+  const side =
+    input?.side && availableSides.includes(input.side) ? input.side : null;
+
+  const conds = [base];
+  if (status) {
+    conds.push(eq(guests.status, status));
+  }
+  if (side) {
+    conds.push(eq(guests.side, side));
+  }
+  if (q) {
+    const pat = likePattern(q);
+    conds.push(
+      or(ilike(guests.name, pat), ilike(guests.group, pat), ilike(guests.phone, pat))!,
+    );
+  }
+  const filteredWhere = and(...conds);
+
+  const [agg] = await db
+    .select({
+      invited: sql<number>`count(*)::int`,
+      confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
+      pending: sql<number>`count(*) filter (where ${guests.status} = 'pending')::int`,
+      declined: sql<number>`count(*) filter (where ${guests.status} = 'declined')::int`,
+    })
+    .from(guests)
+    .where(base);
+
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(guests)
+    .where(filteredWhere);
+
+  const totalPages = Math.max(1, Math.ceil(total / GUESTS_PAGE_SIZE));
+  const page = Math.min(Math.max(1, Math.trunc(input?.page ?? 1)), totalPages);
 
   const rows = await db
     .select({
@@ -566,21 +650,28 @@ export async function getGuestsData(): Promise<GuestsData | null> {
       invitationStatus: guests.invitationStatus,
     })
     .from(guests)
-    .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)))
-    .orderBy(asc(guests.createdAt));
-
-  const stats = { invited: rows.length, confirmed: 0, pending: 0, declined: 0 };
-  for (const g of rows) {
-    stats[g.status] += 1;
-  }
+    .where(filteredWhere)
+    .orderBy(asc(guests.createdAt), asc(guests.id))
+    .limit(GUESTS_PAGE_SIZE)
+    .offset((page - 1) * GUESTS_PAGE_SIZE);
 
   const pendingWishes = await countPendingWishes(wedding.id);
 
   return {
     chrome: buildChrome(wedding, resolved.user, resolved.packageName, pendingWishes),
     guests: rows,
-    stats,
+    stats: {
+      invited: agg?.invited ?? 0,
+      confirmed: agg?.confirmed ?? 0,
+      pending: agg?.pending ?? 0,
+      declined: agg?.declined ?? 0,
+    },
     weddingSlug: wedding.slug,
+    total,
+    page,
+    pageSize: GUESTS_PAGE_SIZE,
+    filters: { q, status, side },
+    availableSides,
   };
 }
 

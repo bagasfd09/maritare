@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { DashboardShell } from "@/components/templates/dashboard-shell";
@@ -15,6 +15,7 @@ import { GuestsImportModal } from "@/components/molecules/guests-import-modal";
 import { GuestQrModal } from "@/components/molecules/guest-qr-modal";
 import { GuestFormModal } from "@/components/molecules/guest-form-modal";
 import { customSides } from "@/lib/guests-csv";
+import { guestsPath } from "@/lib/guests-url";
 import { buildInviteMessage, waMeLink } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -40,9 +41,6 @@ const SIDE_FILTERS: { label: string; side: GuestRow["side"] | null }[] = [
   { label: "Wanita", side: "bride" },
   { label: "Pria", side: "groom" },
 ];
-
-// Rows per page — small enough that the seeded list demonstrates real paging.
-const PAGE_SIZE = 6;
 
 // Windowed page numbers with gaps so the bar stays short: 1 … 4 5 6 … 20.
 function pageList(current: number, total: number): (number | "…")[] {
@@ -76,17 +74,23 @@ type GuestsProps = {
 };
 
 // Screen 03 · Daftar Tamu (Guests). Renders real guest data from the server.
+// The list is SERVER-paged: search/filters/page live in the URL, so every
+// change round-trips through the database instead of filtering a full local
+// copy of the guest list.
 export function Guests({ data, chrome }: GuestsProps) {
-  const rows = data.guests;
   const stats = data.stats;
   const respondedPct =
     stats.invited > 0 ? Math.round((stats.confirmed / stats.invited) * 100) : 0;
 
-  // Live search + status filter + pagination over the (real or fallback) rows.
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<GuestRow["status"] | null>(null);
-  const [sideFilter, setSideFilter] = useState<GuestRow["side"] | null>(null);
-  const [page, setPage] = useState(1);
+  // Search text is local (debounced into the URL); filters + page are read
+  // straight from the server-echoed values. `queryDirty` marks that THIS
+  // instance's input was edited: the desktop and mobile templates are both
+  // always mounted (CSS-switched), so only the instance the user typed in may
+  // write q to the URL — the hidden sibling follows the URL instead, or its
+  // stale text would nav the URL right back, ping-ponging forever.
+  const [query, setQuery] = useState(data.filters.q);
+  const queryDirty = useRef(false);
+  const [isNavPending, startNav] = useTransition();
   const [importOpen, setImportOpen] = useState(false);
   const [qrGuest, setQrGuest] = useState<{ id: string; name: string } | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -134,37 +138,53 @@ export function Guests({ data, chrome }: GuestsProps) {
     });
   }
 
-  const extraSides = useMemo(() => customSides(rows.map((g) => g.side)), [rows]);
+  const extraSides = useMemo(
+    () => customSides(data.availableSides),
+    [data.availableSides],
+  );
   const sideFilters = useMemo(
     () => [...SIDE_FILTERS, ...extraSides.map((s) => ({ label: s, side: s }))],
     [extraSides],
   );
 
-  // Clamp like safePage below: a custom-side filter whose last guest was
-  // edited/deleted falls back to "Semua" instead of stranding an empty table.
-  const safeSideFilter =
-    sideFilter !== null && !sideFilters.some((t) => t.side === sideFilter) ? null : sideFilter;
+  // Merge one change into the current URL params (resetting to page 1 unless
+  // the change IS the page) and let the server re-render the list.
+  const nav = useCallback(
+    (next: Partial<{ q: string; status: string | null; side: string | null; page: number }>) => {
+      const href = guestsPath({
+        q: next.q !== undefined ? next.q : data.filters.q,
+        status:
+          next.status !== undefined
+            ? (next.status as GuestsData["filters"]["status"])
+            : data.filters.status,
+        side: next.side !== undefined ? next.side : data.filters.side,
+        page: next.page ?? 1,
+      });
+      startNav(() => router.replace(href, { scroll: false }));
+    },
+    [data.filters.q, data.filters.status, data.filters.side, router],
+  );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((g) => {
-      if (statusFilter && g.status !== statusFilter) return false;
-      if (safeSideFilter && g.side !== safeSideFilter) return false;
-      if (!q) return true;
-      return (
-        g.name.toLowerCase().includes(q) ||
-        (g.group ?? "").toLowerCase().includes(q) ||
-        (g.phone ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [rows, query, statusFilter, safeSideFilter]);
+  // Debounce the search box into the URL (the DB does the matching). While
+  // not dirty, follow the URL (sibling template navs, back button).
+  useEffect(() => {
+    if (!queryDirty.current) {
+      setQuery(data.filters.q);
+      return;
+    }
+    if (query.trim() === data.filters.q) {
+      queryDirty.current = false;
+      return;
+    }
+    const t = window.setTimeout(() => nav({ q: query.trim(), page: 1 }), 300);
+    return () => window.clearTimeout(t);
+  }, [query, data.filters.q, nav]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  // Clamp instead of resetting state so stale page values can never overflow.
-  const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const rangeStart = filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const rangeEnd = (safePage - 1) * PAGE_SIZE + pageRows.length;
+  const page = data.page;
+  const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
+  const pageRows = data.guests;
+  const rangeStart = data.total === 0 ? 0 : (page - 1) * data.pageSize + 1;
+  const rangeEnd = (page - 1) * data.pageSize + pageRows.length;
 
   const STAT_CARDS = [
     { value: stats.invited, label: "Total diundang", sub: "Termasuk pasangan", surface: "bg-paper border border-line", numClass: "text-charcoal", labelClass: "text-muted-ink", subClass: "text-faint" },
@@ -223,7 +243,11 @@ export function Guests({ data, chrome }: GuestsProps) {
               <Icon name="search" size={14} stroke="var(--color-muted-ink)" />
               <input
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  queryDirty.current = true;
+                  setQuery(e.target.value);
+                }}
+                maxLength={120}
                 placeholder="Cari nama, grup, atau nomor…"
                 className="flex-1 border-none bg-transparent outline-none font-body text-[13px]"
               />
@@ -234,10 +258,10 @@ export function Guests({ data, chrome }: GuestsProps) {
                 <button
                   key={t.label}
                   type="button"
-                  onClick={() => { setStatusFilter(t.status); setPage(1); }}
+                  onClick={() => nav({ status: t.status })}
                   className={cn(
                     "px-3 py-[6px] rounded-full text-[11px] tracking-[0.1em] uppercase font-semibold cursor-pointer transition-colors",
-                    statusFilter === t.status ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
+                    data.filters.status === t.status ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
                   )}
                 >
                   {t.label}
@@ -249,10 +273,10 @@ export function Guests({ data, chrome }: GuestsProps) {
                 <button
                   key={t.side ?? "__all__"}
                   type="button"
-                  onClick={() => { setSideFilter(t.side); setPage(1); }}
+                  onClick={() => nav({ side: t.side })}
                   className={cn(
                     "px-3 py-[6px] rounded-full text-[11px] tracking-[0.1em] uppercase font-semibold cursor-pointer transition-colors",
-                    safeSideFilter === t.side ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
+                    data.filters.side === t.side ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
                   )}
                 >
                   {t.label}
@@ -266,7 +290,7 @@ export function Guests({ data, chrome }: GuestsProps) {
           {/* Table — the card fills the remaining height; rows scroll INSIDE it
               (sticky header) so the pagination footer is always visible. */}
           <div className="flex-1 min-h-[280px] bg-paper border border-line rounded-2xl overflow-hidden flex flex-col">
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className={cn("flex-1 min-h-0 overflow-y-auto transition-opacity", isNavPending && "opacity-60")}>
             <table className="w-full border-separate border-spacing-0 text-[13px] [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:hover_td]:bg-[rgba(124,45,45,0.03)] [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:bg-paper [&_thead_th]:z-10">
               <thead>
                 <tr>
@@ -365,18 +389,18 @@ export function Guests({ data, chrome }: GuestsProps) {
             {/* Footer — outside the scroller, pinned to the card bottom */}
             <div className="px-[22px] py-3 border-t border-line flex items-center justify-between bg-cream shrink-0">
               <div className="text-[11px] text-muted-ink tracking-[0.16em] uppercase font-semibold">
-                Menampilkan {rangeStart}–{rangeEnd} dari {filtered.length} · halaman {safePage} / {totalPages}
+                Menampilkan {rangeStart}–{rangeEnd} dari {data.total} · halaman {page} / {totalPages}
               </div>
               <div className="flex gap-[6px]">
                 <CircleButton
                   size={30}
-                  onClick={() => setPage(Math.max(1, safePage - 1))}
-                  disabled={safePage <= 1}
+                  onClick={() => nav({ page: Math.max(1, page - 1) })}
+                  disabled={page <= 1}
                   className="disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   ‹
                 </CircleButton>
-                {pageList(safePage, totalPages).map((n, i) =>
+                {pageList(page, totalPages).map((n, i) =>
                   n === "…" ? (
                     <span
                       key={`gap-${i}`}
@@ -388,11 +412,11 @@ export function Guests({ data, chrome }: GuestsProps) {
                     <button
                       key={n}
                       type="button"
-                      onClick={() => setPage(n)}
+                      onClick={() => nav({ page: n })}
                       className={cn(
                         "min-w-[30px] h-[30px] rounded-full border border-[rgba(26,26,26,0.18)]",
                         "text-[12px] font-display font-bold cursor-pointer transition-colors",
-                        n === safePage ? "bg-charcoal text-cream" : "bg-transparent text-charcoal",
+                        n === page ? "bg-charcoal text-cream" : "bg-transparent text-charcoal",
                       )}
                     >
                       {n}
@@ -401,8 +425,8 @@ export function Guests({ data, chrome }: GuestsProps) {
                 )}
                 <CircleButton
                   size={30}
-                  onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-                  disabled={safePage >= totalPages}
+                  onClick={() => nav({ page: Math.min(totalPages, page + 1) })}
+                  disabled={page >= totalPages}
                   className="disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   ›

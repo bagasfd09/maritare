@@ -229,8 +229,20 @@ export function MobileInput({ className, ...props }: React.InputHTMLAttributes<H
   );
 }
 
-// `.m-search`
-export function MobileSearch({ placeholder, className }: { placeholder: string; className?: string }) {
+// `.m-search` — uncontrolled (display-only) unless value/onChange are wired.
+export function MobileSearch({
+  placeholder,
+  className,
+  value,
+  maxLength,
+  onChange,
+}: {
+  placeholder: string;
+  className?: string;
+  value?: string;
+  maxLength?: number;
+  onChange?: (value: string) => void;
+}) {
   return (
     <div
       className={cn(
@@ -241,6 +253,9 @@ export function MobileSearch({ placeholder, className }: { placeholder: string; 
       <Icon name="search" size={15} />
       <input
         placeholder={placeholder}
+        value={value}
+        maxLength={maxLength}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         className="border-0 bg-transparent outline-none font-body text-sm text-charcoal flex-1"
       />
     </div>

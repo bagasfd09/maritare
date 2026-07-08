@@ -25,11 +25,29 @@ const INPUT_LABEL =
 
 /** "Aktif · sisa 43 mnt" / "Kedaluwarsa" / "Belum dipakai" for a token row.
  *  Uses the server-computed remainingMinutes (no Date.now() at render, which
- *  would risk an SSR/hydration text mismatch). */
-function statusLabel(t: ShareAccessToken): string {
+ *  would risk an SSR/hydration text mismatch). Shared with the mobile template. */
+export function statusLabel(t: ShareAccessToken): string {
   if (t.status === "unused") return "Belum dipakai · timer 1 jam mulai saat masuk";
   if (t.status === "expired") return "Kedaluwarsa · ganti kode untuk sesi baru";
   return `Aktif · sisa ±${t.remainingMinutes ?? 1} menit${t.lastDevice ? ` · ${t.lastDevice}` : ""}`;
+}
+
+function shareLink(code: string): string {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/kirim/login?t=${encodeURIComponent(code)}`;
+}
+
+/** Prefilled WA text the owner forwards to the family member. Shared with the
+ *  mobile template. */
+export function waShareText(t: ShareAccessToken): string {
+  return [
+    `Halo, ini akses untuk kirim undangan ke tamu ${t.sides.map(sideDisplayLabel).join(" & ")} ya 🙏`,
+    "",
+    `Buka: ${shareLink(t.code)}`,
+    `Kode: ${t.code}`,
+    "",
+    "Catatan: waktu kirim 1 jam sejak pertama masuk.",
+  ].join("\n");
 }
 
 export function ShareAccessManager({
@@ -101,23 +119,6 @@ export function ShareAccessManager({
     } catch {
       // Clipboard blocked (insecure context / permissions) — silently ignore.
     }
-  }
-
-  function shareLink(code: string): string {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return `${origin}/kirim/login?t=${encodeURIComponent(code)}`;
-  }
-
-  /** Prefilled WA text the owner forwards to the family member. */
-  function waShareText(t: ShareAccessToken): string {
-    return [
-      `Halo, ini akses untuk kirim undangan ke tamu ${t.sides.map(sideDisplayLabel).join(" & ")} ya 🙏`,
-      "",
-      `Buka: ${shareLink(t.code)}`,
-      `Kode: ${t.code}`,
-      "",
-      "Catatan: waktu kirim 1 jam sejak pertama masuk.",
-    ].join("\n");
   }
 
   return (

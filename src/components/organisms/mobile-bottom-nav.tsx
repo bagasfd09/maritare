@@ -9,7 +9,8 @@ import { logout } from "@/server/actions/auth";
 
 export type MobileNavKey =
   | "beranda" | "editor" | "tamu" | "template" | "ucapan"
-  | "galeri" | "amplop" | "tagihan" | "pengaturan";
+  | "galeri" | "amplop" | "tagihan" | "pengaturan"
+  | "petugas" | "akses-keluarga";
 
 const ROUTES: Record<MobileNavKey, string> = {
   beranda: "/dashboard",
@@ -21,12 +22,16 @@ const ROUTES: Record<MobileNavKey, string> = {
   amplop: "/dashboard/envelope",
   tagihan: "/dashboard/billing",
   pengaturan: "/dashboard/settings",
+  petugas: "/dashboard/petugas",
+  "akses-keluarga": "/dashboard/akses-keluarga",
 };
 
 // menus that live inside the "Lainnya" overflow sheet
 const MORE: { key: MobileNavKey; icon: IconName; title: string; sub: string }[] = [
   { key: "template", icon: "template", title: "Galeri Template", sub: "Ganti tema undangan" },
   { key: "galeri", icon: "image", title: "Galeri Foto", sub: "18 dari 30 foto" },
+  { key: "petugas", icon: "users", title: "Petugas Resepsi", sub: "Token penjaga buku tamu" },
+  { key: "akses-keluarga", icon: "share", title: "Akses Keluarga", sub: "Keluarga ikut sebar undangan" },
   { key: "tagihan", icon: "card", title: "Tagihan & Paket", sub: "Paket Gold aktif" },
   { key: "pengaturan", icon: "settings", title: "Pengaturan", sub: "Akun, domain, notifikasi" },
 ];

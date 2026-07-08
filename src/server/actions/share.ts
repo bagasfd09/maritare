@@ -31,6 +31,13 @@ import { canonicalizeSide, isReservedSide } from "@/lib/guests-csv";
 import { clearShareCookie, readShareNonce, setShareCookie } from "@/lib/share-session";
 import { resolveShareSession } from "@/server/share-resolve";
 import { resolveMemberWeddingId } from "@/server/queries/wedding";
+import {
+  fetchShareGuestPage,
+  toShareGuestRow,
+  type ShareGuestCursor,
+  type ShareGuestRow,
+  type ShareSendGuest,
+} from "@/server/queries/share";
 
 export type ShareResult = { ok: true } | { ok: false; error: string };
 
@@ -201,6 +208,67 @@ export async function saveShareTemplate(input: {
   } catch (error) {
     console.error("saveShareTemplate failed", error);
     return { ok: false, error: "Gagal menyimpan pesan." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Family: paged guest feed (share-session-scoped READS — they back the
+// infinite scroll on /kirim and /kirim/tamu, where the first page arrives
+// with the RSC payload and later pages stream in through these).
+// ─────────────────────────────────────────────────────────────────
+
+const feedSchema = z.object({
+  query: z.string().trim().max(120),
+  cursor: z.object({ name: z.string().max(300), id: z.uuid() }).nullable(),
+});
+
+export type ShareFeedResult<Row> =
+  | { ok: true; rows: Row[]; nextCursor: ShareGuestCursor | null }
+  // `dead` marks an expired/kicked/revoked session — the ONLY failure the
+  // client should answer with router.refresh() (→ bounce to /kirim/login).
+  | { ok: false; error: string; dead?: boolean };
+
+/** Next keyset page for the /kirim send list (full rows: phone + code). */
+export async function loadShareSendGuests(input: {
+  query: string;
+  cursor: ShareGuestCursor | null;
+}): Promise<ShareFeedResult<ShareSendGuest>> {
+  const parsed = feedSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Data tidak valid." };
+
+  const session = await resolveShareSession();
+  if (!session) {
+    return { ok: false, error: "Sesi sudah berakhir. Masuk lagi dengan kode baru.", dead: true };
+  }
+
+  try {
+    const page = await fetchShareGuestPage(session, parsed.data);
+    return { ok: true, rows: page.rows, nextCursor: page.nextCursor };
+  } catch (error) {
+    console.error("loadShareSendGuests failed", error);
+    return { ok: false, error: "Gagal memuat tamu. Coba lagi." };
+  }
+}
+
+/** Next keyset page for the /kirim/tamu dashboard (stripped projection). */
+export async function loadShareGuestRows(input: {
+  query: string;
+  cursor: ShareGuestCursor | null;
+}): Promise<ShareFeedResult<ShareGuestRow>> {
+  const parsed = feedSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Data tidak valid." };
+
+  const session = await resolveShareSession();
+  if (!session) {
+    return { ok: false, error: "Sesi sudah berakhir. Masuk lagi dengan kode baru.", dead: true };
+  }
+
+  try {
+    const page = await fetchShareGuestPage(session, parsed.data);
+    return { ok: true, rows: page.rows.map(toShareGuestRow), nextCursor: page.nextCursor };
+  } catch (error) {
+    console.error("loadShareGuestRows failed", error);
+    return { ok: false, error: "Gagal memuat tamu. Coba lagi." };
   }
 }
 

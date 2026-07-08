@@ -91,7 +91,8 @@ export function ShareLogin({
     startTransition(async () => {
       const res = await loginShare({ code });
       if (res.ok) {
-        router.replace("/kirim");
+        // Land on the family dashboard; sending lives on the Kirim tab.
+        router.replace("/kirim/tamu");
         router.refresh();
       } else {
         showToast(errorToast(res.error));
