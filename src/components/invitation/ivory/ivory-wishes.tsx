@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- decorative ornaments use raw <img> by design (next/image would re-proxy them) */
 
 // Ivory wishes + RSVP — the Aulia "12-wishes" section markup (scoped ivory CSS,
 // .comment-item list, Show-more button) with the FOLK interaction model swapped
@@ -268,14 +269,32 @@ export function IvoryWishes({ data, mode, guestName, checkin }: Props) {
                   data-aos-duration="1200"
                   data-aos-delay="250"
                 >
-                  <div className="rounded-2xl border border-[#723d4c]/20 bg-white/45 px-4 pb-4 pt-3 shadow-[0_8px_20px_-16px_rgba(0,0,0,0.4)] [font-family:var(--body-text-family)]">
-                    <div className="mb-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-[#526f5c]">
+                  {/* Cream panel; ivory identity = a pair of butterflies (Orn-kupu),
+                      tucked behind the content. */}
+                  <div className="relative flex min-h-[200px] flex-col justify-center overflow-hidden rounded-2xl border border-[#723d4c]/20 bg-[#f4edde]/60 px-4 py-5 shadow-[0_8px_20px_-16px_rgba(0,0,0,0.4)] [font-family:var(--body-text-family)]">
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src="/invitation/ivory/Orn-kupu-1.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-3 top-2 z-0 w-7 -scale-x-100 select-none"
+                    />
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src="/invitation/ivory/Orn-kupu-2.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-6 top-2 z-0 w-7 select-none"
+                    />
+                    <div className="relative z-10 mb-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-[#526f5c]">
                       Konfirmasi kehadiran
                     </div>
                     {answered ? (
                       /* Already responded (recorded status, or sent just now) —
                          show the summary instead of asking again. */
-                      <div className="text-center">
+                      <div className="relative z-10 text-center">
                         <div className="inline-flex items-center gap-2 rounded-full bg-[#723d4c] px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ded19d] shadow-[0_10px_24px_-14px_rgba(0,0,0,0.6)]">
                           <Icon name="check" size={13} stroke="#ded19d" />
                           {answered.attending ? SUMMARY_LABEL[answered.party] : "Berhalangan Hadir"}
@@ -301,7 +320,7 @@ export function IvoryWishes({ data, mode, guestName, checkin }: Props) {
                       </div>
                     ) : (
                       <>
-                        <div role="group" aria-label="Konfirmasi kehadiran" className="grid grid-cols-2 gap-2">
+                        <div role="group" aria-label="Konfirmasi kehadiran" className="relative z-10 grid grid-cols-2 gap-2">
                           <button
                             type="button"
                             onClick={() => {
@@ -328,7 +347,7 @@ export function IvoryWishes({ data, mode, guestName, checkin }: Props) {
                           </button>
                         </div>
                         {attending === true && (
-                          <div className="mt-3">
+                          <div className="relative z-10 mt-3">
                             <div className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-[#526f5c]">
                               Datang bersama siapa?
                             </div>

@@ -123,18 +123,21 @@ export const SCARLET_MANIFEST: TemplateManifest = {
 };
 
 // Ivory (Katsudoto "Aulia" port) — like Folk it carries a "Cerita" (love-story)
-// chapter and a dedicated closing photo (footnote). Its ornate cover is built-in
-// (no Sampul/hero group), so it mirrors the shared groups + cerita.
+// chapter and a dedicated closing photo (footnote). Its "Sampul" group uploads
+// the gate cover photo (isCover, shown in the opening-gate oval) + the closing
+// photo; ivory has no full-bleed hero asset, so the editor hides that block
+// (HeroForm heroAsset=false for non-folk).
 export const IVORY_MANIFEST: TemplateManifest = {
   formGroups: [
-    { id: "pasangan", label: "Mempelai", order: 1 },
-    { id: "cerita", label: "Cerita", order: 2 },
-    { id: "galeri", label: "Galeri", order: 3 },
-    { id: "acara", label: "Acara", order: 4 },
-    { id: "amplop", label: "Hadiah", order: 5 },
-    { id: "musik", label: "Musik", order: 6 },
-    { id: "rsvp", label: "RSVP", order: 7 },
-    { id: "bagikan", label: "Bagikan", order: 8 },
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "cerita", label: "Cerita", order: 3 },
+    { id: "galeri", label: "Galeri", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
   ],
   photoSlots: [
     { id: "cover", label: "Foto sampul", kind: "cover", where: "Cover oval frame" },

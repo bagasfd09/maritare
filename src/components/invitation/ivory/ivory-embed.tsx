@@ -62,9 +62,34 @@ const IVORY_AOS_CSS = `
 .ivory-inv .ivory-gift-scroll{-ms-overflow-style:none;scrollbar-width:none;}
 .ivory-inv .ivory-gift-scroll .bank-item{background:transparent;border:none;border-radius:0;margin:0;padding:24px 0;}
 .ivory-inv .ivory-gift-scroll .bank-item+.bank-item{border-top:1px solid rgba(var(--background-tertiary-rgb),.35);}
+/* Shipping address folded into the gift section (folk-style), below the rows. */
+.ivory-inv .ivory-gift-address{margin:24px 0;}
+/* Story slider: the original slick JS sized the frame art; statically the
+   frame-ls.png renders at its natural 722px and blows each slide past the
+   track width (one photo spanning two snap points). Scale it to the slide. */
+.ivory-inv .love-story .story-picture,.ivory-inv .love-story .story-picture .image-wrap{width:100%;}
+.ivory-inv .love-story .story-picture .image-wrap img{display:block;width:100%;height:auto;}
+/* Long unbroken words (no spaces) in the chapter title/story otherwise run
+   sideways past the slide edge — break them anywhere. */
+.ivory-inv .love-story .story-caption,.ivory-inv .love-story .story-sub-title{overflow-wrap:anywhere;}
 /* Copy buttons were static <a>/<div> ports — now real <button>s. Keep the icon +
    label inline-centered and reset native button chrome so the look is unchanged. */
 .ivory-inv .bank-button-wrap,.ivory-inv .wedding-gift-address-wrap .btn-hadiah-copy{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;outline:none;}
+/* QR check-in section: FolkQr's head + framed-card presentation in ivory dress
+   (the Aulia reference had only the bare QR — .img-qrcode CSS is the theme's). */
+.ivory-inv .general-qrcode .qr-inner{margin:0 auto;max-width:420px;padding:0 4px;position:relative;text-align:center;}
+.ivory-inv .general-qrcode .qr-orn-header{margin:0 auto 8px;width:170px;}
+.ivory-inv .general-qrcode .qr-orn-header img,.ivory-inv .general-qrcode .qr-orn img,.ivory-inv .general-qrcode .qr-kupu img{display:block;height:auto;width:100%;}
+.ivory-inv .general-qrcode .qr-description{color:var(--text-secondary);font-family:var(--body-text-family);font-size:var(--body-text-size);line-height:1.6;margin:8px auto 0;max-width:320px;}
+.ivory-inv .general-qrcode .qr-card{background:rgba(var(--background-secondary-rgb),.6);border:1px solid var(--background-tertiary);border-radius:40px;margin:28px auto 0;padding:32px 24px;position:relative;}
+.ivory-inv .general-qrcode .qr-guest{color:var(--text-primary);font-family:var(--body-text-family);font-size:var(--body-text-size);font-weight:600;margin:0 0 12px;}
+.ivory-inv .general-qrcode .qr-orn{pointer-events:none;position:absolute;width:72px;z-index:0;}
+.ivory-inv .general-qrcode .qr-orn.tl{left:-18px;top:-20px;transform:scaleX(-1);}
+.ivory-inv .general-qrcode .qr-orn.br{bottom:-20px;right:-18px;}
+.ivory-inv .general-qrcode .qr-kupu{pointer-events:none;position:absolute;right:9%;top:-22px;width:44px;z-index:0;}
+/* The QR itself must never be covered — florals sit BEHIND it (they peek out
+   around the opaque QR tile instead of lying on top of the code). */
+.ivory-inv .general-qrcode .qr-guest,.ivory-inv .general-qrcode .img-qrcode{position:relative;z-index:1;}
 /* Cover + couple photos are clipped by bitmap masks (mask-cover.png /
    mask-couple.png) that 403'd on the Katsudoto CDN and were never copied — a
    broken mask-image clips the element to nothing in Chrome/Safari, so both
@@ -72,6 +97,18 @@ const IVORY_AOS_CSS = `
    instead (both shapes are ovals), restoring the photos. */
 .ivory-inv section.cover .inner .body .cover-frame{-webkit-mask-image:none;mask-image:none;border-radius:50%;overflow:hidden;}
 .ivory-inv .couple-picture-wrap{-webkit-mask-image:none;mask-image:none;border-radius:50%;overflow:hidden;}
+/* Editor phone preview renders the template in a SCALED DIV, not an iframe, so
+   the theme's desktop media queries still match and the decorative side pane
+   squeezes into the phone frame. force-mobile mirrors the theme's
+   max-width:960px rule regardless of the real viewport. */
+.ivory-inv.force-mobile .kat-page__side-to-side .primary-pane{display:none;}
+.ivory-inv.force-mobile .kat-page__side-to-side .secondary-pane{position:relative;width:100%;}
+/* Opening gate (IvoryCoverGate): the decorative primary pane rendered as the
+   FULL-SCREEN gate. Overrides both the desktop rule (fixed, 61% wide) and the
+   mobile rule (display:none) so the pane always fills the gate overlay. */
+.ivory-inv.ivory-gate{height:100%;width:100%;}
+.ivory-inv.ivory-gate .kat-page__side-to-side{height:100%;}
+.ivory-inv.ivory-gate .kat-page__side-to-side .primary-pane{display:block;position:absolute;inset:0;width:100%;}
 `;
 
 type IvoryEmbedProps = {
@@ -79,9 +116,12 @@ type IvoryEmbedProps = {
   primary?: React.ReactNode;
   /** The scrolling invitation sections (the secondary pane). */
   children: React.ReactNode;
+  /** Editor phone preview: force the mobile single-pane layout (the preview is a
+   *  scaled div, so the theme's own max-width media queries never trigger). */
+  forceMobile?: boolean;
 };
 
-export function IvoryEmbed({ primary, children }: IvoryEmbedProps) {
+export function IvoryEmbed({ primary, children, forceMobile }: IvoryEmbedProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -134,7 +174,10 @@ export function IvoryEmbed({ primary, children }: IvoryEmbedProps) {
     // rules scoped to `.ivory-inv.original` (--background-primary, --text-primary,
     // button colors, …) never match and the whole color scheme falls back to
     // browser defaults.
-    <div className="ivory-inv original preset-original" ref={rootRef}>
+    <div
+      className={forceMobile ? "ivory-inv original preset-original force-mobile" : "ivory-inv original preset-original"}
+      ref={rootRef}
+    >
       <style dangerouslySetInnerHTML={{ __html: IVORY_THEME_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: IVORY_EXTRA_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: IVORY_AOS_CSS }} />

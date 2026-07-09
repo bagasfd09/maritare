@@ -121,6 +121,7 @@ export function Editor({ data, chrome }: EditorProps) {
               setSections={setSections}
               photos={gallery.photos}
               onStatusChange={setStatus}
+              templateSlug={meta.templateSlug}
             />
           </EditorCanvas>
 

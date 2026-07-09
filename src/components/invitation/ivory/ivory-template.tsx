@@ -15,8 +15,8 @@ import { ScarletAudio } from "../scarlet/scarlet-audio";
 import { IvoryAgenda } from "./ivory-agenda";
 import { IvoryCouple } from "./ivory-couple";
 import { IvoryCover } from "./ivory-cover";
+import { IvoryCoverGate } from "./ivory-cover-gate";
 import { IvoryEmbed } from "./ivory-embed";
-import { IvoryFooter } from "./ivory-footer";
 import { IvoryFootnote } from "./ivory-footnote";
 import { IvoryGallery } from "./ivory-gallery";
 import { IvoryGift } from "./ivory-gift";
@@ -41,7 +41,17 @@ export function IvoryTemplate({ data, mode, guestName, checkin }: InvitationTemp
   const qrDate = data.sections.acara.events[0]?.date ?? data.eventDate;
 
   return (
-    <IvoryEmbed primary={<IvoryPrimaryPane data={data} mode={mode} />}>
+    <>
+      {/* Opening "Buka Undangan" gate — the decorative primary pane (the desktop
+          left panel) rendered full-screen as its own opening design. Rendered in
+          EVERY mode so the editor preview matches the live invitation — its
+          `fixed` overlay is contained by the editor's scaled preview frame (a
+          transformed ancestor), so it fills the phone rather than the page. */}
+      <IvoryCoverGate data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
+      <IvoryEmbed
+        primary={<IvoryPrimaryPane data={data} mode={mode} />}
+        forceMobile={mode === "editorPreview"}
+      >
       <IvoryCover data={data} mode={mode} />
       <IvoryQuote data={data} mode={mode} />
       <IvoryCouple data={data} mode={mode} />
@@ -62,9 +72,10 @@ export function IvoryTemplate({ data, mode, guestName, checkin }: InvitationTemp
       <IvoryWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} checkin={checkin} />
       <IvoryNotes />
       <IvoryFootnote data={data} mode={mode} />
-      <IvoryFooter />
-      {/* No opening gate (cover is inline), so music starts on first interaction. */}
-      <ScarletAudio data={data} mode={mode} waitForOpen={false} />
+      {/* Music starts on the gate's "Buka Undangan" tap (folk-style); the editor
+          preview has no meaningful gate gesture, so it doesn't wait there. */}
+      <ScarletAudio data={data} mode={mode} waitForOpen={mode !== "editorPreview"} />
     </IvoryEmbed>
+    </>
   );
 }

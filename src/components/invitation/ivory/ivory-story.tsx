@@ -13,6 +13,8 @@
 //
 // Data: data.sections.cerita. Mirrors folk-story's items-vs-legacy-body fallback
 // and self-hide. Photos are gallery references resolved against data.photos.
+// A chapter becomes a slide only when it has a photo (1 slide = 1 foto) — text-
+// only chapters don't make a bare slide; see the slides filter below.
 
 import { Fragment, useRef, useState } from "react";
 
@@ -44,7 +46,14 @@ export function IvoryStory({ data }: IvoryStoryProps) {
         body: it.body ?? "",
       }))
     : parseStoryChapters(cerita.body ?? "").map((c) => ({ title: c.title, body: c.body }));
-  const slides = raw.filter((s) => s.photoUrl || s.title?.trim() || s.body.trim());
+  // One slide per PHOTO ("1 slide = 1 foto"): a chapter only becomes its own
+  // slide when it has a photo — a chapter with just text no longer produces a
+  // bare, photoless slide. Fallback: if NO chapter has a photo (e.g. a legacy
+  // free-text story, or all chapters are text-only), show the text chapters so
+  // nothing is lost.
+  const withPhoto = raw.filter((s) => s.photoUrl);
+  const slides =
+    withPhoto.length > 0 ? withPhoto : raw.filter((s) => s.title?.trim() || s.body.trim());
 
   function goTo(i: number) {
     const track = trackRef.current;
@@ -88,7 +97,9 @@ export function IvoryStory({ data }: IvoryStoryProps) {
             {slides.map((slide, i) => (
               <div
                 key={i}
-                className="min-w-full shrink-0 snap-center overflow-hidden"
+                // w/min/max all 100%: without the max, the flex item grows to the
+                // frame art's natural 722px and one photo spans two snap points.
+                className="w-full min-w-full max-w-full shrink-0 snap-center overflow-hidden"
               >
                 {/* Preview — framed photo + sub-title */}
                 {(slide.photoUrl || slide.title?.trim()) && (

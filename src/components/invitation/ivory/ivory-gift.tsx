@@ -1,14 +1,14 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- decorative ornaments + presigned R2 srcs use raw <img> by design (next/image would re-proxy/break signed urls) */
 
-// Ivory wedding gift — markup ported VERBATIM from the Aulia
-// `<section class="wedding-gift-wrap">` (9-gift) and `<section class="kado-wrapper">`
-// (10-kado) fragments, folded into one component so the scoped CSS in the ivory
-// theme (selectors under `.ivory-inv`) styles it byte-identically. Only the
-// data-bearing parts are bound to InvitationView:
-//   - one bank card per data.sections.amplop.accounts[] (bank / number / holder),
+// Ivory wedding gift — markup based on the Aulia
+// `<section class="wedding-gift-wrap">` (9-gift) fragment; the standalone
+// "Send us a gift" (10-kado) section was dropped and its shipping-address card
+// folded INTO this section below the account rows (folk-style). Data bound to
+// InvitationView:
+//   - one account row per data.sections.amplop.accounts[] + ewallets[],
 //     filtered by the viewing guest's family side,
-//   - the shipping-address block bound to data.sections.amplop.giftAddress.
+//   - the shipping-address card bound to data.sections.amplop.giftAddress.
 // The multi-slide confirmation form (upload proof, selectize, sender data, submit)
 // and the accordion/modal JS are dropped → static render; the `<form>` is kept as
 // an inert wrapper and the copy buttons are kept as static visuals (no handlers).
@@ -86,7 +86,7 @@ export function IvoryGift({ data, guestSide }: Props) {
 
   return (
     <>
-      {cards.length > 0 && (
+      {(cards.length > 0 || hasAddress) && (
         <section className="wedding-gift-wrap">
           <div className="ornaments-wrapper">
             <div className="orn-bank-4">
@@ -206,7 +206,7 @@ export function IvoryGift({ data, guestSide }: Props) {
                             </button>
                           </div>
                         )}
-                        {revealed && (
+                        {revealed && cards.length > 0 && (
                           // Folk `.gift-frame` pattern: one framed box that scrolls
                           // internally, each account a light row instead of its own
                           // heavy card (so many accounts don't feel cramped).
@@ -251,6 +251,32 @@ export function IvoryGift({ data, guestSide }: Props) {
                             </div>
                           </div>
                         )}
+
+                        {/* Folk-style: the shipping address lives right below the
+                            account rows (the old standalone "Send us a gift"
+                            section is gone), behind the same reveal. */}
+                        {revealed && hasAddress && (
+                          <div className="wedding-gift-address-wrap ivory-gift-address">
+                            <p className="wedding-gift-address-label">Kirim Kado</p>
+                            <div className="inner-address-wrap">
+                              <div className="wedding-gift-info-wrap">
+                                <span className="inner-address-info">
+                                  {giftAddress}
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="btn-hadiah-copy"
+                              onClick={() => handleCopy("address", giftAddress ?? "")}
+                              aria-label={copiedKey === "address" ? "Tersalin" : "Salin alamat"}
+                            >
+                              <i className="ph ph-copy-simple" />
+                              <p className="kado-copy-text">{copiedKey === "address" ? "Tersalin" : "Copy Address"}</p>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </form>
                   </div>
@@ -261,90 +287,6 @@ export function IvoryGift({ data, guestSide }: Props) {
               </div>
             </div>
           </div>
-        </section>
-      )}
-
-      {hasAddress && (
-        <section className="kado-wrapper">
-          <section id="wedding-gifts" className="container wedding-gifts-wrap">
-            <div className="wedding-gifts-inner">
-              <div className="wedding-gifts-head">
-                <div className="orn-gft-header">
-                  <div className="image-wrap" data-aos="zoom-in" data-aos-duration="1800" data-aos-delay="1000">
-                    <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-ls.png" alt="Orn " />
-                  </div>
-                </div>
-                <h1 className="wedding-gifts-title" data-aos="zoom-in" data-aos-duration="1200" data-aos-delay="600">Send us a gift</h1>
-                <p className="wedding-gifts-description" data-aos="zoom-in" data-aos-duration="1200" data-aos-delay="600">Please send gifts to the bride and groom</p>
-              </div>
-              <div className="wedding-gifts-body">
-                <div className="wedding-gift-address-outer">
-                  <div className="ornaments-wrapper">
-                    <div className="orn-rd-2">
-                      <div className="image-wrap" data-aos="zoom-in-up" data-aos-duration="1200" data-aos-delay="600">
-                        <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-22.png" alt="Ornament" />
-                      </div>
-                      <div className="orn-rd-2-1">
-                        <div className="image-wrap" data-aos="zoom-in-up" data-aos-duration="1200" data-aos-delay="600">
-                          <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-18.png" alt="Ornament" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="wedding-gift-address-wrap" data-aos="zoom-in" data-aos-duration="1200" data-aos-delay="600">
-                    <p className="wedding-gifts-label">Shipping Address</p>
-                    <div className="inner-address-wrap">
-                      <div className="wedding-gift-info-wrap">
-                        <span className="inner-address-info">
-                          {giftAddress}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn-hadiah-copy"
-                      onClick={() => handleCopy("address", giftAddress ?? "")}
-                      aria-label={copiedKey === "address" ? "Tersalin" : "Salin alamat"}
-                    >
-                      <i className="ph ph-copy-simple" />
-                      <p className="kado-copy-text">{copiedKey === "address" ? "Tersalin" : "Copy Address"}</p>
-                    </button>
-                  </div>
-                  <div className="ornaments-wrapper">
-                    <div className="orn-rd-1">
-                      <div className="orn-rd-1-1">
-                        <div className="orn-rd-1-2">
-                          <div className="image-wrap" data-aos="zoom-in-up" data-aos-duration="2000" data-aos-delay="800">
-                            <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-12.png" alt="Ornament" />
-                          </div>
-                        </div>
-                        <div className="image-wrap" data-aos="zoom-in-up" data-aos-duration="1800" data-aos-delay="600">
-                          <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-40.png" alt="Ornament" />
-                        </div>
-                      </div>
-                      <div className="image-wrap" data-aos="zoom-in" data-aos-duration="1200" data-aos-delay="600">
-                        <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-17.png" alt="Ornament" />
-                      </div>
-                    </div>
-                    <div className="orn-rd-kp1 kupu-1">
-                      <div className="image-wrap" data-aos="zoom-in" data-aos-duration="2000" data-aos-delay="800">
-                        <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-kupu-1.png" alt="Ornament" />
-                      </div>
-                    </div>
-                    <div className="orn-rd-kp2 kupu-2">
-                      <div className="image-wrap" data-aos="zoom-in" data-aos-duration="2000" data-aos-delay="800">
-                        <img loading="lazy" decoding="async" src="/invitation/ivory/Orn-kupu-2.png" alt="Ornament" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ornaments-wrapper kado-ow">
-                </div>
-              </div>
-            </div>
-          </section>
         </section>
       )}
     </>

@@ -50,9 +50,10 @@ type CoupleInfoProps = {
 
 function CoupleInfo({ person, nickname, photoUrl, side }: CoupleInfoProps) {
   const fullName = (person.fullName ?? "").trim();
-  // Combined display name "{nickname} — {fullName}"; drop the em-dash + full when
-  // no full name is set so we never render a dangling "Fansur — ".
-  const coupleName = fullName ? `${nickname} — ${fullName}` : nickname;
+  // One name only (the "{nickname} — {fullName}" combo read as a duplicate when
+  // both are similar, e.g. "Bagas — Bagas"): the full name when set, else the
+  // wedding nickname.
+  const coupleName = fullName || nickname;
   const photoAlt = fullName || nickname;
   const parents = parentsLines(person);
 
