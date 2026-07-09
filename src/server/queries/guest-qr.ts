@@ -25,11 +25,14 @@ export type InvitationCheckin = {
   guestId: string;
   guestName: string;
   /** Which family invited this guest — drives the wedding-gift section to show
-   *  only that side's accounts. "both" (the default) shows all. */
-  side: "groom" | "bride" | "both";
-  /** True once the guest has answered the RSVP (status confirmed/declined) — the
-   *  Folk gate uses this to show the attendance step only on the first visit. */
-  responded: boolean;
+   *  only that side's accounts. "both" (the default) and custom sides show all. */
+  side: string;
+  /** The guest's recorded RSVP (dashboard status): true = confirmed, false =
+   *  declined, null = not answered yet. Lets the invitation show a "sudah
+   *  konfirmasi" summary instead of the attendance form on a return visit. */
+  attending: boolean | null;
+  /** Recorded headcount (incl. themselves); meaningful only when attending. */
+  partySize: number | null;
 };
 
 export async function getInvitationCheckinByCode(
@@ -41,7 +44,13 @@ export async function getInvitationCheckinByCode(
     return null;
   }
   const [row] = await db
-    .select({ guestId: guests.id, guestName: guests.name, side: guests.side, status: guests.status })
+    .select({
+      guestId: guests.id,
+      guestName: guests.name,
+      side: guests.side,
+      status: guests.status,
+      partySize: guests.partySize,
+    })
     .from(guests)
     .innerJoin(weddings, eq(guests.weddingId, weddings.id))
     .where(
@@ -59,7 +68,8 @@ export async function getInvitationCheckinByCode(
     guestId: row.guestId,
     guestName: row.guestName,
     side: row.side,
-    responded: row.status !== "pending",
+    attending: row.status === "confirmed" ? true : row.status === "declined" ? false : null,
+    partySize: row.partySize,
   };
 }
 

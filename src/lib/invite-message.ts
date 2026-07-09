@@ -51,6 +51,56 @@ export function buildInviteMessage(p: {
   ].join("\n");
 }
 
+/** Placeholders a family sender may use in their /kirim template. */
+export const FAMILY_TEMPLATE_LINK = "{link}";
+export const FAMILY_TEMPLATE_NAME = "{nama}";
+
+/**
+ * Default formal (salam-style) invite TEMPLATE for the family "quick send" page
+ * (/kirim), with {nama}/{link} placeholders the sender can edit. Couple names
+ * are baked from live wedding info; {link} is always the real per-guest URL
+ * injected at send time (see fillFamilyTemplate), so edits can't break it.
+ */
+export function familyInviteTemplate(p: { groomName: string; brideName: string }): string {
+  return [
+    "Assalamu'alaikum wr.wb.",
+    "Kepada Yth.",
+    `Bapak/Ibu/Saudara/i ${FAMILY_TEMPLATE_NAME}`,
+    "",
+    "Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara kami.",
+    "",
+    "Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :",
+    FAMILY_TEMPLATE_LINK,
+    "",
+    "",
+    "Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir dan memberikan doa restu.",
+    "",
+    "Mohon maaf perihal undangan hanya di bagikan melalui pesan ini.",
+    "",
+    "Kami yang berbahagia:",
+    `${p.groomName} & ${p.brideName}`,
+    "Beserta Keluarga besar kedua mempelai.",
+  ].join("\n");
+}
+
+/**
+ * Fill a family template for one guest: {nama} → guest name, {link} → the real
+ * per-guest invite URL (embeds the check-in QR via ?g=). Unknown text is left
+ * as-is, so a sender's custom wording is preserved verbatim.
+ */
+export function fillFamilyTemplate(
+  template: string,
+  p: { guestName: string; slug: string; guestCode?: string },
+): string {
+  const link = inviteUrl(p.slug, { to: p.guestName, code: p.guestCode });
+  // Function replacements: the name/link are inserted LITERALLY, so an
+  // owner-typed name containing `$&`, `$'`, `$1` etc. isn't reinterpreted as a
+  // replace pattern. {link} first so a guest literally named "{link}" stays text.
+  return template
+    .replace(/\{link\}/g, () => link)
+    .replace(/\{nama\}/g, () => p.guestName);
+}
+
 /** Build a wa.me deep link with the message prefilled (phone already normalized). */
 export function waMeLink(intlPhone: string, message: string): string {
   return `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;

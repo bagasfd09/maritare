@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/button";
 import { Icon } from "@/components/atoms/icon";
 import { PhoneInput } from "@/components/atoms/phone-input";
+import { ADD_SIDE_SENTINEL } from "@/lib/guests-csv";
 import { addGuest, deleteGuest, updateGuest } from "@/server/actions/guests";
 import type { GuestsData } from "@/server/queries/dashboard";
 
@@ -24,6 +25,9 @@ const SIDES: { value: GuestRow["side"]; label: string }[] = [
   { value: "groom", label: "Pengantin Pria" },
   { value: "bride", label: "Pengantin Wanita" },
 ];
+// Sentinel <option> that swaps the select for a free-text input. Shared with
+// the CSV/action validators, which reject it as a stored value.
+const ADD_SIDE = ADD_SIDE_SENTINEL;
 const STATUSES: { value: GuestRow["status"]; label: string }[] = [
   { value: "pending", label: "Belum balas" },
   { value: "confirmed", label: "Hadir" },
@@ -33,11 +37,14 @@ const STATUSES: { value: GuestRow["status"]; label: string }[] = [
 export function GuestFormModal({
   mode,
   guest,
+  customSides = [],
   open,
   onClose,
 }: {
   mode: "add" | "edit";
   guest: GuestRow | null;
+  /** Non-canonical side values already used by this wedding's guests. */
+  customSides?: string[];
   open: boolean;
   onClose: () => void;
 }) {
@@ -46,6 +53,9 @@ export function GuestFormModal({
   const [phone, setPhone] = useState(guest?.phone ?? "");
   const [group, setGroup] = useState(guest?.group ?? "");
   const [side, setSide] = useState<GuestRow["side"]>(guest?.side ?? "both");
+  const [addingSide, setAddingSide] = useState(false);
+  // What the select showed before "✚ Tambah sisi baru…" — restored on cancel.
+  const [sideBeforeAdd, setSideBeforeAdd] = useState<GuestRow["side"]>(guest?.side ?? "both");
   const [status, setStatus] = useState<GuestRow["status"]>(guest?.status ?? "pending");
   const [partySize, setPartySize] = useState(guest?.partySize != null ? String(guest.partySize) : "");
   const [foodChoice, setFoodChoice] = useState(guest?.foodChoice ?? "");
@@ -61,11 +71,15 @@ export function GuestFormModal({
       setError("Nama tamu wajib diisi.");
       return;
     }
+    if (!side.trim()) {
+      setError("Sisi baru belum diisi.");
+      return;
+    }
     const fields = {
       name: name.trim(),
       phone: phone.trim(),
       group: group.trim(),
-      side,
+      side: side.trim(),
       status,
       partySize: partySize.trim() === "" ? null : Number(partySize),
       foodChoice: foodChoice.trim(),
@@ -139,9 +153,49 @@ export function GuestFormModal({
           </div>
           <div>
             <label className={LABEL} htmlFor="g-side">Sisi</label>
-            <select id="g-side" className={INPUT} value={side} onChange={(e) => setSide(e.target.value as GuestRow["side"])}>
-              {SIDES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
+            {addingSide ? (
+              <div className="flex items-center gap-2">
+                <input
+                  id="g-side"
+                  className={INPUT}
+                  value={side}
+                  onChange={(e) => setSide(e.target.value)}
+                  maxLength={40}
+                  placeholder="mis. Teman Kantor"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => { setAddingSide(false); setSide(sideBeforeAdd); }}
+                  aria-label="Batal tambah sisi"
+                  className="w-7 h-7 shrink-0 rounded-full inline-flex items-center justify-center text-muted-ink hover:bg-cream cursor-pointer"
+                >
+                  <Icon name="x" size={12} />
+                </button>
+              </div>
+            ) : (
+              <select
+                id="g-side"
+                className={INPUT}
+                value={side}
+                onChange={(e) => {
+                  if (e.target.value === ADD_SIDE) {
+                    setSideBeforeAdd(side);
+                    setAddingSide(true);
+                    setSide("");
+                  } else {
+                    setSide(e.target.value);
+                  }
+                }}
+              >
+                {SIDES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {/* Editing a guest whose custom side has no other users still shows it. */}
+                {customSides
+                  .concat(side && !SIDES.some((s) => s.value === side) && !customSides.includes(side) ? [side] : [])
+                  .map((s) => <option key={s} value={s}>{s}</option>)}
+                <option value={ADD_SIDE}>✚ Tambah sisi baru…</option>
+              </select>
+            )}
           </div>
           <div>
             <label className={LABEL} htmlFor="g-status">Status RSVP</label>

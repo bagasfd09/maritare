@@ -109,6 +109,57 @@ export async function saveNotifications(input: {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// WhatsApp invite templates (per-user, per-wedding)
+// ─────────────────────────────────────────────────────────────────
+
+// Only texts that diverge from the generated defaults are sent/stored, so
+// untouched templates keep following live wedding info (date/venue edits).
+const waTemplatesSchema = z.object({
+  undangan: z.string().max(4000).optional(),
+  reminder: z.string().max(4000).optional(),
+  terimakasih: z.string().max(4000).optional(),
+});
+
+export async function saveWaTemplates(input: {
+  templates: Record<string, string>;
+}): Promise<SettingsActionResult> {
+  const parsed = waTemplatesSchema.safeParse(input?.templates);
+  if (!parsed.success) {
+    return { ok: false, error: "Template tidak valid." };
+  }
+
+  const userId = await resolveEditorUserId();
+  const weddingId = await resolveMemberWeddingId();
+  if (!userId || !weddingId) {
+    return { ok: false, error: "Kamu harus masuk dulu." };
+  }
+
+  // Drop undefined keys so the stored document only holds real edits.
+  const edits: Record<string, string> = {};
+  for (const [id, text] of Object.entries(parsed.data)) {
+    if (typeof text === "string") edits[id] = text;
+  }
+
+  try {
+    const me = await db.query.users.findFirst({
+      columns: { waTemplates: true },
+      where: eq(users.id, userId),
+    });
+    const all = { ...(me?.waTemplates ?? {}), [weddingId]: edits };
+    await db
+      .update(users)
+      .set({ waTemplates: all, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+
+    revalidatePath("/dashboard/guests/sebar");
+    return { ok: true };
+  } catch (error) {
+    console.error("saveWaTemplates failed", error);
+    return { ok: false, error: "Gagal menyimpan template. Coba lagi." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Rename the invitation slug (maritare.id/<slug>)
 // ─────────────────────────────────────────────────────────────────
 

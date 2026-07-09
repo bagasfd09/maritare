@@ -59,7 +59,7 @@ export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
       id: g.id,
       name: g.name,
       group: g.group ?? "Tamu Undangan",
-      side: g.side === "groom" ? groom : g.side === "bride" ? bride : "—",
+      side: g.side === "groom" ? groom : g.side === "bride" ? bride : g.side === "both" ? "—" : g.side,
       tone: ROW_TONES[i % ROW_TONES.length],
       checkedIn: g.checkedInAt !== null,
     }));

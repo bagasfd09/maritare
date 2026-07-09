@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "wa_templates" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -22,8 +22,10 @@ import { db } from "@/lib/db";
 import { guestbookTokens, packages, weddings } from "@/lib/db/schema";
 import {
   clearKioskCookie,
+  deviceLabel,
   newGuestbookCode,
   newSessionNonce,
+  normalizeLoginCode,
   readKioskNonce,
   setKioskCookie,
 } from "@/lib/guestbook-session";
@@ -40,46 +42,12 @@ const loginSchema = z.object({
   code: z.string().trim().min(4).max(40),
 });
 
-function normalizeCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-/** Short UA label for "active device" display, e.g. "Chrome · Android". */
-function deviceLabel(ua: string): string {
-  const os = /Android/i.test(ua)
-    ? "Android"
-    : /iPhone|iPad|iOS/i.test(ua)
-      ? "iOS"
-      : /Windows/i.test(ua)
-        ? "Windows"
-        : /Mac/i.test(ua)
-          ? "Mac"
-          : "Perangkat";
-  const browser = /Edg/i.test(ua)
-    ? "Edge"
-    : /Chrome/i.test(ua)
-      ? "Chrome"
-      : /Firefox/i.test(ua)
-        ? "Firefox"
-        : /Safari/i.test(ua)
-          ? "Safari"
-          : "Browser";
-  return `${browser} · ${os}`;
-}
-
 export async function loginPetugas(input: { code: string }): Promise<PetugasResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Kode tidak valid." };
   }
-  const normalized = normalizeCode(parsed.data.code);
-  // Codes are always stored in dashed form ("K7P2-MQ9X"). Reconstruct that form
-  // from the dash-stripped input so a single exact lookup matches whether the
-  // attendant typed the dash, spaces, or lowercase.
-  const code =
-    normalized.length === 8
-      ? `${normalized.slice(0, 4)}-${normalized.slice(4)}`
-      : parsed.data.code.trim().toUpperCase();
+  const code = normalizeLoginCode(parsed.data.code);
 
   try {
     const match = await db.query.guestbookTokens.findFirst({

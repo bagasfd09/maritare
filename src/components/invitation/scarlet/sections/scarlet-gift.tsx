@@ -25,23 +25,28 @@ type Props = {
    *  button circle. Scarlet keeps the bold number + copy button. */
   plainNumber?: boolean;
   /** The viewing guest's family side (from their personalized ?g= link). When
-   *  set to groom/bride, only that side's accounts (plus "both") show. Absent or
-   *  "both" → show every account (generic link / owner preview). */
-  guestSide?: PartySide;
+   *  set to groom/bride, only that side's accounts (plus "both") show. Absent,
+   *  "both", or a custom side → show every account (generic link / preview). */
+  guestSide?: string;
+  /** Folk: hide the account cards behind a "Buka Amplop" button — guests must
+   *  click to reveal the numbers instead of seeing them straight away. */
+  gated?: boolean;
 };
 
 // An account shows when the guest has no specific side, or the account is for
-// everyone ("both"), or it matches the guest's side.
-function visibleForSide(accountSide: PartySide, guestSide?: PartySide): boolean {
-  if (!guestSide || guestSide === "both") return true;
+// everyone ("both"), or it matches the guest's side. Custom sides are neither
+// family specifically, so they see everything.
+function visibleForSide(accountSide: PartySide, guestSide?: string): boolean {
+  if (guestSide !== "groom" && guestSide !== "bride") return true;
   return accountSide === "both" || accountSide === guestSide;
 }
 
-export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
+export function ScarletGift({ data, logoOnly, plainNumber, guestSide, gated }: Props) {
   const { accounts: allAccounts, ewallets: allEwallets, giftAddress } = data.sections.amplop;
   const accounts = allAccounts.filter((a) => visibleForSide(a.side, guestSide));
   const ewallets = allEwallets.filter((w) => visibleForSide(w.side, guestSide));
 
+  const [revealed, setRevealed] = useState(!gated);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -102,7 +107,10 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
               data-aos-duration="1000"
               data-aos-delay="600"
             >
-              <img loading="lazy" decoding="async" src="/invitation/scarlet/frame-bank.webp" alt="orn-cover" />
+              {/* Eager: this image's height IS the section's layout — lazy-loading
+                  it inside an AOS opacity-0 wrapper collapses the whole section on
+                  iOS Safari (deferred lazy images in invisible subtrees). */}
+              <img loading="eager" decoding="async" src="/invitation/scarlet/frame-bank.webp" alt="orn-cover" />
             </div>
 
             <div className="ornaments-wrapper">
@@ -227,6 +235,19 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
               data-aos-delay="700"
             >
               <div className="wedding-gift-body">
+                {/* No data-aos here: the button is the only way to reach the account
+                    numbers, so it must never be stuck at the reveal's opacity 0. */}
+                {!revealed && (
+                  <button
+                    type="button"
+                    className="wedding-gift-reveal-btn"
+                    onClick={() => setRevealed(true)}
+                  >
+                    Buka Amplop
+                  </button>
+                )}
+                {revealed && (
+                <>
                 {/* Bank Wrap */}
                 <div className="wedding-gift-bank-wrap">
                   {cards.map((card) => {
@@ -316,10 +337,21 @@ export function ScarletGift({ data, logoOnly, plainNumber, guestSide }: Props) {
                 </div>
 
                 {giftAddress && (
-                  <div className="wedding-gift-address-wrap" data-aos="fade-up" data-aos-duration="1200">
-                    <p className="inner-recipient-info name">Kirim Kado</p>
-                    <p className="inner-address-info">{giftAddress}</p>
-                  </div>
+                  <>
+                    {cards.length > 0 && (
+                      <div className="cp-top gift-address-divider">
+                        <div className="image-wrap" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="500">
+                          <img loading="lazy" decoding="async" src="/invitation/scarlet/Orn-cp.webp" alt="orn-cover" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="wedding-gift-address-wrap" data-aos="fade-up" data-aos-duration="1200">
+                      <p className="inner-recipient-info name">Kirim Kado</p>
+                      <p className="inner-address-info">{giftAddress}</p>
+                    </div>
+                  </>
+                )}
+                </>
                 )}
               </div>
             </div>

@@ -34,6 +34,39 @@ export function newGuestbookCode(): string {
   return out;
 }
 
+/**
+ * Reconstruct the stored dashed form ("K7P2-MQ9X") from however the user typed
+ * the code (lowercase, spaces, missing dash), so one exact lookup matches.
+ * Shared by the petugas and family (share) login actions.
+ */
+export function normalizeLoginCode(raw: string): string {
+  const n = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return n.length === 8 ? `${n.slice(0, 4)}-${n.slice(4)}` : raw.trim().toUpperCase();
+}
+
+/** Short UA label for "active device" display, e.g. "Chrome · Android". */
+export function deviceLabel(ua: string): string {
+  const os = /Android/i.test(ua)
+    ? "Android"
+    : /iPhone|iPad|iOS/i.test(ua)
+      ? "iOS"
+      : /Windows/i.test(ua)
+        ? "Windows"
+        : /Mac/i.test(ua)
+          ? "Mac"
+          : "Perangkat";
+  const browser = /Edg/i.test(ua)
+    ? "Edge"
+    : /Chrome/i.test(ua)
+      ? "Chrome"
+      : /Firefox/i.test(ua)
+        ? "Firefox"
+        : /Safari/i.test(ua)
+          ? "Safari"
+          : "Browser";
+  return `${browser} · ${os}`;
+}
+
 export async function readKioskNonce(): Promise<string | null> {
   const c = await cookies();
   return c.get(GUESTBOOK_COOKIE)?.value ?? null;

@@ -28,7 +28,8 @@ export type KioskGuest = {
   id: string;
   name: string;
   group: string | null;
-  side: "groom" | "bride" | "both";
+  /** "groom" | "bride" | "both" or a customer-defined custom side. */
+  side: string;
   status: "pending" | "confirmed" | "declined";
   partySize: number | null;
   foodChoice: string | null;
@@ -189,7 +190,7 @@ function toKioskGuest(row: {
   id: string;
   name: string;
   group: string | null;
-  side: "groom" | "bride" | "both";
+  side: string;
   status: "pending" | "confirmed" | "declined";
   partySize: number | null;
   foodChoice: string | null;

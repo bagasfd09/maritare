@@ -1,3 +1,8 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
 import { MobileShell } from "@/components/templates/mobile-shell";
 import {
   MobileButton,
@@ -9,12 +14,22 @@ import {
 } from "@/components/molecules/mobile-primitives";
 import { Icon } from "@/components/atoms/icon";
 import { Avatar, initials } from "@/components/atoms/avatar";
+import { GuestFormModal } from "@/components/molecules/guest-form-modal";
 import { GuestStatus } from "@/components/molecules/guest-status";
+import { customSides } from "@/lib/guests-csv";
+import { guestsPath } from "@/lib/guests-url";
 import { buildInviteMessage, waMeLink } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
-import type { DashboardChrome, GuestsData } from "@/server/queries/dashboard";
+import { cn } from "@/lib/utils";
+import type { DashboardChrome, GuestsData, GuestsFilters } from "@/server/queries/dashboard";
 
-const FILTERS = ["Semua", "Hadir", "Belum", "Tidak"];
+// Status chips — mirror the desktop filter pills.
+const FILTERS: { label: string; status: GuestsFilters["status"] }[] = [
+  { label: "Semua", status: null },
+  { label: "Hadir", status: "confirmed" },
+  { label: "Belum", status: "pending" },
+  { label: "Tidak", status: "declined" },
+];
 
 const AVATAR_TONES = ["burgundy", "peach", "blush", "dark"] as const;
 
@@ -25,9 +40,50 @@ type GuestsMobileProps = {
 
 // Screen Mobile 03 · Daftar Tamu. `chrome` is accepted for a consistent page
 // contract but MobileShell has no chrome region, so it is intentionally unused.
+// The list is SERVER-paged: search/chips/pager drive the URL, same as desktop.
 export function GuestsMobile({ data }: GuestsMobileProps) {
-  // Couple names for the prefilled WhatsApp invite (per-row quick-send). The
-  // wa.me link is a plain anchor so this stays a server component.
+  const router = useRouter();
+  // `queryDirty`: only the instance the user typed in may write q to the URL —
+  // the desktop template is mounted too (CSS-switched); see guests.tsx.
+  const [query, setQuery] = useState(data.filters.q);
+  const queryDirty = useRef(false);
+  const [isNavPending, startNav] = useTransition();
+  // Add-guest modal — keyed by nonce so each open remounts with fresh fields.
+  const [formOpen, setFormOpen] = useState(false);
+  const [formNonce, setFormNonce] = useState(0);
+
+  const nav = useCallback(
+    (next: Partial<{ q: string; status: GuestsFilters["status"]; page: number }>) => {
+      const href = guestsPath({
+        q: next.q !== undefined ? next.q : data.filters.q,
+        status: next.status !== undefined ? next.status : data.filters.status,
+        // No side pills on mobile — preserve whatever the URL already holds.
+        side: data.filters.side,
+        page: next.page ?? 1,
+      });
+      startNav(() => router.replace(href, { scroll: false }));
+    },
+    [data.filters.q, data.filters.status, data.filters.side, router],
+  );
+
+  // Debounce the search box into the URL (the DB does the matching). While
+  // not dirty, follow the URL (sibling template navs, back button).
+  useEffect(() => {
+    if (!queryDirty.current) {
+      setQuery(data.filters.q);
+      return;
+    }
+    if (query.trim() === data.filters.q) {
+      queryDirty.current = false;
+      return;
+    }
+    const t = window.setTimeout(() => nav({ q: query.trim(), page: 1 }), 300);
+    return () => window.clearTimeout(t);
+  }, [query, data.filters.q, nav]);
+
+  const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
+
+  // Couple names for the prefilled WhatsApp invite (per-row quick-send).
   const groomName = data.chrome?.groomName ?? "";
   const brideName = data.chrome?.brideName ?? "";
 
@@ -49,12 +105,24 @@ export function GuestsMobile({ data }: GuestsMobileProps) {
         </>
       }
     >
-      <MobileSearch placeholder="Cari nama tamu…" />
+      <MobileSearch
+        placeholder="Cari nama tamu…"
+        value={query}
+        maxLength={120}
+        onChange={(v) => {
+          queryDirty.current = true;
+          setQuery(v);
+        }}
+      />
 
       <MobileChipRow>
         {FILTERS.map((f) => (
-          <MobileChip key={f} active={f === "Semua"}>
-            {f}
+          <MobileChip
+            key={f.label}
+            active={data.filters.status === f.status}
+            onClick={() => nav({ status: f.status })}
+          >
+            {f.label}
           </MobileChip>
         ))}
       </MobileChipRow>
@@ -87,16 +155,29 @@ export function GuestsMobile({ data }: GuestsMobileProps) {
         <Icon name="wa" size={16} stroke="#fff" /> Sebar via WhatsApp
       </a>
 
+      <MobileButton
+        variant="ghost"
+        full
+        onClick={() => {
+          setFormNonce((n) => n + 1);
+          setFormOpen(true);
+        }}
+      >
+        <Icon name="plus" size={16} /> Tambah tamu
+      </MobileButton>
+
       {data.guests.length > 0 && (
         <p className="text-[11px] text-muted-ink px-1 -mt-1">
           Atau ketuk ikon WhatsApp di tiap tamu untuk kirim cepat.
         </p>
       )}
 
-      <MobileCard flush>
+      <MobileCard flush className={cn("transition-opacity", isNavPending && "opacity-60")}>
         {data.guests.length === 0 ? (
           <div className="px-4 py-8 text-center font-display italic text-[14px] text-faint">
-            Belum ada tamu. Tambah tamu pertamamu.
+            {data.stats.invited === 0
+              ? "Belum ada tamu. Tambah tamu pertamamu."
+              : "Tidak ada tamu yang cocok dengan pencarian ini."}
           </div>
         ) : (
           data.guests.map((g, i) => {
@@ -155,9 +236,38 @@ export function GuestsMobile({ data }: GuestsMobileProps) {
         )}
       </MobileCard>
 
-      <MobileButton variant="ghost" full>
-        <Icon name="plus" size={16} /> Tambah tamu
-      </MobileButton>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2">
+          <MobileButton
+            variant="ghost"
+            disabled={data.page <= 1}
+            onClick={() => nav({ page: data.page - 1 })}
+            className="h-9 px-4 text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ‹ Sebelumnya
+          </MobileButton>
+          <span className="text-[11px] text-muted-ink tracking-[0.12em] uppercase font-semibold whitespace-nowrap">
+            Hal {data.page} / {totalPages}
+          </span>
+          <MobileButton
+            variant="ghost"
+            disabled={data.page >= totalPages}
+            onClick={() => nav({ page: data.page + 1 })}
+            className="h-9 px-4 text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Berikutnya ›
+          </MobileButton>
+        </div>
+      )}
+
+      <GuestFormModal
+        key={`add-${formNonce}`}
+        mode="add"
+        guest={null}
+        customSides={customSides(data.availableSides)}
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+      />
     </MobileShell>
   );
 }

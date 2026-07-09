@@ -10,6 +10,7 @@ import { Icon } from "@/components/atoms/icon";
 import { Avatar, initials } from "@/components/atoms/avatar";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Em } from "@/components/atoms/typography";
+import { customSides } from "@/lib/guests-csv";
 import { waMeLink } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
 import { markGuestInvited } from "@/server/actions/guests";
@@ -22,6 +23,7 @@ import {
   effStatus,
   validPhone,
   defaultTemplates,
+  useWaTemplates,
   type Template,
   fillTemplate,
   fmtNow,
@@ -49,17 +51,14 @@ export function WaBlast({ data }: { data: WaBlastData }) {
   const slug = data.weddingSlug;
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
   const guests = data.guests;
-  const tplKey = `maritare_wa_tpl_${slug}`;
 
   const defaults = useMemo(
-    () => defaultTemplates(coupleLabel, data.dateLabel, data.venueLabel),
-    [coupleLabel, data.dateLabel, data.venueLabel],
+    () => defaultTemplates(coupleLabel, data.dateLabel, data.venueLabel, data.timeLabel),
+    [coupleLabel, data.dateLabel, data.venueLabel, data.timeLabel],
   );
 
   const [sentLocal, setSentLocal] = useState<Set<string>>(new Set());
-  const [tplText, setTplText] = useState<Record<string, string>>(() =>
-    Object.fromEntries(defaults.map((t) => [t.id, t.text])),
-  );
+  const { tplText, setTplText, persist } = useWaTemplates(defaults, data.savedTemplates);
   const [templateId, setTemplateId] = useState("undangan");
   const [filter, setFilter] = useState<"all" | "unsent" | "sent" | "followup">("all");
   const [sideFilter, setSideFilter] = useState<Guest["side"] | null>(null);
@@ -67,25 +66,6 @@ export function WaBlast({ data }: { data: WaBlastData }) {
   const [focus, setFocus] = useState(false);
   const [cooldownSecs, setCooldownSecs] = useState(15);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // Load any saved template edits (client-only convenience).
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(tplKey) || "null");
-      // One-time hydration of persisted template edits on mount.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved && typeof saved === "object") setTplText((p) => ({ ...p, ...saved }));
-    } catch {
-      /* ignore */
-    }
-  }, [tplKey]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(tplKey, JSON.stringify(tplText));
-    } catch {
-      /* ignore */
-    }
-  }, [tplKey, tplText]);
 
   const template = tplText[templateId] ?? "";
   const templates: Template[] = defaults.map((t) => ({ ...t, text: tplText[t.id] ?? t.text }));
@@ -150,6 +130,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
     [null, "Semua"],
     ["bride", "Wanita"],
     ["groom", "Pria"],
+    ...customSides(guests.map((g) => g.side)).map((s): [string, string] => [s, s]),
   ];
   const PIPELINE: Array<[string, number, string]> = [
     ["Belum", remaining, "var(--color-terracotta)"],
@@ -296,10 +277,10 @@ export function WaBlast({ data }: { data: WaBlastData }) {
                     </button>
                   ))}
                 </div>
-                <div style={{ display: "flex", gap: 4, background: "var(--color-cream)", border: "1px solid var(--color-beige)", borderRadius: 999, padding: 3, width: "fit-content" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, background: "var(--color-cream)", border: "1px solid var(--color-beige)", borderRadius: 20, padding: 3, width: "fit-content" }}>
                   {SIDE_FILTERS.map(([k, label]) => (
                     <button
-                      key={label}
+                      key={k ?? "__all__"}
                       onClick={() => setSideFilter(k)}
                       style={{
                         padding: "6px 12px",
@@ -428,6 +409,7 @@ export function WaBlast({ data }: { data: WaBlastData }) {
                   <textarea
                     value={template}
                     onChange={(e) => setTplText((p) => ({ ...p, [templateId]: e.target.value }))}
+                    onBlur={persist}
                     spellCheck={false}
                     style={{
                       width: "100%",

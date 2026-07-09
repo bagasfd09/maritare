@@ -13,8 +13,8 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+# next.js (any depth — a mislaunched dev server can emit .next in a stray subdir)
+.next/
 /out/
 
 # production

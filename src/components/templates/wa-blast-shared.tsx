@@ -2,9 +2,12 @@
 // wa-blast.tsx + the mobile variant). Pure helpers and presentational pieces
 // only — each screen owns its own layout, state, and send wiring.
 
+import { useState } from "react";
+
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { inviteUrl } from "@/lib/invite-message";
 import { normalizePhoneIntl } from "@/lib/phone";
+import { saveWaTemplates } from "@/server/actions/settings";
 import type { WaBlastData } from "@/server/queries/dashboard";
 
 export type Guest = WaBlastData["guests"][number];
@@ -40,22 +43,38 @@ export function defaultTemplates(
   coupleLabel: string,
   dateLabel: string | null,
   venueLabel: string | null,
+  timeLabel: string | null,
 ) {
-  const when = dateLabel ? `🗓️ ${dateLabel}\n` : "";
   const where = venueLabel ? `📍 ${venueLabel}\n` : "";
+  // Detail block for the formal invite; lines with missing data are dropped.
+  const details = [
+    dateLabel ? `🗓️ ${dateLabel}` : null,
+    timeLabel ? `🕘 ${timeLabel}` : null,
+    venueLabel ? `📍 ${venueLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
   return [
     {
       id: "undangan",
       name: "Undangan",
       phase: "Pertama kali",
-      text: `Halo {nama} 👋
+      text: `Assalamualaikum Warahmatullahi Wabarakatuh
+Kepada Yth.
+Bapak/Ibu/Saudara/i {nama}
 
-Dengan penuh kebahagiaan, kami mengundangmu ke pernikahan *${coupleLabel}* 💍
-${when}${where}
-Undangan, konfirmasi kehadiran (RSVP), & QR check-in kamu ada di tautan ini:
+Dengan penuh kebahagiaan, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara pernikahan kami.
+${details ? `\n${details}\n` : ""}
+Undangan, konfirmasi kehadiran (RSVP), & QR check-in ada di tautan ini:
 {link}
 
-Merupakan suatu kehormatan jika kamu berkenan hadir. Terima kasih 🙏`,
+Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir dan memberikan doa restu.
+
+Terima kasih
+Wassalamualaikum Warahmatullahi Wabarakatuh
+
+Hormat kami,
+*${coupleLabel}*`,
     },
     {
       id: "reminder",
@@ -87,14 +106,36 @@ Detail & lokasi acara:
 }
 export type Template = ReturnType<typeof defaultTemplates>[number];
 
+// Per-user template edits: seeded from the server-saved copy (users.wa_templates,
+// so two members of one wedding each keep their own), persisted on blur. Only
+// texts that diverge from the defaults are stored, so untouched templates keep
+// following live wedding info (date/venue edits).
+export function useWaTemplates(defaults: Template[], saved: Record<string, string>) {
+  const [tplText, setTplText] = useState<Record<string, string>>(() =>
+    Object.fromEntries(defaults.map((t) => [t.id, saved[t.id] ?? t.text])),
+  );
+  function persist() {
+    const edits: Record<string, string> = {};
+    for (const t of defaults) {
+      const text = tplText[t.id] ?? t.text;
+      if (text !== t.text) edits[t.id] = text;
+    }
+    // Fire-and-forget; the local state is already the source of truth on screen.
+    void saveWaTemplates({ templates: edits });
+  }
+  return { tplText, setTplText, persist };
+}
+
 export function fillTemplate(tpl: string, g: Guest, slug: string): string {
   const link = inviteUrl(slug, { to: g.name, code: g.code ?? undefined });
+  // Function replacements for the data-bearing tokens: an owner-typed name/group
+  // with `$&`, `$'`, `$1` etc. must insert literally, not as a replace pattern.
   return (tpl || "")
     .replace(/\{sapaan_lc\}/g, "")
     .replace(/\{sapaan\}/g, "")
-    .replace(/\{nama\}/g, g.name)
-    .replace(/\{grup\}/g, g.group ?? "")
-    .replace(/\{link\}/g, link)
+    .replace(/\{nama\}/g, () => g.name)
+    .replace(/\{grup\}/g, () => g.group ?? "")
+    .replace(/\{link\}/g, () => link)
     .replace(/[ \t]{2,}/g, " ");
 }
 

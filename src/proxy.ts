@@ -12,6 +12,10 @@ const SESSION_COOKIE_NAMES = [
 // (see src/lib/guestbook-session.ts). Separate from the dashboard auth session.
 const GUESTBOOK_COOKIE = "gb_session";
 
+// The family quick-send session cookie, set by an Akses Keluarga token login
+// (see src/lib/share-session.ts). Also separate from the dashboard session.
+const SHARE_COOKIE = "share_session";
+
 /**
  * Optimistic edge gate.
  *
@@ -41,6 +45,17 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.redirect(new URL("/guestbook/login", request.nextUrl));
   }
 
+  // ── Family quick-send (/kirim) — token-only, same design as the kiosk ──
+  if (pathname.startsWith("/kirim")) {
+    if (pathname === "/kirim/login") {
+      return NextResponse.next();
+    }
+    if (request.cookies.has(SHARE_COOKIE)) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/kirim/login", request.nextUrl));
+  }
+
   const hasAuthSession = SESSION_COOKIE_NAMES.some((name) =>
     request.cookies.has(name),
   );
@@ -56,7 +71,7 @@ export function proxy(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Guard authenticated areas. The kiosk (/guestbook) has its own token-based
-  // gate; marketing/auth routes stay public.
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/guestbook/:path*"],
+  // Guard authenticated areas. The kiosk (/guestbook) and family quick-send
+  // (/kirim) have their own token-based gates; marketing/auth routes stay public.
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/guestbook/:path*", "/kirim/:path*"],
 };

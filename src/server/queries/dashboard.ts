@@ -9,7 +9,7 @@
 // assembled identically everywhere. This module must only ever be imported from
 // Server Components / Server Actions.
 
-import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -328,7 +328,8 @@ function daysUntil(eventDate: Date | null): number | null {
   }
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.ceil((eventDate.getTime() - today.getTime()) / 86_400_000);
+  // ponytail: clamp past events to 0 so the card never shows negative days
+  return Math.max(0, Math.ceil((eventDate.getTime() - today.getTime()) / 86_400_000));
 }
 
 /** "Sabtu · 14 Juni 2026" from the event date, or null when unset. */
@@ -411,15 +412,22 @@ export async function getOverviewData(): Promise<OverviewData | null> {
       confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
       pending: sql<number>`count(*) filter (where ${guests.status} = 'pending')::int`,
       declined: sql<number>`count(*) filter (where ${guests.status} = 'declined')::int`,
-      brideTotal: sql<number>`count(*) filter (where ${guests.side} = 'bride')::int`,
-      brideConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'bride' and ${guests.status} = 'confirmed')::int`,
-      groomTotal: sql<number>`count(*) filter (where ${guests.side} = 'groom')::int`,
-      groomConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'groom' and ${guests.status} = 'confirmed')::int`,
-      bothTotal: sql<number>`count(*) filter (where ${guests.side} = 'both')::int`,
-      bothConfirmed: sql<number>`count(*) filter (where ${guests.side} = 'both' and ${guests.status} = 'confirmed')::int`,
     })
     .from(guests)
     .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)));
+
+  // Per-side split — side is free text now, so group dynamically instead of
+  // hardcoding the canonical trio.
+  const sideRows = await db
+    .select({
+      side: guests.side,
+      total: sql<number>`count(*)::int`,
+      confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
+    })
+    .from(guests)
+    .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)))
+    .groupBy(guests.side)
+    .orderBy(asc(guests.side));
 
   const invited = guestRow?.invited ?? 0;
   const confirmed = guestRow?.confirmed ?? 0;
@@ -428,18 +436,35 @@ export async function getOverviewData(): Promise<OverviewData | null> {
   const respondedPct =
     invited > 0 ? Math.round(((confirmed + declined) / invited) * 100) : 0;
 
-  // Confirmed/total split per bride/groom side ("both" only shown when present).
+  // Confirmed/total split per side. Wanita/Pria always show; "Bersama" and
+  // custom sides only when they have guests. Custom sides keep query order.
   const mkSide = (label: string, c: number, t: number): RsvpGroup => ({
     label,
     confirmed: c,
     total: t,
     pct: t > 0 ? Math.round((c / t) * 100) : 0,
   });
+  const bySide = new Map(sideRows.map((r) => [r.side, r]));
+  const bothRow = bySide.get("both");
+  // Cap custom rows like rsvpByGroup does (top 4 + remainder) so a messy CSV
+  // import can't flood the overview card.
+  const custom = sideRows
+    .filter((r) => r.side !== "bride" && r.side !== "groom" && r.side !== "both")
+    .sort((a, b) => b.total - a.total);
+  const customRest = custom.slice(4);
   const rsvpBySide: RsvpGroup[] = [
-    mkSide("Wanita", guestRow?.brideConfirmed ?? 0, guestRow?.brideTotal ?? 0),
-    mkSide("Pria", guestRow?.groomConfirmed ?? 0, guestRow?.groomTotal ?? 0),
-    ...((guestRow?.bothTotal ?? 0) > 0
-      ? [mkSide("Bersama", guestRow?.bothConfirmed ?? 0, guestRow?.bothTotal ?? 0)]
+    mkSide("Wanita", bySide.get("bride")?.confirmed ?? 0, bySide.get("bride")?.total ?? 0),
+    mkSide("Pria", bySide.get("groom")?.confirmed ?? 0, bySide.get("groom")?.total ?? 0),
+    ...(bothRow ? [mkSide("Bersama", bothRow.confirmed, bothRow.total)] : []),
+    ...custom.slice(0, 4).map((r) => mkSide(r.side, r.confirmed, r.total)),
+    ...(customRest.length > 0
+      ? [
+          mkSide(
+            `+${customRest.length} lainnya`,
+            customRest.reduce((s, r) => s + r.confirmed, 0),
+            customRest.reduce((s, r) => s + r.total, 0),
+          ),
+        ]
       : []),
   ];
 
@@ -500,31 +525,116 @@ async function countPhotos(weddingId: string): Promise<number> {
 // Guests
 // ─────────────────────────────────────────────────────────────────
 
+/** Rows per page — the table/list is server-paged so huge guest lists never
+ *  ship to the client in one payload. */
+export const GUESTS_PAGE_SIZE = 20;
+
+/** Escape %/_/\ so a search string is matched literally inside ILIKE. */
+export function likePattern(q: string): string {
+  return `%${q.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
+export type GuestsFilters = {
+  q: string;
+  status: "pending" | "confirmed" | "declined" | null;
+  /** null = all sides; otherwise a canonical or custom side value. */
+  side: string | null;
+};
+
 export type GuestsData = {
   chrome: DashboardChrome | null;
+  /** The CURRENT PAGE of guests (filters applied server-side). */
   guests: Array<{
     id: string;
     name: string;
     code: string | null;
     group: string | null;
     phone: string | null;
-    side: "groom" | "bride" | "both";
+    /** "groom" | "bride" | "both" or a customer-defined custom side. */
+    side: string;
     status: "pending" | "confirmed" | "declined";
     partySize: number | null;
     foodChoice: string | null;
     invitationStatus: "none" | "sent" | "opened";
   }>;
+  /** Wedding-wide RSVP totals (NOT filtered) for the stat strip. */
   stats: { invited: number; confirmed: number; pending: number; declined: number };
   /** For building the per-guest WhatsApp invite link client-side. */
   weddingSlug: string;
+  /** Count of guests matching the filters (all pages). */
+  total: number;
+  /** 1-based page, clamped server-side so it can never overflow. */
+  page: number;
+  pageSize: number;
+  /** The filters actually applied — echoed back so the UI stays in sync. */
+  filters: GuestsFilters;
+  /** Distinct side values in use — feeds the side pills + guest form. */
+  availableSides: string[];
 };
 
-export async function getGuestsData(): Promise<GuestsData | null> {
+export async function getGuestsData(input?: {
+  page?: number;
+  q?: string;
+  status?: GuestsFilters["status"];
+  side?: string | null;
+}): Promise<GuestsData | null> {
   const resolved = await resolveWedding();
   if (!resolved) {
     return null;
   }
   const { wedding } = resolved;
+
+  const base = and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt));
+
+  const sideRows = await db
+    .select({ side: guests.side })
+    .from(guests)
+    .where(base)
+    .groupBy(guests.side)
+    .orderBy(asc(guests.side));
+  const availableSides = sideRows.map((s) => s.side);
+
+  // Cap mirrors the share feed's Zod bound — an oversized pattern only buys
+  // worst-case ILIKE scans.
+  const q = (input?.q ?? "").trim().slice(0, 120);
+  const status = input?.status ?? null;
+  // A side filter whose last guest was edited/deleted falls back to "all"
+  // instead of stranding an empty table.
+  const side =
+    input?.side && availableSides.includes(input.side) ? input.side : null;
+
+  const conds = [base];
+  if (status) {
+    conds.push(eq(guests.status, status));
+  }
+  if (side) {
+    conds.push(eq(guests.side, side));
+  }
+  if (q) {
+    const pat = likePattern(q);
+    conds.push(
+      or(ilike(guests.name, pat), ilike(guests.group, pat), ilike(guests.phone, pat))!,
+    );
+  }
+  const filteredWhere = and(...conds);
+
+  const [agg] = await db
+    .select({
+      invited: sql<number>`count(*)::int`,
+      confirmed: sql<number>`count(*) filter (where ${guests.status} = 'confirmed')::int`,
+      pending: sql<number>`count(*) filter (where ${guests.status} = 'pending')::int`,
+      declined: sql<number>`count(*) filter (where ${guests.status} = 'declined')::int`,
+    })
+    .from(guests)
+    .where(base);
+
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(guests)
+    .where(filteredWhere);
+
+  const totalPages = Math.max(1, Math.ceil(total / GUESTS_PAGE_SIZE));
+  const page = Math.min(Math.max(1, Math.trunc(input?.page ?? 1)), totalPages);
 
   const rows = await db
     .select({
@@ -540,21 +650,28 @@ export async function getGuestsData(): Promise<GuestsData | null> {
       invitationStatus: guests.invitationStatus,
     })
     .from(guests)
-    .where(and(eq(guests.weddingId, wedding.id), isNull(guests.deletedAt)))
-    .orderBy(asc(guests.createdAt));
-
-  const stats = { invited: rows.length, confirmed: 0, pending: 0, declined: 0 };
-  for (const g of rows) {
-    stats[g.status] += 1;
-  }
+    .where(filteredWhere)
+    .orderBy(asc(guests.createdAt), asc(guests.id))
+    .limit(GUESTS_PAGE_SIZE)
+    .offset((page - 1) * GUESTS_PAGE_SIZE);
 
   const pendingWishes = await countPendingWishes(wedding.id);
 
   return {
     chrome: buildChrome(wedding, resolved.user, resolved.packageName, pendingWishes),
     guests: rows,
-    stats,
+    stats: {
+      invited: agg?.invited ?? 0,
+      confirmed: agg?.confirmed ?? 0,
+      pending: agg?.pending ?? 0,
+      declined: agg?.declined ?? 0,
+    },
     weddingSlug: wedding.slug,
+    total,
+    page,
+    pageSize: GUESTS_PAGE_SIZE,
+    filters: { q, status, side },
+    availableSides,
   };
 }
 
@@ -573,7 +690,25 @@ export type WaBlastData = {
   dateLabel: string | null;
   /** "Pendopo Kayon · Yogyakarta" — seeds the default message template. */
   venueLabel: string | null;
+  /** "Akad: 09.00 s/d Selesai, Resepsi: 12.30 s/d Selesai" from the acara events. */
+  timeLabel: string | null;
+  /** The signed-in user's own template edits for this wedding (per-user). */
+  savedTemplates: Record<string, string>;
 };
+
+/** "Akad: 09.00 s/d Selesai, Resepsi: 12.30 s/d 15.00" — Indonesian dot-style times. */
+function formatTimeLabel(events: Array<{ name: string; timeStart: string; timeEnd?: string }>): string | null {
+  if (events.length === 0) {
+    return null;
+  }
+  return events
+    .map((e) => {
+      const start = e.timeStart.replace(":", ".");
+      const end = e.timeEnd ? e.timeEnd.replace(":", ".") : "Selesai";
+      return `${e.name}: ${start} s/d ${end}`;
+    })
+    .join(", ");
+}
 
 export async function getWaBlastData(): Promise<WaBlastData | null> {
   const resolved = await resolveWedding();
@@ -601,6 +736,12 @@ export async function getWaBlastData(): Promise<WaBlastData | null> {
 
   const pendingWishes = await countPendingWishes(wedding.id);
   const eventDate = parseEventDate(wedding.eventDate);
+  const acara = parseSectionData("acara", wedding.sections?.acara?.data);
+
+  const meRow = await db.query.users.findFirst({
+    columns: { waTemplates: true },
+    where: eq(users.id, resolved.userId),
+  });
 
   return {
     chrome: buildChrome(wedding, resolved.user, resolved.packageName, pendingWishes),
@@ -610,6 +751,8 @@ export async function getWaBlastData(): Promise<WaBlastData | null> {
     brideName: wedding.brideName,
     dateLabel: formatDateLabel(eventDate),
     venueLabel: formatVenueLabel(wedding.venue, wedding.city),
+    timeLabel: formatTimeLabel(acara.events),
+    savedTemplates: meRow?.waTemplates?.[wedding.id] ?? {},
   };
 }
 

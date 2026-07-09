@@ -7,8 +7,9 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
+    // Default ignores of eslint-config-next (broadened: a mislaunched dev
+    // server can emit its .next outside the repo root — never lint those):
+    "**/.next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

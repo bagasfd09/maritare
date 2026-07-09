@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PetugasResepsi } from "@/components/templates/petugas-resepsi";
+import { PetugasMobile } from "@/components/templates/petugas-mobile";
 import { getPetugasData } from "@/server/queries/petugas";
 
 export default async function Page() {
@@ -8,5 +9,12 @@ export default async function Page() {
   if (!data) {
     redirect("/dashboard/onboarding");
   }
-  return <PetugasResepsi data={data} />;
+  return (
+    <>
+      <div className="hidden lg:contents">
+        <PetugasResepsi data={data} />
+      </div>
+      <PetugasMobile data={data} />
+    </>
+  );
 }

@@ -24,7 +24,6 @@ import type { NotificationPrefs } from "@/lib/notifications";
 
 export const userRole = pgEnum("user_role", ["customer", "admin"]);
 export const weddingStatus = pgEnum("wedding_status", ["draft", "pending", "live", "expired"]);
-export const guestSide = pgEnum("guest_side", ["groom", "bride", "both"]);
 export const guestStatus = pgEnum("guest_status", ["pending", "confirmed", "declined"]);
 export const invitationStatus = pgEnum("invitation_status", ["none", "sent", "opened"]);
 export const wishStatus = pgEnum("wish_status", ["pending", "approved", "hidden"]);
@@ -67,6 +66,13 @@ export const users = pgTable("users", {
       reminder: { email: true, wa: true },
       tips: { email: false, wa: false },
     })
+    .notNull(),
+  // Per-user WhatsApp invite template edits, keyed by wedding id then template
+  // id ("undangan" | "reminder" | "terimakasih"). Only texts that diverge from
+  // the generated defaults are stored.
+  waTemplates: jsonb("wa_templates")
+    .$type<Record<string, Record<string, string>>>()
+    .default({})
     .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -257,7 +263,9 @@ export const guests = pgTable("guests", {
   code: text("code").unique(),
   group: text("group"),
   phone: text("phone"),
-  side: guestSide("side").default("both").notNull(),
+  // Free-text side: "groom" | "bride" | "both" are canonical (drive labels,
+  // gift filtering, petugas scoping); customers may add custom values.
+  side: text("side").default("both").notNull(),
   status: guestStatus("status").default("pending").notNull(),
   // pax the guest is expected/confirmed to bring (incl. themselves)
   partySize: integer("party_size"),
@@ -435,6 +443,32 @@ export const guestbookTokens = pgTable("guestbook_tokens", {
   sessionNonce: text("session_nonce"), // current active device's session secret (null = logged out)
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
   lastDevice: text("last_device"), // short user-agent label of the active device
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), // revoke = soft delete
+});
+
+// Family "quick send" access tokens. A family member (e.g. ibu pengantin pria)
+// gets a code from the owner, signs in WITHOUT a dashboard account, and lands
+// on a stripped WhatsApp quick-send page listing only the guests whose `side`
+// is in `sides`. The code arms on first login: `expiresAt` is set to +1 hour,
+// re-login is allowed while it lives (kicks the previous device, same as the
+// petugas tokens), and after that the code is dead until regenerated.
+export const shareTokens = pgTable("share_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  weddingId: uuid("wedding_id")
+    .notNull()
+    .references(() => weddings.id, { onDelete: "cascade" }),
+  label: text("label").notNull(), // e.g. "Ibu Pengantin Pria"
+  code: text("code").notNull().unique(), // login code given to the family member
+  sides: text("sides").array().notNull(), // guest side values this sender may see
+  // Per-sender WA message template ({nama}/{link} placeholders). Null = use the
+  // generated default; the family member edits their own copy on /kirim.
+  template: text("template"),
+  sessionNonce: text("session_nonce"), // current active device's session secret
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // first login + 1h; null = unused
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  lastDevice: text("last_device"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }), // revoke = soft delete

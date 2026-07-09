@@ -37,7 +37,8 @@ export function GuestbookNotFound({ header }: { header?: KioskHeader | null }) {
   const groomName = header?.groomName ?? FALLBACK_COUPLE.groom;
   const brideName = header?.brideName ?? FALLBACK_COUPLE.bride;
 
-  // Side labels map to the DB enum: groom's side / bride's side / both ("—").
+  // Side labels map to the canonical side values: groom's / bride's / both
+  // ("—"). The walk-in form intentionally offers only the canonical trio.
   const sides: { label: string; value: GuestSide }[] = [
     { label: groomName, value: "groom" },
     { label: brideName, value: "bride" },

@@ -2223,6 +2223,12 @@ export const SCARLET_THEME_CSS = String.raw`
     max-width: 650px;
     margin: 0 auto;
 }
+/* frame-bank.webp is 1100x1572; its height is the whole section's layout.
+   Reserve that height up front so the section can't collapse while (or if)
+   the image is still loading — the iOS Safari "only flowers left" bug. */
+.scarlet-inv .frame-bank > .image-wrap {
+    aspect-ratio: 1100 / 1572;
+}
 .scarlet-inv .wedding-gift-content {
     position: absolute;
     width: 100%;
@@ -2393,6 +2399,30 @@ export const SCARLET_THEME_CSS = String.raw`
     align-items: center;
     gap: 4px;
 }
+.scarlet-inv .wedding-gift-reveal-btn {
+    border: none;
+    outline: none;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: 12px 32px;
+    margin: 70px auto;
+    border-radius: 999px;
+    font-family: var(--body-text-family);
+    font-size: var(--body-text-size);
+    letter-spacing: 0.02em;
+    background-color: var(--button-background-primary);
+    color: var(--button-text-primary);
+    cursor: pointer;
+    transition-duration: 0.25s;
+    transition-property: background-color;
+}
+.scarlet-inv .wedding-gift-reveal-btn:hover {
+    background-color: var(--button-background-secondary);
+    color: var(--button-text-secondary);
+}
 .scarlet-inv .wedding-gift-bank-wrap .bank-copy {
     border: none;
     outline: none;
@@ -2433,6 +2463,16 @@ export const SCARLET_THEME_CSS = String.raw`
 .scarlet-inv .custom-wedding-gifts-wrap .wedding-gift-address-wrap {
     align-items: center;
     gap: 12px;
+}
+.scarlet-inv .gift-address-divider {
+    margin-top: 28px;
+    margin-bottom: 20px;
+}
+.scarlet-inv .wedding-gift-address-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
 }
 .scarlet-inv .wedding-gift-address-wrap .inner-recipient-info {
     font-size: calc(var(--body-text-size));
@@ -2640,13 +2680,8 @@ export const SCARLET_THEME_CSS = String.raw`
     margin-bottom: 0px;
 }
 /* Folk wishes only (scoped via .folk-wish so the Scarlet template is untouched):
-   white cards (soft shadow), red inputs (border + text, incl. focus), red send. */
-.scarlet-inv .folk-wish .comment-item {
-    background: #FBF8F2;
-    border-radius: 9px;
-    padding: 18px 20px;
-    box-shadow: 0 1px 3px -1px rgba(60, 15, 6, 0.04);
-}
+   red inputs (border + text, incl. focus), red send. Wish cards are styled
+   inline (Tailwind) in folk-wishes.tsx. */
 .scarlet-inv .folk-wish .wedding-wish-form .form-control {
     border: 1px solid #700F06;
     border-radius: 12px;

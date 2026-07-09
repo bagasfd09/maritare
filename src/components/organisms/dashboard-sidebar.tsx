@@ -10,14 +10,25 @@ import type { DashboardChrome } from "@/server/queries/dashboard";
 
 type NavItem = { id: string; icon: IconName; label: string; href: string; badge?: string };
 
-const TOP: NavItem[] = [
-  { id: "home", icon: "home", label: "Beranda", href: "/dashboard" },
-  { id: "editor", icon: "edit", label: "Editor", href: "/dashboard/editor" },
-  { id: "templates", icon: "template", label: "Template", href: "/dashboard/templates" },
-  { id: "guests", icon: "users", label: "Tamu", href: "/dashboard/guests" },
-  { id: "wishes", icon: "heart", label: "Ucapan", href: "/dashboard/wishes", badge: "5" },
-  { id: "photos", icon: "image", label: "Galeri", href: "/dashboard/gallery" },
-  { id: "petugas", icon: "users", label: "Petugas Resepsi", href: "/dashboard/petugas" },
+const TOP: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Undangan",
+    items: [
+      { id: "home", icon: "home", label: "Beranda", href: "/dashboard" },
+      { id: "editor", icon: "edit", label: "Editor", href: "/dashboard/editor" },
+      { id: "templates", icon: "template", label: "Template", href: "/dashboard/templates" },
+      { id: "photos", icon: "image", label: "Galeri", href: "/dashboard/gallery" },
+    ],
+  },
+  {
+    label: "Tamu & Acara",
+    items: [
+      { id: "guests", icon: "users", label: "Tamu", href: "/dashboard/guests" },
+      { id: "wishes", icon: "heart", label: "Ucapan", href: "/dashboard/wishes", badge: "5" },
+      { id: "petugas", icon: "users", label: "Petugas Resepsi", href: "/dashboard/petugas" },
+      { id: "akses-keluarga", icon: "share", label: "Akses Keluarga", href: "/dashboard/akses-keluarga" },
+    ],
+  },
 ];
 
 const BOTTOM: NavItem[] = [
@@ -90,32 +101,37 @@ export function DashboardSidebar({
         </div>
       </div>
 
-      {/* Primary nav */}
-      <nav className="flex flex-col gap-[2px] mt-2">
-        {TOP.map((it) => {
-          const isActive = active === it.id;
-          // The wishes item is the only data-driven badge; everything else keeps
-          // its mock badge value.
-          const badge = it.id === "wishes" ? wishesBadge : it.badge;
-          return (
-            <a
-              key={it.id}
-              href={it.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13px] font-medium",
-                isActive ? "bg-burgundy text-cream" : "text-charcoal",
-              )}
-            >
-              <Icon name={it.icon} size={16} />
-              <span className="flex-1">{it.label}</span>
-              {badge && !isActive && (
-                <span className="text-[10px] bg-terracotta text-white px-[6px] py-[2px] rounded-full font-bold">
-                  {badge}
-                </span>
-              )}
-            </a>
-          );
-        })}
+      {/* Primary nav — flat items grouped under section labels */}
+      <nav className="flex flex-col mt-2">
+        {TOP.map((group) => (
+          <div key={group.label} className="flex flex-col gap-[2px] mb-4">
+            <LabelSc className="px-3 mb-[6px]">{group.label}</LabelSc>
+            {group.items.map((it) => {
+              const isActive = active === it.id;
+              // The wishes item is the only data-driven badge; everything else
+              // keeps its mock badge value.
+              const badge = it.id === "wishes" ? wishesBadge : it.badge;
+              return (
+                <a
+                  key={it.id}
+                  href={it.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13px] font-medium",
+                    isActive ? "bg-burgundy text-cream" : "text-charcoal",
+                  )}
+                >
+                  <Icon name={it.icon} size={16} />
+                  <span className="flex-1">{it.label}</span>
+                  {badge && !isActive && (
+                    <span className="text-[10px] bg-terracotta text-white px-[6px] py-[2px] rounded-full font-bold">
+                      {badge}
+                    </span>
+                  )}
+                </a>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="flex-1" />
@@ -136,6 +152,7 @@ export function DashboardSidebar({
 
       {/* Secondary nav */}
       <nav className="flex flex-col gap-[2px] mt-4 pt-4 border-t border-beige">
+        <LabelSc className="px-3 mb-[6px]">Akun</LabelSc>
         {BOTTOM.map((it) => {
           const isActive = active === it.id;
           return (
