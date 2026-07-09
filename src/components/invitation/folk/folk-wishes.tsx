@@ -76,14 +76,17 @@ const MESSAGE_MAX = 600;
 const WISHES_PAGE = 5;
 
 // Checkout-style celebration on a successful submit — hand-rolled with the Web
-// Animations API (no dependency). Folk-palette particles fan out from the
-// submit button, arc down under "gravity", and the layer self-cleans.
-function burstConfetti(origin: HTMLElement | null) {
+// Animations API (no dependency). Palette particles fan out from the submit
+// button, arc down under "gravity", and the layer self-cleans. Exported so other
+// templates (ivory) can reuse it with their own palette; defaults to Folk's.
+export function burstConfetti(
+  origin: HTMLElement | null,
+  colors: string[] = ["#700F06", "#C9A24B", "#52602F", "#A98534", "#E8A0B8", "#F5EFE0"],
+) {
   if (!origin || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const { left, top, width, height } = origin.getBoundingClientRect();
   const cx = left + width / 2;
   const cy = top + height / 2;
-  const colors = ["#700F06", "#C9A24B", "#52602F", "#A98534", "#E8A0B8", "#F5EFE0"];
   const layer = document.createElement("div");
   layer.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:99;";
   document.body.appendChild(layer);

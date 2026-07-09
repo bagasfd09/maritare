@@ -21,23 +21,26 @@ type Props = {
   data: InvitationView;
   mode: "public" | "ownerPreview" | "editorPreview";
   /** The viewing guest's family side (from their personalized ?g= link). When
-   *  set to groom/bride, only that side's accounts (plus "both") show. Absent or
-   *  "both" → show every account (generic link / owner preview). */
-  guestSide?: PartySide;
+   *  set to groom/bride, only that side's accounts (plus "both") show. Absent,
+   *  "both" or a custom side → show every account (generic link / owner preview). */
+  guestSide?: string;
 };
 
-// An account shows when the guest has no specific side, or the account is for
-// everyone ("both"), or it matches the guest's side.
-function visibleForSide(accountSide: PartySide, guestSide?: PartySide): boolean {
-  if (!guestSide || guestSide === "both") return true;
+// An account shows when the guest has no groom/bride side (incl. custom sides),
+// or the account is for everyone ("both"), or it matches the guest's side.
+function visibleForSide(accountSide: PartySide, guestSide?: string): boolean {
+  if (guestSide !== "groom" && guestSide !== "bride") return true;
   return accountSide === "both" || accountSide === guestSide;
 }
 
-export function SiennaGift({ data, guestSide }: Props) {
+export function SiennaGift({ data, mode, guestSide }: Props) {
   const { accounts: allAccounts, ewallets: allEwallets } = data.sections.amplop;
   const accounts = allAccounts.filter((a) => visibleForSide(a.side, guestSide));
   const ewallets = allEwallets.filter((w) => visibleForSide(w.side, guestSide));
 
+  // Folk-standard gated reveal: on public links the numbers hide behind a
+  // "Buka Amplop" button; previews (owner/editor) show them straight away.
+  const [revealed, setRevealed] = useState(mode !== "public");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -124,6 +127,18 @@ export function SiennaGift({ data, guestSide }: Props) {
               <form>
                 {/* Details */}
                 <div className="wedding-gift-details wedding-gift__first-slide wedding-gift-slide">
+                  {!revealed && (
+                    <button
+                      type="button"
+                      className="wedding-gift-reveal-btn"
+                      onClick={() => setRevealed(true)}
+                      data-aos="zoom-in"
+                      data-aos-duration="1000"
+                    >
+                      Buka Amplop
+                    </button>
+                  )}
+                  {revealed && (
                   <div className="wedding-gift-slide">
                     <div className="wedding-gift-bank-wrap">
                       {cards.map((card) => {
@@ -165,6 +180,7 @@ export function SiennaGift({ data, guestSide }: Props) {
                       })}
                     </div>
                   </div>
+                  )}
                 </div>
               </form>
             </div>

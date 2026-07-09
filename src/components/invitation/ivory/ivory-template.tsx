@@ -57,8 +57,9 @@ export function IvoryTemplate({ data, mode, guestName, checkin }: InvitationTemp
       <IvoryStory data={data} />
       {/* Folk-style: personalized ?g= links hide the other family's accounts. */}
       <IvoryGift data={data} mode={mode} guestSide={checkin?.side} />
-      {/* Pre-fill the wish/RSVP name with the invitation's guest (?g= guest, else ?to=). */}
-      <IvoryWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
+      {/* Pre-fill the wish/RSVP name with the invitation's guest (?g= guest, else ?to=);
+          checkin keys the RSVP to them (dashboard status + headcount), folk-style. */}
+      <IvoryWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} checkin={checkin} />
       <IvoryNotes />
       <IvoryFootnote data={data} mode={mode} />
       <IvoryFooter />

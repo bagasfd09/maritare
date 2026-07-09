@@ -38,6 +38,9 @@ const PLUM_AOS_CSS = `
 @media (prefers-reduced-motion: reduce){
 .plum-inv.aos-on [data-aos]{opacity:1!important;transform:none!important;transition:none!important;}
 }
+/* Folk-standard gated gift reveal. */
+.plum-inv .wedding-gift-reveal-btn{border:none;outline:none;box-shadow:none;display:flex;align-items:center;justify-content:center;width:fit-content;padding:12px 32px;margin:24px auto;border-radius:999px;font-family:var(--body-text-family);font-size:var(--body-text-size);letter-spacing:0.02em;background-color:var(--button-background-primary);color:var(--button-text-primary);cursor:pointer;transition-duration:.25s;transition-property:background-color;}
+.plum-inv .wedding-gift-reveal-btn:hover{background-color:var(--button-background-secondary);color:var(--button-text-secondary);}
 `;
 
 type PlumEmbedProps = {

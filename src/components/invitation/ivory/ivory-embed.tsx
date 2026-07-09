@@ -39,6 +39,39 @@ const IVORY_AOS_CSS = `
 @media (prefers-reduced-motion: reduce){
 .ivory-inv.aos-on [data-aos]{opacity:1!important;transform:none!important;transition:none!important;}
 }
+/* Folk-standard gated gift reveal. The button sits inside a taller panel so the
+   closed state keeps the section's visual weight (as if a card were behind it). */
+.ivory-inv .wedding-gift-reveal-panel{display:flex;align-items:center;justify-content:center;min-height:220px;margin:24px 0;padding:24px;border:1px solid var(--background-tertiary);border-radius:40px;background:rgba(var(--background-primary-rgb),.5);}
+.ivory-inv .wedding-gift-reveal-btn{border:none;outline:none;box-shadow:none;display:flex;align-items:center;justify-content:center;width:fit-content;padding:12px 32px;border-radius:999px;font-family:var(--body-text-family);font-size:var(--body-text-size);letter-spacing:0.02em;background-color:var(--button-background-primary);color:var(--button-text-primary);cursor:pointer;transition-duration:.25s;transition-property:background-color;}
+.ivory-inv .wedding-gift-reveal-btn:hover{background-color:var(--button-background-secondary);color:var(--button-text-secondary);}
+/* Bootstrap's .form-control{width:100%} didn't survive the port — without it
+   inputs collapse to the browser's default ~20ch width. */
+.ivory-inv .wedding-wish-form .form-control{width:100%;}
+.ivory-inv .wedding-wish-form .form-group{margin-bottom:12px;}
+/* One card per wish (the theme's default is a single box around the whole list —
+   disabled via .no-border on .comment-inner-wrapping). Same surface as the old
+   wrap box, just per item. */
+.ivory-inv .comment-item{background:rgba(var(--background-primary-rgb),.5);border:1px solid var(--background-tertiary);border-radius:24px;padding:16px 20px;margin-bottom:12px;}
+/* Folk-style bank logo in place of the bank-name text (see bank-logos.ts). */
+.ivory-inv .wedding-gift-bank-wrap .bank-logo{display:block;height:32px;width:auto;max-width:120px;object-fit:contain;margin:0 auto 4px;}
+/* Folk gift-frame look: ONE framed box holding every account, scrolling
+   internally (max-height) so a long list doesn't feel cramped. The heavy
+   per-account box is stripped to a light row divided by a hairline. */
+.ivory-inv .ivory-gift-scroll{margin:24px 0;padding:0 24px;border:1px solid var(--background-tertiary);border-radius:40px;background:rgba(var(--background-primary-rgb),.5);max-height:340px;overflow-y:auto;}
+.ivory-inv .ivory-gift-scroll::-webkit-scrollbar{display:none;}
+.ivory-inv .ivory-gift-scroll{-ms-overflow-style:none;scrollbar-width:none;}
+.ivory-inv .ivory-gift-scroll .bank-item{background:transparent;border:none;border-radius:0;margin:0;padding:24px 0;}
+.ivory-inv .ivory-gift-scroll .bank-item+.bank-item{border-top:1px solid rgba(var(--background-tertiary-rgb),.35);}
+/* Copy buttons were static <a>/<div> ports — now real <button>s. Keep the icon +
+   label inline-centered and reset native button chrome so the look is unchanged. */
+.ivory-inv .bank-button-wrap,.ivory-inv .wedding-gift-address-wrap .btn-hadiah-copy{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;outline:none;}
+/* Cover + couple photos are clipped by bitmap masks (mask-cover.png /
+   mask-couple.png) that 403'd on the Katsudoto CDN and were never copied — a
+   broken mask-image clips the element to nothing in Chrome/Safari, so both
+   photos rendered blank. Drop the missing masks and clip to an ellipse in CSS
+   instead (both shapes are ovals), restoring the photos. */
+.ivory-inv section.cover .inner .body .cover-frame{-webkit-mask-image:none;mask-image:none;border-radius:50%;overflow:hidden;}
+.ivory-inv .couple-picture-wrap{-webkit-mask-image:none;mask-image:none;border-radius:50%;overflow:hidden;}
 `;
 
 type IvoryEmbedProps = {

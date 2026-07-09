@@ -38,6 +38,11 @@ const SIENNA_AOS_CSS = `
 @media (prefers-reduced-motion: reduce){
 .sienna-inv.aos-on [data-aos]{opacity:1!important;transform:none!important;transition:none!important;}
 }
+/* Folk-standard gated gift reveal. Fallback colors because the ported Syakira
+   CSS never defines the --button-* palette vars (its preset stylesheet wasn't
+   part of the main theme file). */
+.sienna-inv .wedding-gift-reveal-btn{border:none;outline:none;box-shadow:none;display:flex;align-items:center;justify-content:center;width:fit-content;padding:12px 32px;margin:24px auto;border-radius:999px;font-family:var(--body-text-family);font-size:var(--body-text-size);letter-spacing:0.02em;background-color:var(--button-background-primary,#d6a191);color:var(--button-text-primary,#fff8f0);cursor:pointer;transition-duration:.25s;transition-property:background-color;}
+.sienna-inv .wedding-gift-reveal-btn:hover{background-color:var(--button-background-secondary,#cb3a31);color:var(--button-text-secondary,#fff8f0);}
 `;
 
 type SiennaEmbedProps = {

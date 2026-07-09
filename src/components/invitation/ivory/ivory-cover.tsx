@@ -28,6 +28,9 @@ export function IvoryCover({ data }: Props) {
   const coverPhoto = data.photos.find((p) => p.isCover) ?? data.photos[0];
   const groomFirst = firstName(data.sections.pasangan.groom.fullName, data.groomName);
   const brideFirst = firstName(data.sections.pasangan.bride.fullName, data.brideName);
+  // Editor toggle "Tampilkan nama & tanggal di sampul" — off hides the cover's
+  // text head (for cover photos with the names baked in), like scarlet-cover.
+  const showHeroText = data.sections.pasangan.showHeroText;
 
   return (
     <section className="cover" data-section-order="cover">
@@ -51,14 +54,16 @@ export function IvoryCover({ data }: Props) {
       </div>
 
       <div className="inner">
-        <div className="head">
-          <p className="top-text" data-aos="fade-down" data-aos-duration="2500" data-aos-delay="1800">
-            We are getting married!
-          </p>
-          <h1 className="prime-title" data-aos="zoom-in" data-aos-duration="2500" data-aos-delay="1800">
-            {brideFirst} &amp; {groomFirst}
-          </h1>
-        </div>
+        {showHeroText && (
+          <div className="head">
+            <p className="top-text" data-aos="fade-down" data-aos-duration="2500" data-aos-delay="1800">
+              We are getting married!
+            </p>
+            <h1 className="prime-title" data-aos="zoom-in" data-aos-duration="2500" data-aos-delay="1800">
+              {brideFirst} &amp; {groomFirst}
+            </h1>
+          </div>
+        )}
 
         <div className="body highlight" data-aos="zoom-in-up" data-aos-duration="2000" data-aos-delay="500">
           <div className="ornaments-wrapper">
