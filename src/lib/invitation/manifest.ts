@@ -150,17 +150,20 @@ export const IVORY_MANIFEST: TemplateManifest = {
 
 // Sienna (Katsudoto "Syakira" port) — like Ivory it carries a "Cerita"
 // (love-story) chapter, but its footnote is TEXT-ONLY, so it has NO closing
-// photo slot. Its ornate cover is built-in (no Sampul/hero group).
+// photo slot. Its "Sampul" group uploads the gate cover photo (isCover, shown
+// on the opening gate + cover); the folk-only hero-asset and closing blocks are
+// hidden in the editor (HeroForm heroAsset/closingAsset flags).
 export const SIENNA_MANIFEST: TemplateManifest = {
   formGroups: [
-    { id: "pasangan", label: "Mempelai", order: 1 },
-    { id: "galeri", label: "Galeri", order: 2 },
-    { id: "cerita", label: "Cerita", order: 3 },
-    { id: "acara", label: "Acara", order: 4 },
-    { id: "amplop", label: "Hadiah", order: 5 },
-    { id: "musik", label: "Musik", order: 6 },
-    { id: "rsvp", label: "RSVP", order: 7 },
-    { id: "bagikan", label: "Bagikan", order: 8 },
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "galeri", label: "Galeri", order: 3 },
+    { id: "cerita", label: "Cerita", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
   ],
   photoSlots: [
     { id: "cover", label: "Foto sampul", kind: "cover", where: "Cover oval frame" },
@@ -171,18 +174,22 @@ export const SIENNA_MANIFEST: TemplateManifest = {
 };
 
 // Plum (Katsudoto "Kinanti" port) — like Sienna it carries a "Cerita"
-// (love-story) chapter and a TEXT-ONLY footnote (no closing photo). Its ornate
-// cover is built-in (no Sampul/hero group). Story renders before the gallery.
+// (love-story) chapter and a TEXT-ONLY footnote (no closing photo). Its "Sampul"
+// group uploads the gate/cover photo (isCover, shown on the opening gate's oval
+// portrait + cover); the folk-only hero-asset and closing blocks are hidden in
+// the editor (HeroForm heroAsset/closingAsset flags). Story renders before the
+// gallery.
 export const PLUM_MANIFEST: TemplateManifest = {
   formGroups: [
-    { id: "pasangan", label: "Mempelai", order: 1 },
-    { id: "cerita", label: "Cerita", order: 2 },
-    { id: "galeri", label: "Galeri", order: 3 },
-    { id: "acara", label: "Acara", order: 4 },
-    { id: "amplop", label: "Hadiah", order: 5 },
-    { id: "musik", label: "Musik", order: 6 },
-    { id: "rsvp", label: "RSVP", order: 7 },
-    { id: "bagikan", label: "Bagikan", order: 8 },
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "cerita", label: "Cerita", order: 3 },
+    { id: "galeri", label: "Galeri", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
   ],
   photoSlots: [
     { id: "cover", label: "Foto sampul", kind: "cover", where: "Cover frame" },

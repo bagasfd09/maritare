@@ -516,6 +516,9 @@ type HeroFormProps = {
   /** Show the folk-only full-bleed "Hero (Atas)" asset block. Templates that
    *  only use the cover + closing photos (ivory) pass false. Default true. */
   heroAsset?: boolean;
+  /** Show the "Foto / Video Penutup" block. Templates whose closing section is
+   *  text-only (sienna, plum) pass false. Default true. */
+  closingAsset?: boolean;
 };
 
 // Persist only the stored hero fields — never the server-resolved *Url fields.
@@ -529,7 +532,14 @@ function toHeroPayload(data: HeroData): Record<string, unknown> {
   };
 }
 
-export function HeroForm({ value, onChange, photos, onStatusChange, heroAsset = true }: HeroFormProps) {
+export function HeroForm({
+  value,
+  onChange,
+  photos,
+  onStatusChange,
+  heroAsset = true,
+  closingAsset = true,
+}: HeroFormProps) {
   const buildPayload = useCallback(
     () => ({ data: toHeroPayload(value.data), done: value.done }),
     [value],
@@ -622,7 +632,9 @@ export function HeroForm({ value, onChange, photos, onStatusChange, heroAsset = 
       </div>
       )}
 
-      {/* Closing asset (photo OR video) — a SEPARATE upload, shown at the very bottom. */}
+      {/* Closing asset (photo OR video) — a SEPARATE upload, shown at the very
+          bottom. Hidden for templates with a text-only closing (closingAsset=false). */}
+      {closingAsset && (
       <div className="mt-8 pt-7 border-t border-[rgba(245,239,230,0.1)]">
         <FormHeading>Foto / Video Penutup</FormHeading>
         <p className="text-[13px] text-[rgba(245,239,230,0.6)] leading-[1.6] mb-6">
@@ -667,6 +679,7 @@ export function HeroForm({ value, onChange, photos, onStatusChange, heroAsset = 
           }}
         />
       </div>
+      )}
 
       <DoneToggle done={value.done} onChange={setDone} />
     </div>

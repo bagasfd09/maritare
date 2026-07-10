@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { resolveBankLogo } from "@/lib/invitation/bank-logos";
 import type { PartySide } from "@/lib/invitation/sections";
 import type { InvitationView } from "@/server/queries/invitation";
 
@@ -36,14 +37,15 @@ function visibleForSide(accountSide: PartySide, guestSide?: string): boolean {
   return accountSide === "both" || accountSide === guestSide;
 }
 
-export function PlumGift({ data, mode, guestSide }: Props) {
-  const { accounts: allAccounts, ewallets: allEwallets } = data.sections.amplop;
+export function PlumGift({ data, guestSide }: Props) {
+  const { accounts: allAccounts, ewallets: allEwallets, giftAddress } = data.sections.amplop;
   const accounts = allAccounts.filter((a) => visibleForSide(a.side, guestSide));
   const ewallets = allEwallets.filter((w) => visibleForSide(w.side, guestSide));
+  const hasAddress = !!giftAddress?.trim();
 
-  // Folk-standard gated reveal: on public links the numbers hide behind a
-  // "Buka Amplop" button; previews (owner/editor) show them straight away.
-  const [revealed, setRevealed] = useState(mode !== "public");
+  // Gated reveal in EVERY mode (folk gates only public links): the numbers
+  // always hide behind the "Buka Amplop" button, previews included.
+  const [revealed, setRevealed] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -53,14 +55,12 @@ export function PlumGift({ data, mode, guestSide }: Props) {
     };
   }, []);
 
-  if (accounts.length === 0 && ewallets.length === 0) {
-    return null;
-  }
-
   const handleCopy = (key: string, value: string) => {
-    // Strip spaces/dashes so the pasted number is bank-app ready.
+    // Numbers strip spaces/dashes so the paste is bank-app ready; the address
+    // (key "address") is copied verbatim.
+    const text = key === "address" ? value : value.replace(/[\s-]/g, "");
     void navigator.clipboard
-      .writeText(value.replace(/[\s-]/g, ""))
+      .writeText(text)
       .then(() => {
         setCopiedKey(key);
         if (resetTimer.current) clearTimeout(resetTimer.current);
@@ -95,6 +95,10 @@ export function PlumGift({ data, mode, guestSide }: Props) {
     })),
   ];
 
+  if (cards.length === 0 && !hasAddress) {
+    return null;
+  }
+
   return (
     <section className="wedding-gift-wrap ">
       <div className="wedding-gift-inner">
@@ -116,25 +120,34 @@ export function PlumGift({ data, mode, guestSide }: Props) {
                   {/* Details */}
                   <div className="wedding-gift-details wedding-gift__first-slide wedding-gift-slide">
                     {!revealed && (
-                      <button
-                        type="button"
-                        className="wedding-gift-reveal-btn"
-                        onClick={() => setRevealed(true)}
-                        data-aos="zoom-in"
-                        data-aos-duration="1000"
-                      >
-                        Buka Amplop
-                      </button>
+                      <div className="wedding-gift-reveal-panel" data-aos="zoom-in" data-aos-duration="1000">
+                        <button
+                          type="button"
+                          className="wedding-gift-reveal-btn"
+                          onClick={() => setRevealed(true)}
+                        >
+                          Buka Amplop
+                        </button>
+                      </div>
                     )}
-                    {revealed && (
-                    <div className="wedding-gift-slide">
+                    {revealed && cards.length > 0 && (
+                    // Folk gift-frame pattern: one framed box that scrolls
+                    // internally, each account a light row (hairline-divided).
+                    <div className="plum-gift-scroll">
                       <div className="wedding-gift-bank-wrap">
                         {cards.map((card) => {
                           const copied = copiedKey === card.key;
+                          // The bank's/provider's own logo replaces the name
+                          // text when we ship one; unknown → text fallback.
+                          const logo = resolveBankLogo(card.bank);
                           return (
                             <div className="bank-item show" key={card.key}>
                               <div className="bank-detail">
-                                <h3 className="bank-name">{card.bank}</h3>
+                                {logo ? (
+                                  <img className="bank-logo" src={logo} alt={card.bank} loading="lazy" decoding="async" />
+                                ) : (
+                                  <h3 className="bank-name">{card.bank}</h3>
+                                )}
                                 <p className="bank-account-number-label">
                                   {card.numberLabel}
                                   <span className="bank-account-number">{card.number}</span>
@@ -166,6 +179,23 @@ export function PlumGift({ data, mode, guestSide }: Props) {
                         })}
                       </div>
                     </div>
+                    )}
+
+                    {/* Folk-style: the shipping address lives right below the
+                        account rows, behind the same reveal. */}
+                    {revealed && hasAddress && (
+                      <div className="plum-gift-address">
+                        <p className="plum-gift-address-label">Kirim Kado</p>
+                        <p className="plum-gift-address-info">{giftAddress}</p>
+                        <button
+                          type="button"
+                          className="plum-copy-address"
+                          onClick={() => handleCopy("address", giftAddress ?? "")}
+                          aria-label={copiedKey === "address" ? "Tersalin" : "Salin alamat"}
+                        >
+                          {copiedKey === "address" ? "Tersalin" : "Copy Address"}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </form>

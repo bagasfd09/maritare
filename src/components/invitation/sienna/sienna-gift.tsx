@@ -1,19 +1,23 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- decorative ornaments + presigned R2 srcs use raw <img> by design (next/image would re-proxy/break signed urls) */
 
-// Sienna wedding gift — ported VERBATIM from <section.wedding-gift-wrap.no-form>
-// in the Katsudoto "Syakira" (Filan & Agung) reference, so the scoped CSS in
-// sienna-theme.ts (selectors under `.sienna-inv`) styles it byte-identically.
-// The single static .bank-item is replaced by one card per
-// data.sections.amplop.accounts[] (and ewallets[]), filtered by the viewing
-// guest's family side (the CLAUDE.md privacy rule — visibleForSide is identical
-// to scarlet-/ivory-gift). The selectize bank <select> scaffolding is dropped.
-// The data-copy <i class="ph ph-copy-simple"> becomes a real clipboard button
-// with an inline SVG (the Phosphor icon font isn't bundled), like scarlet-gift.
-// Returns null when there are no visible accounts/ewallets.
+// Sienna wedding gift — the Syakira <section.wedding-gift-wrap.no-form> markup
+// with the ivory-parity behavior swapped in:
+//   - "Buka Amplop" reveal gated in EVERY mode (previews included), the button
+//     inside a taller panel so the closed state keeps visual weight,
+//   - bank accounts + ewallets as ONE card list, the bank's/provider's own logo
+//     replacing the name text when we ship one (see @/lib/invitation/bank-logos),
+//   - all accounts inside ONE internally-scrolling framed box (folk gift-frame
+//     pattern) — light rows divided by a hairline, not per-account boxes,
+//   - working copy buttons (numbers pasted bank-app ready, "Tersalin" flip),
+//   - the shipping address (giftAddress) folded in below the rows ("Kirim
+//     Kado" card + Copy Address), behind the same reveal.
+// visibleForSide (the CLAUDE.md privacy rule) is identical to scarlet-/ivory-gift.
+// Returns null when there are no visible cards AND no giftAddress.
 
 import { useEffect, useRef, useState } from "react";
 
+import { resolveBankLogo } from "@/lib/invitation/bank-logos";
 import type { PartySide } from "@/lib/invitation/sections";
 import type { InvitationView } from "@/server/queries/invitation";
 
@@ -33,14 +37,22 @@ function visibleForSide(accountSide: PartySide, guestSide?: string): boolean {
   return accountSide === "both" || accountSide === guestSide;
 }
 
-export function SiennaGift({ data, mode, guestSide }: Props) {
-  const { accounts: allAccounts, ewallets: allEwallets } = data.sections.amplop;
-  const accounts = allAccounts.filter((a) => visibleForSide(a.side, guestSide));
-  const ewallets = allEwallets.filter((w) => visibleForSide(w.side, guestSide));
+export function SiennaGift({ data, guestSide }: Props) {
+  const { accounts, ewallets, giftAddress } = data.sections.amplop;
+  // Banks and e-wallets share one card list — label is the bank / provider name.
+  const cards = [
+    ...accounts
+      .filter((a) => visibleForSide(a.side, guestSide))
+      .map((a, i) => ({ key: `bank-${i}`, label: a.bank, number: a.number, holder: a.holder })),
+    ...ewallets
+      .filter((w) => visibleForSide(w.side, guestSide))
+      .map((w, i) => ({ key: `ewallet-${i}`, label: w.provider, number: w.number, holder: w.holder })),
+  ];
+  const hasAddress = !!giftAddress?.trim();
 
-  // Folk-standard gated reveal: on public links the numbers hide behind a
-  // "Buka Amplop" button; previews (owner/editor) show them straight away.
-  const [revealed, setRevealed] = useState(mode !== "public");
+  // Gated reveal in EVERY mode (folk gates only public links): the numbers
+  // always hide behind the "Buka Amplop" button, previews included.
+  const [revealed, setRevealed] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,14 +62,16 @@ export function SiennaGift({ data, mode, guestSide }: Props) {
     };
   }, []);
 
-  if (accounts.length === 0 && ewallets.length === 0) {
+  if (cards.length === 0 && !hasAddress) {
     return null;
   }
 
   const handleCopy = (key: string, value: string) => {
-    // Strip spaces/dashes so the pasted number is bank-app ready.
+    // Numbers strip spaces/dashes so the paste is bank-app ready; the address
+    // (key "address") is copied verbatim.
+    const text = key === "address" ? value : value.replace(/[\s-]/g, "");
     void navigator.clipboard
-      .writeText(value.replace(/[\s-]/g, ""))
+      .writeText(text)
       .then(() => {
         setCopiedKey(key);
         if (resetTimer.current) clearTimeout(resetTimer.current);
@@ -67,12 +81,6 @@ export function SiennaGift({ data, mode, guestSide }: Props) {
         // Clipboard unavailable (http / old browser) — quietly do nothing.
       });
   };
-
-  type GiftCard = { key: string; bank: string; number: string; holder: string };
-  const cards: GiftCard[] = [
-    ...accounts.map((a, i) => ({ key: `bank-${i}`, bank: a.bank, number: a.number, holder: a.holder })),
-    ...ewallets.map((w, i) => ({ key: `ewallet-${i}`, bank: w.provider, number: w.number, holder: w.holder })),
-  ];
 
   return (
     <section className="wedding-gift-wrap  no-form ">
@@ -128,58 +136,85 @@ export function SiennaGift({ data, mode, guestSide }: Props) {
                 {/* Details */}
                 <div className="wedding-gift-details wedding-gift__first-slide wedding-gift-slide">
                   {!revealed && (
-                    <button
-                      type="button"
-                      className="wedding-gift-reveal-btn"
-                      onClick={() => setRevealed(true)}
-                      data-aos="zoom-in"
-                      data-aos-duration="1000"
-                    >
-                      Buka Amplop
-                    </button>
+                    <div className="wedding-gift-reveal-panel" data-aos="zoom-in" data-aos-duration="1000">
+                      <button
+                        type="button"
+                        className="wedding-gift-reveal-btn"
+                        onClick={() => setRevealed(true)}
+                      >
+                        Buka Amplop
+                      </button>
+                    </div>
                   )}
-                  {revealed && (
-                  <div className="wedding-gift-slide">
-                    <div className="wedding-gift-bank-wrap">
-                      {cards.map((card) => {
-                        const copied = copiedKey === card.key;
-                        return (
-                          <div className="bank-item show" key={card.key}>
-                            <div className="bank-detail">
-                              <h3 className="bank-name">{card.bank}</h3>
-                              <div>
-                                <small className="bank-account-number-label">Account Number</small>
-                                <h4 className="bank-account-number" data-copy={card.number}>
-                                  {card.number}{" "}
-                                  <button
-                                    type="button"
-                                    className="bank-copy"
-                                    onClick={() => handleCopy(card.key, card.number)}
-                                    aria-label={copied ? "Tersalin" : "Salin"}
-                                  >
-                                    {copied ? (
-                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M20 6 9 17l-5-5" />
-                                      </svg>
-                                    ) : (
-                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" />
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                      </svg>
-                                    )}
-                                  </button>
-                                </h4>
-                              </div>
-                              <div>
-                                <small className="bank-account-name-label">Account Name</small>
-                                <h4 className="bank-account-name">{card.holder}</h4>
+                  {revealed && cards.length > 0 && (
+                    // Folk gift-frame pattern: one framed box that scrolls
+                    // internally, each account a light row instead of its own
+                    // heavy card (so many accounts don't feel cramped).
+                    <div className="sienna-gift-scroll">
+                      <div className="wedding-gift-bank-wrap">
+                        {cards.map((card) => {
+                          const copied = copiedKey === card.key;
+                          // The bank's/provider's own logo replaces the name text
+                          // when we ship one; unknown ones fall back to text.
+                          const logo = resolveBankLogo(card.label);
+                          return (
+                            <div className="bank-item show" key={card.key}>
+                              <div className="bank-detail">
+                                {logo ? (
+                                  <img className="bank-logo" src={logo} alt={card.label} loading="lazy" decoding="async" />
+                                ) : (
+                                  <h3 className="bank-name">{card.label}</h3>
+                                )}
+                                <div>
+                                  <small className="bank-account-number-label">Account Number</small>
+                                  <h4 className="bank-account-number" data-copy={card.number}>
+                                    {card.number}{" "}
+                                    <button
+                                      type="button"
+                                      className="bank-copy"
+                                      onClick={() => handleCopy(card.key, card.number)}
+                                      aria-label={copied ? "Tersalin" : "Salin"}
+                                    >
+                                      {copied ? (
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M20 6 9 17l-5-5" />
+                                        </svg>
+                                      ) : (
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                          <rect x="9" y="9" width="13" height="13" rx="2" />
+                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  </h4>
+                                </div>
+                                <div>
+                                  <small className="bank-account-name-label">Account Name</small>
+                                  <h4 className="bank-account-name">{card.holder}</h4>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Folk-style: the shipping address lives right below the
+                      account rows, behind the same reveal. */}
+                  {revealed && hasAddress && (
+                    <div className="sienna-gift-address">
+                      <p className="wedding-gift-address-label">Kirim Kado</p>
+                      <p className="inner-address-info">{giftAddress}</p>
+                      <button
+                        type="button"
+                        className="btn-hadiah-copy sienna-copy-address"
+                        onClick={() => handleCopy("address", giftAddress ?? "")}
+                        aria-label={copiedKey === "address" ? "Tersalin" : "Salin alamat"}
+                      >
+                        {copiedKey === "address" ? "Tersalin" : "Copy Address"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </form>

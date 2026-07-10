@@ -298,3 +298,16 @@ or generalize it) and run it: `node --env-file=.env.local scripts/seed-<slug>.ts
   clipboard handler (scarlet-gift has it).
 - The catalog preview uses `demoInvitation(slug)` (neutral placeholder photos), so
   catalog renders show silhouette dummies — real weddings use uploaded photos.
+
+---
+
+## After the port: standardize
+
+A fresh port is FAITHFUL but not yet at the maritare behavior standard (opening
+gate, folk-style gift/wishes, story slider, QR check-in, editor Sampul wiring,
+recurring ported-CSS bug fixes). Run the follow-up skill
+`/standardize-invitation-template` next — it carries the full checklist built on
+the ivory + sienna reworks. NOTE two of its findings correct caveats above: a
+403'd/missing **mask-image** is NOT a harmless no-op (it blanks the element in
+Chrome/Safari), and ported themes may reference palette CSS vars that are never
+defined (rules silently no-op — new CSS needs concrete hex fallbacks).

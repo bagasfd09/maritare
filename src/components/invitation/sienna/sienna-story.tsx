@@ -1,22 +1,22 @@
+"use client";
 /* eslint-disable @next/next/no-img-element -- decorative ornaments + presigned R2 srcs use raw <img> by design */
-// Sienna "Meant to Be" love-story — verbatim Syakira port of
-// <section class="love-story" data-section-order="love_story">. The reference is a
-// column of `.story-item`s, each a lightgallery-framed photo + ornament beside a
-// title + caption. Lightgallery is not loaded here, so the framed photo renders
-// STATICALLY (the <a>/lg-uid hooks dropped) and the hardcoded items become a
-// .map over data.sections.cerita — mirroring ivory-story's resolver, items-vs-
-// legacy-body fallback, and self-hide. Class names match the scoped CSS under
-// `.sienna-inv` so the rounded photo frame + orn cluster render byte-identical.
+// Sienna "Meant to Be" love-story — the Syakira .story-item design presented as
+// a HORIZONTAL SLIDER (folk/ivory pattern) instead of one long downward column:
+// each cerita chapter is one swipeable slide (rounded-arch framed photo + orn +
+// title + caption), with arrows + dots below. The scroll-snap track / goTo /
+// onScroll mechanism mirrors folk-story.
 //
-// Photos are gallery references (photoId) resolved against data.photos and bound
-// through InvImage; the section heading binds to cerita.title (folk-story's
-// editable-heading pattern) with the reference's "Meant to Be" as the fallback.
-// Every other heading/label is the reference's design copy. data-aos delays use
-// the reference's first-item values for every item (the cross-item escalation
-// does not generalize past the original three items).
+// 1 slide = 1 foto: only chapters WITH a photo become slides; when NO chapter
+// has a photo (legacy free-text story, all-text chapters) the text chapters
+// show instead so nothing is lost.
+//
+// NOTE: no data-aos inside the slides — a slide scrolled off to the right isn't
+// vertically-intersecting, so the AOS observer would leave it opacity-0 (blank)
+// after swiping to it. Only the section heading keeps its reveal.
 
-import { Fragment } from "react";
+import { Fragment, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
 import type { InvitationView } from "@/server/queries/invitation";
 
 import { parseStoryChapters } from "../folk/folk-story-parse";
@@ -29,7 +29,14 @@ type Props = {
 
 type Slide = { photoUrl?: string; title?: string; body: string };
 
+// Sienna accents (the ported Syakira CSS never defines palette vars).
+const TERRACOTTA = "#d6a191";
+const BROWN = "#8a6a5c";
+
 export function SiennaStory({ data }: Props) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
   const cerita = data.sections.cerita;
   const byId = new Map(data.photos.map((p) => [p.id, p]));
 
@@ -41,13 +48,32 @@ export function SiennaStory({ data }: Props) {
         body: it.body ?? "",
       }))
     : parseStoryChapters(cerita.body ?? "").map((c) => ({ title: c.title, body: c.body }));
-  const slides = raw.filter((s) => s.photoUrl || s.title?.trim() || s.body.trim());
+  // One slide per PHOTO; text-only chapters render only when no photo exists at all.
+  const withPhoto = raw.filter((s) => s.photoUrl);
+  const slides =
+    withPhoto.length > 0 ? withPhoto : raw.filter((s) => s.title?.trim() || s.body.trim());
+
+  function goTo(i: number) {
+    const track = trackRef.current;
+    if (!track) return;
+    const next = Math.max(0, Math.min(slides.length - 1, i));
+    track.scrollTo({ left: next * track.clientWidth, behavior: "smooth" });
+    setActive(next);
+  }
+
+  function onScroll() {
+    const track = trackRef.current;
+    if (!track) return;
+    const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    if (i !== active) setActive(i);
+  }
 
   if (slides.length === 0) {
     return null;
   }
 
   const heading = cerita.title?.trim() || "Meant to Be";
+  const single = slides.length === 1;
   const coupleLabel = `${data.groomName} & ${data.brideName}`;
 
   return (
@@ -73,57 +99,119 @@ export function SiennaStory({ data }: Props) {
         </div>
 
         <div className="story-body">
-          {/* Preview */}
-          <div className="story-wrap">
+          <div
+            ref={trackRef}
+            onScroll={onScroll}
+            className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {slides.map((slide, i) => (
-              <div className="story-item" key={i}>
-                <div className="story-preview">
+              <div
+                key={i}
+                // w/min/max all 100%: without the max, a flex item can grow to
+                // its content and one photo would span two snap points.
+                className="w-full min-w-full max-w-full shrink-0 snap-center overflow-hidden"
+              >
+                <div className="story-item">
                   {slide.photoUrl && (
-                    <div
-                      className="story-picture"
-                      data-aos="fade-up"
-                      data-aos-duration="1000"
-                      data-aos-delay="100"
-                      style={{ borderTopLeftRadius: "200px", borderTopRightRadius: "200px" }}
-                    >
-                      <InvImage src={slide.photoUrl} alt={slide.title?.trim() || coupleLabel} />
-                    </div>
-                  )}
+                    <div className="story-preview">
+                      <div
+                        className="story-picture"
+                        style={{ borderTopLeftRadius: "200px", borderTopRightRadius: "200px" }}
+                      >
+                        <InvImage src={slide.photoUrl} alt={slide.title?.trim() || coupleLabel} />
+                      </div>
 
-                  <div className="ornaments-wrapper">
-                    <div className="orn-3">
-                      <div className="image-wrap" data-aos="fade-right" data-aos-duration="1200" data-aos-delay="600">
-                        <img loading="lazy" decoding="async" src="/invitation/sienna/orn-footer-3-min.png" alt="Orn 1" />
+                      <div className="ornaments-wrapper">
+                        <div className="orn-3">
+                          <div className="image-wrap">
+                            <img loading="lazy" decoding="async" src="/invitation/sienna/orn-footer-3-min.png" alt="Orn 1" />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                <div className="story-content">
-                  {slide.title?.trim() && (
-                    <h3 className="story-label" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="200">
-                      {slide.title}
-                    </h3>
-                  )}
-                  {slide.body.trim() && (
-                    <p className="story-caption" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="300">
-                      {slide.body
-                        .trim()
-                        .split("\n")
-                        .map((line, j, lines) => (
-                          <Fragment key={j}>
-                            {line}
-                            {j < lines.length - 1 && <br />}
-                          </Fragment>
-                        ))}
-                    </p>
-                  )}
+                  <div className="story-content">
+                    {slide.title?.trim() && <h3 className="story-label">{slide.title}</h3>}
+                    {slide.body.trim() && (
+                      <p className="story-caption">
+                        {slide.body
+                          .trim()
+                          .split("\n")
+                          .map((line, j, lines) => (
+                            <Fragment key={j}>
+                              {line}
+                              {j < lines.length - 1 && <br />}
+                            </Fragment>
+                          ))}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Arrows + dots (sienna terracotta) — hidden for a single chapter. */}
+          {!single && (
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <StoryArrow dir="prev" disabled={active === 0} onClick={() => goTo(active - 1)} />
+              <div className="flex items-center gap-2">
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Ke babak ${i + 1}`}
+                    aria-current={i === active}
+                    onClick={() => goTo(i)}
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      i === active ? "w-5" : "w-2 opacity-30",
+                    )}
+                    style={{ backgroundColor: TERRACOTTA }}
+                  />
+                ))}
+              </div>
+              <StoryArrow
+                dir="next"
+                disabled={active === slides.length - 1}
+                onClick={() => goTo(active + 1)}
+              />
+            </div>
+          )}
         </div>
       </div>
     </section>
+  );
+}
+
+function StoryArrow({
+  dir,
+  disabled,
+  onClick,
+}: {
+  dir: "prev" | "next";
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === "prev" ? "Babak sebelumnya" : "Babak selanjutnya"}
+      className="flex h-9 w-9 items-center justify-center rounded-full border transition disabled:opacity-30"
+      style={{ borderColor: `${TERRACOTTA}99`, color: BROWN }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+        <path
+          d={dir === "prev" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   );
 }

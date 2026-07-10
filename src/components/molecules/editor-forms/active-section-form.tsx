@@ -46,6 +46,9 @@ export function ActiveSectionForm({
           onChange={(v) => setSections((s) => ({ ...s, hero: v }))}
           onStatusChange={onStatusChange}
           heroAsset={templateSlug === "folk"}
+          // Only templates whose closing section renders the isClosing photo
+          // (folk footnote, ivory footnote) get the Penutup upload block.
+          closingAsset={templateSlug === "folk" || templateSlug === "ivory"}
         />
       );
     case "pasangan":

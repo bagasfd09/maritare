@@ -29,6 +29,9 @@ export function PlumCover({ data }: Props) {
   const coverPhoto = data.photos.find((p) => p.isCover) ?? data.photos[0];
   const groomFirst = firstName(data.sections.pasangan.groom.fullName, data.groomName);
   const brideFirst = firstName(data.sections.pasangan.bride.fullName, data.brideName);
+  // Editor toggle "Tampilkan nama & tanggal di sampul" — off hides the cover's
+  // text head (for cover photos with the names baked in), like ivory-cover.
+  const showHeroText = data.sections.pasangan.showHeroText;
 
   return (
     <section className="cover-wrap" data-section-order="cover">
@@ -57,24 +60,26 @@ export function PlumCover({ data }: Props) {
 
       <div className="cover-inner covers desktop">
         <div className="cover-illustration show-logo">
-          <div className="cover-illustration-head">
-            <p
-              className="top-text"
-              data-aos="fade-down"
-              data-aos-duration="1000"
-            >
-              The Wedding of
-            </p>
+          {showHeroText && (
+            <div className="cover-illustration-head">
+              <p
+                className="top-text"
+                data-aos="fade-down"
+                data-aos-duration="1000"
+              >
+                The Wedding of
+              </p>
 
-            <h1
-              className="prime-title"
-              data-aos="zoom-in"
-              data-aos-duration="1000"
-              data-aos-delay="200"
-            >
-              {brideFirst} &amp; {groomFirst}
-            </h1>
-          </div>
+              <h1
+                className="prime-title"
+                data-aos="zoom-in"
+                data-aos-duration="1000"
+                data-aos-delay="200"
+              >
+                {brideFirst} &amp; {groomFirst}
+              </h1>
+            </div>
+          )}
           <div className="cover-illustration-body">
             <div className="cover-details">
               <div

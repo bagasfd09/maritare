@@ -28,20 +28,26 @@ export function SiennaCover({ data }: Props) {
   const coverPhoto = data.photos.find((p) => p.isCover) ?? data.photos[0];
   const groomFirst = firstName(data.sections.pasangan.groom.fullName, data.groomName);
   const brideFirst = firstName(data.sections.pasangan.bride.fullName, data.brideName);
+  // Editor toggle "Tampilkan nama & tanggal di sampul" — off hides the cover's
+  // text head + name foot (for cover photos with the names baked in), like
+  // ivory-/scarlet-cover.
+  const showHeroText = data.sections.pasangan.showHeroText;
 
   return (
     <section className="cover" data-section-order="cover">
       <div className="inner">
-        <div className="head">
-          <p
-            className="top-text"
-            data-aos="fade-down"
-            data-aos-duration="1200"
-            data-aos-delay="150"
-          >
-            The wedding Of
-          </p>
-        </div>
+        {showHeroText && (
+          <div className="head">
+            <p
+              className="top-text"
+              data-aos="fade-down"
+              data-aos-duration="1200"
+              data-aos-delay="150"
+            >
+              The wedding Of
+            </p>
+          </div>
+        )}
 
         <div
           className="body highlight"
@@ -178,16 +184,18 @@ export function SiennaCover({ data }: Props) {
           </div>
         </div>
 
-        <div className="foot">
-          <h1
-            className="prime-title"
-            data-aos="fade-up"
-            data-aos-duration="1200"
-            data-aos-delay="0"
-          >
-            {brideFirst} &amp; {groomFirst}
-          </h1>
-        </div>
+        {showHeroText && (
+          <div className="foot">
+            <h1
+              className="prime-title"
+              data-aos="fade-up"
+              data-aos-duration="1200"
+              data-aos-delay="0"
+            >
+              {brideFirst} &amp; {groomFirst}
+            </h1>
+          </div>
+        )}
       </div>
     </section>
   );
