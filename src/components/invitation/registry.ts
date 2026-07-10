@@ -8,12 +8,18 @@
 import type { ComponentType } from "react";
 
 import { FolkTemplate } from "@/components/invitation/folk/folk-template";
+import { IvoryTemplate } from "@/components/invitation/ivory/ivory-template";
+import { PlumTemplate } from "@/components/invitation/plum/plum-template";
 import { ScarletTemplate } from "@/components/invitation/scarlet/scarlet-template";
+import { SiennaTemplate } from "@/components/invitation/sienna/sienna-template";
 import type { InvitationTemplateProps } from "@/components/invitation/types";
 
 const REGISTRY: Record<string, ComponentType<InvitationTemplateProps>> = {
   folk: FolkTemplate,
+  ivory: IvoryTemplate,
   scarlet: ScarletTemplate,
+  sienna: SiennaTemplate,
+  plum: PlumTemplate,
 };
 
 export function getInvitationTemplate(

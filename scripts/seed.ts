@@ -26,7 +26,7 @@ import {
   orders,
 } from "../src/lib/db/schema.ts";
 import type { TemplateManifest } from "../src/lib/invitation/manifest.ts";
-import { FOLK_MANIFEST, SCARLET_MANIFEST } from "../src/lib/invitation/manifest.ts";
+import { FOLK_MANIFEST, IVORY_MANIFEST, SCARLET_MANIFEST, SIENNA_MANIFEST, PLUM_MANIFEST } from "../src/lib/invitation/manifest.ts";
 import { hashPassword } from "../src/lib/password.ts";
 
 // Enum literal unions, kept in sync with src/lib/db/schema.ts pgEnum defs.
@@ -119,10 +119,16 @@ const TEMPLATE_SEED: {
   { slug: "folk", name: "Folk Garden", style: "Illustrated Folk", category: "Rustic", palette: ["#9E2B62", "#52602F", "#E8A33D"], status: "published", featured: true, isNew: true, manifest: FOLK_MANIFEST },
   // Renderable editorial serif template (src/components/invitation/scarlet/).
   { slug: "scarlet", name: "Scarlet Editorial", style: "Editorial Serif", category: "Minimal", palette: ["#7C2D2D", "#FAF6F1", "#1A1A1A"], status: "published", featured: false, isNew: true, manifest: SCARLET_MANIFEST },
+  // Renderable romantic floral template — Katsudoto "Aulia" port (src/components/invitation/ivory/).
+  { slug: "ivory", name: "Ivory", style: "Romantic Floral", category: "Romantic", palette: ["#FBF7EC", "#D89BAE", "#7C8B5A"], status: "published", featured: false, isNew: true, manifest: IVORY_MANIFEST },
+  // Renderable warm botanical template — Katsudoto "Syakira" port (src/components/invitation/sienna/).
+  { slug: "sienna", name: "Sienna", style: "Warm Botanical", category: "Romantic", palette: ["#FBF6F0", "#D6A191", "#CB3A31"], status: "published", featured: false, isNew: true, manifest: SIENNA_MANIFEST },
+  // Renderable plum/forest botanical template — Katsudoto "Kinanti" port (src/components/invitation/plum/).
+  { slug: "plum", name: "Plum", style: "Forest Botanical", category: "Romantic", palette: ["#F3E4D8", "#613947", "#D0A25E"], status: "published", featured: false, isNew: true, manifest: PLUM_MANIFEST },
 ];
 
 // Slugs to retire (soft-delete) — everything that is no longer offered.
-const KEEP_TEMPLATE_SLUGS = ["folk", "scarlet"];
+const KEEP_TEMPLATE_SLUGS = ["folk", "scarlet", "ivory", "sienna", "plum"];
 
 // src/components/templates/guests.tsx → GUESTS (the 8-guest array)
 // side: P = bride, A = groom, — = both. inv: sent | opened.

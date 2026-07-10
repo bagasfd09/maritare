@@ -122,8 +122,88 @@ export const SCARLET_MANIFEST: TemplateManifest = {
   ],
 };
 
+// Ivory (Katsudoto "Aulia" port) — like Folk it carries a "Cerita" (love-story)
+// chapter and a dedicated closing photo (footnote). Its "Sampul" group uploads
+// the gate cover photo (isCover, shown in the opening-gate oval) + the closing
+// photo; ivory has no full-bleed hero asset, so the editor hides that block
+// (HeroForm heroAsset=false for non-folk).
+export const IVORY_MANIFEST: TemplateManifest = {
+  formGroups: [
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "cerita", label: "Cerita", order: 3 },
+    { id: "galeri", label: "Galeri", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
+  ],
+  photoSlots: [
+    { id: "cover", label: "Foto sampul", kind: "cover", where: "Cover oval frame" },
+    { id: "groom", label: "Foto mempelai pria", kind: "couple-groom", where: "Couple — groom" },
+    { id: "bride", label: "Foto mempelai wanita", kind: "couple-bride", where: "Couple — bride" },
+    { id: "closing", label: "Foto penutup", kind: "closing", where: "Footnote closing image" },
+    { id: "gallery", label: "Galeri foto", kind: "gallery", where: "Photo grid", max: 20 },
+  ],
+};
+
+// Sienna (Katsudoto "Syakira" port) — like Ivory it carries a "Cerita"
+// (love-story) chapter, but its footnote is TEXT-ONLY, so it has NO closing
+// photo slot. Its "Sampul" group uploads the gate cover photo (isCover, shown
+// on the opening gate + cover); the folk-only hero-asset and closing blocks are
+// hidden in the editor (HeroForm heroAsset/closingAsset flags).
+export const SIENNA_MANIFEST: TemplateManifest = {
+  formGroups: [
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "galeri", label: "Galeri", order: 3 },
+    { id: "cerita", label: "Cerita", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
+  ],
+  photoSlots: [
+    { id: "cover", label: "Foto sampul", kind: "cover", where: "Cover oval frame" },
+    { id: "groom", label: "Foto mempelai pria", kind: "couple-groom", where: "Couple — groom" },
+    { id: "bride", label: "Foto mempelai wanita", kind: "couple-bride", where: "Couple — bride" },
+    { id: "gallery", label: "Galeri foto", kind: "gallery", where: "Photo grid", max: 20 },
+  ],
+};
+
+// Plum (Katsudoto "Kinanti" port) — like Sienna it carries a "Cerita"
+// (love-story) chapter and a TEXT-ONLY footnote (no closing photo). Its "Sampul"
+// group uploads the gate/cover photo (isCover, shown on the opening gate's oval
+// portrait + cover); the folk-only hero-asset and closing blocks are hidden in
+// the editor (HeroForm heroAsset/closingAsset flags). Story renders before the
+// gallery.
+export const PLUM_MANIFEST: TemplateManifest = {
+  formGroups: [
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "cerita", label: "Cerita", order: 3 },
+    { id: "galeri", label: "Galeri", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
+  ],
+  photoSlots: [
+    { id: "cover", label: "Foto sampul", kind: "cover", where: "Cover frame" },
+    { id: "groom", label: "Foto mempelai pria", kind: "couple-groom", where: "Couple — groom" },
+    { id: "bride", label: "Foto mempelai wanita", kind: "couple-bride", where: "Couple — bride" },
+    { id: "gallery", label: "Galeri foto", kind: "gallery", where: "Photo carousel", max: 20 },
+  ],
+};
+
 /** Slug → manifest, for seeding and any code-side lookups. */
 export const TEMPLATE_MANIFESTS: Record<string, TemplateManifest> = {
   folk: FOLK_MANIFEST,
+  ivory: IVORY_MANIFEST,
   scarlet: SCARLET_MANIFEST,
+  sienna: SIENNA_MANIFEST,
+  plum: PLUM_MANIFEST,
 };

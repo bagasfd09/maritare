@@ -134,6 +134,7 @@ export function EditorMobile({ data }: { data: EditorData | null }) {
           setSections={setSections}
           photos={gallery.photos}
           onStatusChange={setStatus}
+          templateSlug={meta.templateSlug}
         />
         <div className="mt-4 min-h-[16px]">
           <SaveLine status={status} />

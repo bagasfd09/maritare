@@ -20,6 +20,9 @@ type ActiveSectionFormProps = {
   setSections: React.Dispatch<React.SetStateAction<EditorSections>>;
   photos: EditorPhoto[];
   onStatusChange: (status: EditorSaveStatus) => void;
+  /** Active wedding's template slug — a few forms adapt per template (the
+   *  Sampul form hides the folk-only hero-asset block elsewhere). */
+  templateSlug?: string | null;
 };
 
 // Renders the form for the currently selected section. Each form self-manages
@@ -32,6 +35,7 @@ export function ActiveSectionForm({
   setSections,
   photos,
   onStatusChange,
+  templateSlug,
 }: ActiveSectionFormProps) {
   switch (activeSection) {
     case "hero":
@@ -41,6 +45,10 @@ export function ActiveSectionForm({
           photos={photos}
           onChange={(v) => setSections((s) => ({ ...s, hero: v }))}
           onStatusChange={onStatusChange}
+          heroAsset={templateSlug === "folk"}
+          // Only templates whose closing section renders the isClosing photo
+          // (folk footnote, ivory footnote) get the Penutup upload block.
+          closingAsset={templateSlug === "folk" || templateSlug === "ivory"}
         />
       );
     case "pasangan":

@@ -29,7 +29,7 @@ export function ScarletTemplate({ data, mode, guestName, checkin }: InvitationTe
       <ScarletGallery data={data} mode={mode} />
       <ScarletSaveDate data={data} mode={mode} />
       <ScarletAgenda data={data} mode={mode} />
-      <ScarletGift data={data} mode={mode} guestSide={checkin?.side} />
+      <ScarletGift data={data} mode={mode} gated={mode === "public"} guestSide={checkin?.side} />
       {/* Pre-fill the wish form's name with the invitation's guest (?g= guest,
           else ?to=); empty on generic links. The guest can still edit it. */}
       <ScarletWishes data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
