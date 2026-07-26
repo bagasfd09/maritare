@@ -1,6 +1,7 @@
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Icon } from "@/components/atoms/icon";
 import { GuestbookCounter } from "@/components/molecules/guestbook-primitives";
+import type { KioskSync } from "@/lib/kiosk-queue";
 import { endPetugasSession } from "@/server/actions/petugas";
 import type { KioskHeader } from "@/server/queries/guestbook";
 
@@ -10,15 +11,64 @@ type GuestbookShellProps = {
   // falls back to the hardcoded prototype mock (Andi & Putri · 142 / 280) so
   // the design degrades gracefully before any data resolves.
   header?: KioskHeader | null;
+  // Offline/queue state from the flow. The chip only renders when something
+  // needs the operator's awareness (offline, or check-ins waiting to sync).
+  sync?: KioskSync | null;
   children: React.ReactNode;
 };
+
+// Chip colors per surface: "light" sits on the cream shell header; "dark"
+// sits on the idle screen's burgundy gradient (the light variants are
+// unreadable there — sage-on-burgundy is ~1:1 contrast).
+const CHIP_COLORS = {
+  light: {
+    syncing: "bg-[rgba(124,126,94,0.16)] text-[#4a4c34]",
+    syncingDot: "bg-[#4a4c34]",
+    offline: "bg-burgundy text-cream",
+    offlineDot: "bg-peach",
+  },
+  dark: {
+    syncing: "bg-[rgba(245,239,230,0.16)] text-cream",
+    syncingDot: "bg-cream",
+    offline: "bg-cream text-burgundy-dark",
+    offlineDot: "bg-burgundy",
+  },
+} as const;
+
+/** "Offline · 3 tersimpan" / "Menyinkronkan 3…" chip — quiet when all is well. */
+export function KioskSyncChip({
+  sync,
+  tone = "light",
+}: {
+  sync?: KioskSync | null;
+  tone?: keyof typeof CHIP_COLORS;
+}) {
+  if (!sync || (sync.online && sync.queued === 0)) return null;
+  const colors = CHIP_COLORS[tone];
+  const base =
+    "inline-flex items-center gap-2 rounded-full py-[7px] px-[13px] font-body text-[9.5px] tracking-[0.18em] uppercase font-bold whitespace-nowrap";
+  return (
+    <div className={`${base} ${sync.online ? colors.syncing : colors.offline}`}>
+      <span
+        className={`w-[7px] h-[7px] rounded-full animate-dot-pulse ${
+          sync.online ? colors.syncingDot : colors.offlineDot
+        }`}
+      />
+      {sync.online
+        ? `Menyinkronkan ${sync.queued}…`
+        : sync.queued > 0
+          ? `Offline · ${sync.queued} tersimpan`
+          : "Offline · check-in tetap jalan"}
+    </div>
+  );
+}
 
 // Kiosk shell — cream stage with the brand header (couple, date, attendant,
 // live counter). The design is a 1280×800 tablet-landscape app: it fills the
 // viewport and falls back to scrolling below the native size so the layout
 // never squishes. The attendant ("Penjaga") shows the signed-in token's label
 // from the live header, falling back to a neutral "Petugas" label.
-export function GuestbookShell({ eyebrow = "Buku Tamu · Resepsi", header, children }: GuestbookShellProps) {
+export function GuestbookShell({ eyebrow = "Buku Tamu · Resepsi", header, sync, children }: GuestbookShellProps) {
   // Couple, date·venue, and the HADIR counter derive from the live header when
   // present; otherwise the hardcoded mock renders EXACTLY as before.
   const groomName = header?.groomName ?? "Andi";
@@ -64,6 +114,7 @@ export function GuestbookShell({ eyebrow = "Buku Tamu · Resepsi", header, child
           {contextLine}
         </div>
         <div className="flex items-center gap-[18px]">
+          <KioskSyncChip sync={sync} />
           <div className="text-right">
             <div className="font-body text-[9px] tracking-[0.26em] uppercase font-semibold text-faint">Penjaga</div>
             <div className="font-body font-semibold text-[13.5px] text-charcoal mt-[2px]">{attendantName}</div>

@@ -11,6 +11,7 @@
 
 import { and, asc, desc, eq, gt, ilike, isNull, or, sql } from "drizzle-orm";
 
+import type { CheckoutPlan } from "@/lib/checkout";
 import { db } from "@/lib/db";
 import {
   guests,
@@ -821,6 +822,9 @@ export async function getWishesData(): Promise<WishesData | null> {
 // Billing
 // ─────────────────────────────────────────────────────────────────
 
+/** Tier numerals on the plan cards; falls back to a plain index past III. */
+const ROMAN = ["I", "II", "III", "IV", "V"];
+
 export type BillingData = {
   chrome: DashboardChrome | null;
   packageName: string | null;
@@ -838,6 +842,8 @@ export type BillingData = {
   };
   /** Next tier up (by sortOrder) for the upgrade nudge; null when already top. */
   upgrade: { name: string; price: number; priceDiff: number; perks: string[] } | null;
+  /** Active catalog, priced from the `packages` table — what checkout renders. */
+  plans: CheckoutPlan[];
   /** Billing contact (the account owner). NPWP isn't modeled yet. */
   billingContact: { name: string; email: string };
   orders: Array<{
@@ -887,6 +893,49 @@ export async function getBillingData(): Promise<BillingData | null> {
         .limit(1)
     : [];
 
+  // The purchasable catalog. This — not a baked-in constant — is the price the
+  // checkout screen renders, and startCheckout re-reads the same table before
+  // charging, so displayed and charged can never drift.
+  const catalogRows = await db
+    .select({
+      slug: packages.slug,
+      name: packages.name,
+      price: packages.price,
+      durationDays: packages.durationDays,
+      guestLimit: packages.guestLimit,
+      perks: packages.perks,
+      featured: packages.featured,
+      sortOrder: packages.sortOrder,
+    })
+    .from(packages)
+    .where(eq(packages.active, true))
+    .orderBy(asc(packages.sortOrder));
+
+  const currentSort = pkgRow?.sortOrder ?? null;
+  const featuredSlug =
+    catalogRows.find((p) => p.featured)?.slug ?? catalogRows.at(-1)?.slug ?? null;
+
+  const plans: CheckoutPlan[] = catalogRows.map((p, i) => ({
+    id: p.slug,
+    roman: ROMAN[i] ?? String(i + 1),
+    name: p.name,
+    price: p.price,
+    per: `${p.durationDays} hari aktif`,
+    guests: p.guestLimit ? `Hingga ${p.guestLimit} tamu` : "Tamu unlimited",
+    perks: p.perks,
+    state:
+      currentSort === null
+        ? // No package yet: everything is buyable, the featured one is the nudge.
+          p.slug === featuredSlug
+          ? "upgrade"
+          : "available"
+        : p.sortOrder < currentSort
+          ? "lower"
+          : p.sortOrder === currentSort
+            ? "current"
+            : "upgrade",
+  }));
+
   // Guest-list size (non-deleted) for the "Quota tamu" stat.
   const [guestCountRow] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -932,6 +981,7 @@ export async function getBillingData(): Promise<BillingData | null> {
           perks: upgradeRow.perks,
         }
       : null,
+    plans,
     // Billing is anchored to the wedding's creator (orders.userId), so the
     // contact shown is the creator — even when the signed-in viewer is the partner.
     billingContact: { name: creator.name?.trim() ?? "", email: creator.email },
@@ -952,6 +1002,8 @@ export type CatalogTemplate = {
   palette: string[];
   featured: boolean;
   isNew: boolean;
+  /** True when this template is user-targeted and the viewer is on its list. */
+  exclusive: boolean;
   /** Presigned GET URL for an admin-uploaded cover, or null (use static thumb). */
   coverUrl: string | null;
 };
@@ -968,7 +1020,13 @@ export type TemplatesData = {
  * NOT scoped to any wedding). Used by the templates gallery and the onboarding
  * picker. Only published, non-deleted templates are selectable by a customer.
  */
-export async function getPublishedTemplates(): Promise<CatalogTemplate[]> {
+/**
+ * The published catalog as one viewer sees it. Exclusive templates (non-empty
+ * allowed_user_ids) only appear when `forUserId` is on the list — omitting the
+ * argument yields the public catalog only, so a new call site can never leak
+ * an exclusive template by accident.
+ */
+export async function getPublishedTemplates(forUserId?: string | null): Promise<CatalogTemplate[]> {
   const rows = await db
     .select({
       id: templates.id,
@@ -980,15 +1038,24 @@ export async function getPublishedTemplates(): Promise<CatalogTemplate[]> {
       featured: templates.featured,
       isNew: templates.isNew,
       coverKey: templates.coverKey,
+      allowedUserIds: templates.allowedUserIds,
     })
     .from(templates)
     .where(and(eq(templates.status, "published"), isNull(templates.deletedAt)))
     .orderBy(desc(templates.featured), desc(templates.isNew), asc(templates.name));
 
+  const visible = rows.filter(
+    (t) =>
+      !t.allowedUserIds ||
+      t.allowedUserIds.length === 0 ||
+      (forUserId != null && t.allowedUserIds.includes(forUserId)),
+  );
+
   // Sign a presigned GET per uploaded cover (in parallel).
   return Promise.all(
-    rows.map(async ({ coverKey, ...t }) => ({
+    visible.map(async ({ coverKey, allowedUserIds, ...t }) => ({
       ...t,
+      exclusive: (allowedUserIds?.length ?? 0) > 0,
       coverUrl: coverKey ? await getViewUrl(coverKey) : null,
     })),
   );
@@ -1001,7 +1068,8 @@ export async function getTemplatesData(): Promise<TemplatesData | null> {
   }
   const { wedding } = resolved;
 
-  const rows = await getPublishedTemplates();
+  // Exclusive templates are granted to the wedding CREATOR (billing anchor).
+  const rows = await getPublishedTemplates(wedding.userId);
 
   // Resolve the wedding's current template slug (set-null on template delete).
   const [currentRow] = wedding.templateId

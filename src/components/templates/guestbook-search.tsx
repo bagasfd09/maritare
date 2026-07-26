@@ -1,16 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Icon } from "@/components/atoms/icon";
 import { Avatar, initials } from "@/components/atoms/avatar";
 import { GuestbookShell } from "@/components/templates/guestbook-shell";
 import { GuestbookButton, GuestbookTabs } from "@/components/molecules/guestbook-primitives";
+import type { KioskSync } from "@/lib/kiosk-queue";
 import type { KioskGuest, KioskHeader } from "@/server/queries/guestbook";
 
 type Row = {
-  id: string | null; // null = mock fallback row (no real guest to confirm against)
+  guest: KioskGuest | null; // null = mock fallback row (no real guest to confirm against)
   name: string;
   group: string;
   side: string;
@@ -21,26 +20,32 @@ type Row = {
 type GuestbookSearchProps = {
   header?: KioskHeader | null;
   guests?: KioskGuest[];
+  sync?: KioskSync | null;
+  /** Row tapped — the flow moves to the confirm view for this guest. */
+  onPick?: (guest: KioskGuest) => void;
+  /** "Daftarkan sebagai walk-in" — the flow moves to the walk-in form. */
+  onWalkIn?: () => void;
+  /** Tab switch (Cari Nama / Pindai QR). */
+  onTab?: (tab: "search" | "qr") => void;
 };
 
 // Ports `Gb2_Search` — name search with live suggestions. The directory now
 // renders the session-owned wedding's real guests; the mock list below is the
 // design fallback used only when the kiosk has no data yet.
 const FALLBACK_DIRECTORY: Row[] = [
-  { id: null, name: "Reza Hartono", group: "Keluarga Mempelai Pria", side: "Andi", tone: "burgundy", checkedIn: false },
-  { id: null, name: "Reza Bayu Pratama", group: "Teman SMA Andi", side: "Andi", tone: "sage", checkedIn: false },
-  { id: null, name: "Rezaldi & Sari", group: "Sahabat Pasangan", side: "—", tone: "peach", checkedIn: false },
-  { id: null, name: "Maya Lestari", group: "Kantor Putri", side: "Putri", tone: "burgundy", checkedIn: false },
-  { id: null, name: "Bayu Pratama", group: "Teman SMA Andi", side: "Andi", tone: "sage", checkedIn: false },
-  { id: null, name: "Sari Wijaya", group: "Keluarga Mempelai Wanita", side: "Putri", tone: "peach", checkedIn: false },
-  { id: null, name: "Dina Permata", group: "Sahabat Pasangan", side: "—", tone: "burgundy", checkedIn: false },
-  { id: null, name: "Tiara Maharani", group: "Teman Kuliah Putri", side: "Putri", tone: "sage", checkedIn: false },
+  { guest: null, name: "Reza Hartono", group: "Keluarga Mempelai Pria", side: "Andi", tone: "burgundy", checkedIn: false },
+  { guest: null, name: "Reza Bayu Pratama", group: "Teman SMA Andi", side: "Andi", tone: "sage", checkedIn: false },
+  { guest: null, name: "Rezaldi & Sari", group: "Sahabat Pasangan", side: "—", tone: "peach", checkedIn: false },
+  { guest: null, name: "Maya Lestari", group: "Kantor Putri", side: "Putri", tone: "burgundy", checkedIn: false },
+  { guest: null, name: "Bayu Pratama", group: "Teman SMA Andi", side: "Andi", tone: "sage", checkedIn: false },
+  { guest: null, name: "Sari Wijaya", group: "Keluarga Mempelai Wanita", side: "Putri", tone: "peach", checkedIn: false },
+  { guest: null, name: "Dina Permata", group: "Sahabat Pasangan", side: "—", tone: "burgundy", checkedIn: false },
+  { guest: null, name: "Tiara Maharani", group: "Teman Kuliah Putri", side: "Putri", tone: "sage", checkedIn: false },
 ];
 
 const ROW_TONES = ["burgundy", "sage", "peach"] as const;
 
-export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
-  const router = useRouter();
+export function GuestbookSearch({ header, guests, sync, onPick, onWalkIn, onTab }: GuestbookSearchProps) {
   const [query, setQuery] = useState("");
 
   const isIdle = query.trim() === "";
@@ -56,7 +61,7 @@ export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
     const groom = header?.groomName ?? "Andi";
     const bride = header?.brideName ?? "Putri";
     return guests.map((g, i) => ({
-      id: g.id,
+      guest: g,
       name: g.name,
       group: g.group ?? "Tamu Undangan",
       side: g.side === "groom" ? groom : g.side === "bride" ? bride : g.side === "both" ? "—" : g.side,
@@ -71,24 +76,18 @@ export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
     return directory.filter((s) => s.name.toLowerCase().includes(q));
   }, [query, directory]);
 
-  // Build the /guestbook/confirm href for a row. Mock fallback rows have no
-  // real guest id, so they route to a bare confirm (which redirects to search
-  // server-side) — the real rows carry their guest id.
-  const confirmHref = (id: string | null) =>
-    id ? `/guestbook/confirm?guest=${id}` : "/guestbook/confirm";
-
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const first = matches[0];
-    if (first) router.push(confirmHref(first.id));
+    if (first?.guest) onPick?.(first.guest);
   };
 
   return (
-    <GuestbookShell eyebrow="Buku Tamu · Check-in" header={header}>
+    <GuestbookShell eyebrow="Buku Tamu · Check-in" header={header} sync={sync}>
       <div className="px-14 pt-5 pb-[26px] h-full flex flex-col">
         {/* Tabs + heading */}
         <div className="flex justify-center mb-[18px]">
-          <GuestbookTabs active="search" />
+          <GuestbookTabs active="search" onSelect={onTab} />
         </div>
         <h1 className="font-display [font-variation-settings:'opsz'_96] font-extrabold tracking-[-0.03em] leading-[1.04] text-charcoal text-[46px] m-0 text-center mb-5">
           Selamat datang. Siapa{" "}
@@ -126,8 +125,10 @@ export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
                 <div className="font-body text-[10px] tracking-[0.24em] uppercase font-semibold text-muted-ink px-4 mb-[2px]">
                   {matches.length} nama cocok
                 </div>
-                {matches.map((s, i) =>
-                  s.id === null ? (
+                {matches.map((s, i) => {
+                  // const so the narrowing survives into the onClick closure.
+                  const g = s.guest;
+                  return g === null ? (
                     /* Mock fallback row (no real guest behind it) — not clickable,
                        so a tap never silently round-trips back to search. */
                     <div
@@ -152,14 +153,15 @@ export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
                       </span>
                     </div>
                   ) : (
-                  <Link
-                    key={s.id}
-                    href={confirmHref(s.id)}
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => onPick?.(g)}
                     style={{ animationDelay: `${i * 70}ms` }}
                     className={
                       i === 0
-                        ? "animate-gb-fade-up bg-ivory border border-burgundy rounded-[14px] py-[11px] px-5 flex items-center gap-4 cursor-pointer text-left no-underline"
-                        : "animate-gb-fade-up bg-paper border border-line rounded-[14px] py-[11px] px-5 flex items-center gap-4 cursor-pointer text-left no-underline"
+                        ? "animate-gb-fade-up w-full bg-ivory border border-burgundy rounded-[14px] py-[11px] px-5 flex items-center gap-4 cursor-pointer text-left"
+                        : "animate-gb-fade-up w-full bg-paper border border-line rounded-[14px] py-[11px] px-5 flex items-center gap-4 cursor-pointer text-left"
                     }
                   >
                     <Avatar tone={s.tone} size={42} className="text-[15px]">
@@ -183,20 +185,22 @@ export function GuestbookSearch({ header, guests }: GuestbookSearchProps) {
                     ) : (
                       i === 0 && <Icon name="arrow-r" size={18} stroke="var(--color-burgundy)" />
                     )}
-                  </Link>
-                ))}
+                  </button>
+                );
+                })}
               </>
             ) : (
               <div className="bg-paper border border-line rounded-[14px] py-6 px-5 text-center">
                 <div className="font-display italic text-[18px] text-charcoal">
                   Nama <span className="text-burgundy">&ldquo;{query.trim()}&rdquo;</span> tidak ditemukan.
                 </div>
-                <Link
-                  href="/guestbook/notfound"
-                  className="inline-flex items-center gap-2 font-body text-[11px] tracking-[0.18em] uppercase font-semibold text-burgundy no-underline mt-3"
+                <button
+                  type="button"
+                  onClick={onWalkIn}
+                  className="inline-flex items-center gap-2 font-body text-[11px] tracking-[0.18em] uppercase font-semibold text-burgundy bg-transparent border-none cursor-pointer mt-3"
                 >
                   Daftarkan sebagai walk-in <Icon name="arrow-r" size={14} stroke="var(--color-burgundy)" />
-                </Link>
+                </button>
               </div>
             )}
           </div>

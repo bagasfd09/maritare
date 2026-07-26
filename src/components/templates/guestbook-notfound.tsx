@@ -1,22 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Icon } from "@/components/atoms/icon";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { GuestbookShell } from "@/components/templates/guestbook-shell";
 import { GuestbookButton, GuestbookStep } from "@/components/molecules/guestbook-primitives";
-import { addWalkInGuest } from "@/server/actions/guestbook";
+import type { KioskSync } from "@/lib/kiosk-queue";
+import type { AddWalkInInput } from "@/server/actions/guestbook";
 import type { KioskHeader } from "@/server/queries/guestbook";
 import { cn } from "@/lib/utils";
 
 // Guestbook 05 · Tidak Terdaftar — walk-in guest registration.
-// Ported from `Gb2_NotFound`, now a working form: name + side + headcount +
-// note + quick-group chips are all stateful; the submit CTA stays disabled
-// until a name is entered. On submit the walk-in is persisted via
-// `addWalkInGuest` (ownership re-derived server-side) and we hand off to the
-// wish screen carrying the new guest id.
+// Ported from `Gb2_NotFound`: name + side + headcount + note + quick-group
+// chips are all stateful; the submit CTA stays disabled until a name is
+// entered. Persistence lives in the flow's `onSubmit` (server first, offline
+// queue on network failure).
 
 // Couple fallback when no live header (matches the prototype t = {Andi, Putri}).
 const FALLBACK_COUPLE = { groom: "Andi", bride: "Putri" };
@@ -29,9 +27,16 @@ const label = "font-body text-[9.5px] tracking-[0.24em] uppercase font-semibold 
 
 type GuestSide = "groom" | "bride" | "both";
 
-export function GuestbookNotFound({ header }: { header?: KioskHeader | null }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+type GuestbookNotFoundProps = {
+  header?: KioskHeader | null;
+  sync?: KioskSync | null;
+  /** Resolves to an error message, or null when the flow has moved on. */
+  onSubmit?: (input: AddWalkInInput) => Promise<string | null>;
+  onCancel?: () => void;
+};
+
+export function GuestbookNotFound({ header, sync, onSubmit, onCancel }: GuestbookNotFoundProps) {
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const groomName = header?.groomName ?? FALLBACK_COUPLE.groom;
@@ -62,28 +67,28 @@ export function GuestbookNotFound({ header }: { header?: KioskHeader | null }) {
 
   const canSubmit = name.trim().length > 0 && !pending;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
-    startTransition(async () => {
-      const result = await addWalkInGuest({
+    setPending(true);
+    const err =
+      (await onSubmit?.({
         name: name.trim(),
         side: sides[sideIndex].value,
         partySize: count,
         // Free-text note goes to `note`; the quick-group chip (if any) to `group`.
         note: note.trim() ? note.trim() : undefined,
         group: group ?? undefined,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      router.push(`/guestbook/thankyou?guest=${result.guestId}`);
-    });
+      })) ?? null;
+    // On success the flow swaps to the thank-you view and unmounts this form.
+    if (err) {
+      setError(err);
+      setPending(false);
+    }
   };
 
   return (
-    <GuestbookShell eyebrow="Buku Tamu · Tamu tambahan" header={header}>
+    <GuestbookShell eyebrow="Buku Tamu · Tamu tambahan" header={header} sync={sync}>
       <div className="h-full grid grid-cols-2 gap-11 px-14 pt-9 pb-8">
         {/* Left: gentle message */}
         <div className="flex flex-col justify-center">
@@ -226,11 +231,9 @@ export function GuestbookNotFound({ header }: { header?: KioskHeader | null }) {
           )}
 
           <div className="flex gap-[10px] mt-auto pt-[6px]">
-            <Link href="/guestbook/search" className="flex-1 no-underline">
-              <GuestbookButton kind="ghost" h={54} fz={12} className="w-full" tabIndex={-1}>
-                Batal
-              </GuestbookButton>
-            </Link>
+            <GuestbookButton kind="ghost" h={54} fz={12} className="flex-1" onClick={onCancel} disabled={pending}>
+              Batal
+            </GuestbookButton>
             <GuestbookButton
               type="button"
               onClick={handleSubmit}

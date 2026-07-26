@@ -13,7 +13,8 @@ const ITEMS: NavItem[] = [
   { id: "users", icon: "user", label: "User", href: "/admin/users" },
   { id: "orders", icon: "card", label: "Pesanan", href: "/admin/orders" },
   { id: "templates", icon: "template", label: "Template", href: "/admin/templates" },
-  { id: "packages", icon: "sparkle", label: "Paket & Promo", href: "/admin/packages" },
+  { id: "packages", icon: "sparkle", label: "Paket", href: "/admin/packages" },
+  { id: "promos", icon: "qr", label: "Promo", href: "/admin/promos" },
   { id: "team", icon: "users", label: "Tim admin", href: "/admin/team" },
 ];
 

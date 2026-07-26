@@ -1,0 +1,1 @@
+ALTER TABLE "templates" ADD COLUMN "allowed_user_ids" uuid[];

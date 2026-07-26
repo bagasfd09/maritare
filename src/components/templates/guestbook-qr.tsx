@@ -1,26 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import jsQR from "jsqr";
 import { Icon } from "@/components/atoms/icon";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { GuestbookShell } from "@/components/templates/guestbook-shell";
 import { GuestbookButton, GuestbookTabs } from "@/components/molecules/guestbook-primitives";
-import type { KioskHeader } from "@/server/queries/guestbook";
+import type { KioskSync } from "@/lib/kiosk-queue";
+import type { KioskGuest, KioskHeader } from "@/server/queries/guestbook";
 import { cn } from "@/lib/utils";
 
 // Guestbook 03 · Pindai QR — a REAL camera scanner. getUserMedia feeds a
 // <video>; frames are sampled onto an offscreen canvas every ~140ms and run
-// through jsQR. A decoded payload is treated as a guest id: a valid uuid routes
-// to the confirm screen (which loads the real, ownership-scoped guest), while
-// an unrecognized payload surfaces an error in the aside without stopping the
-// camera — the operator can rescan or fall back to manual search.
+// through jsQR. A decoded payload is treated as a guest id and resolved
+// against the LOCAL guest list (works offline): a match freezes the frame and
+// hands the guest to the flow's confirm view, while an unknown payload
+// surfaces an error in the aside without stopping the camera — the operator
+// can rescan or fall back to manual search.
 
-// Client-side uuid shape check — the same validation the queries enforce
-// server-side. A non-uuid payload is treated as an unknown QR (the actual
-// ownership scoping still happens server-side on the confirm screen).
+// Client-side uuid shape check — a non-uuid payload is an unknown QR without
+// even hitting the directory.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const SCAN_TIPS = [
@@ -40,12 +39,29 @@ const eyebrow = "font-body tracking-[0.24em] uppercase font-semibold text-muted-
 // gb2Italic base.
 const italic = "font-display italic font-normal tracking-[-0.01em]";
 
-export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
-  const router = useRouter();
+type GuestbookQrProps = {
+  header?: KioskHeader | null;
+  sync?: KioskSync | null;
+  /** Look a decoded guest id up in the flow's local directory. */
+  resolveGuest?: (id: string) => KioskGuest | null;
+  /** A scanned guest matched — the flow moves to the confirm view. */
+  onFound?: (guest: KioskGuest) => void;
+  /**
+   * A uuid-shaped payload missed the local directory — may be a guest added
+   * after the last snapshot, so the flow gets a chance to refresh. The scan
+   * loop keeps decoding the same QR, so a successful refresh auto-recovers.
+   */
+  onUnknown?: () => void;
+  onSearch?: () => void;
+  onCancel?: () => void;
+  onTab?: (tab: "search" | "qr") => void;
+};
+
+export function GuestbookQr({ header, sync, resolveGuest, onFound, onUnknown, onSearch, onCancel, onTab }: GuestbookQrProps) {
   const [status, setStatus] = useState<ScanStatus>("requesting");
   const [errorMsg, setErrorMsg] = useState("");
   const [payload, setPayload] = useState<string | null>(null);
-  const [guestId, setGuestId] = useState<string | null>(null);
+  const [match, setMatch] = useState<KioskGuest | null>(null);
   // Set when a decoded payload is NOT a guest-id-shaped uuid; the camera keeps
   // scanning so the operator can simply try the next QR.
   const [qrError, setQrError] = useState(false);
@@ -64,6 +80,19 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
   // Mirrors `facing` so startCamera (a stable callback) reads the latest choice
   // without re-creating itself and re-triggering the mount effect.
   const facingRef = useRef<"environment" | "user">("user");
+  // Same trick for the flow callbacks: the guest directory changes on every
+  // background refresh, and re-creating startCamera would restart the camera.
+  const resolveRef = useRef(resolveGuest);
+  const foundRef = useRef(onFound);
+  const unknownRef = useRef(onUnknown);
+  useEffect(() => {
+    resolveRef.current = resolveGuest;
+    foundRef.current = onFound;
+    unknownRef.current = onUnknown;
+  }, [resolveGuest, onFound, onUnknown]);
+  // The scan loop re-decodes the same held-up QR every ~140ms — only nudge the
+  // flow once per distinct missed payload.
+  const missedRef = useRef<string | null>(null);
 
   const stopLoop = useCallback(() => {
     if (intervalRef.current) {
@@ -120,24 +149,31 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
         const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "attemptBoth" });
         if (code && code.data) {
           const decoded = code.data.trim();
-          if (UUID_RE.test(decoded)) {
-            // Valid guest-id shape → freeze the frame and route to confirm; the
-            // confirm screen loads the real guest scoped to the owned wedding.
+          const guest = UUID_RE.test(decoded)
+            ? (resolveRef.current?.(decoded) ?? null)
+            : null;
+          if (guest) {
+            // Known guest → freeze the frame, then hand off to the confirm view.
             stopLoop();
             video.pause(); // freeze the last frame as visual feedback
             setQrError(false);
             setPayload(decoded);
-            setGuestId(decoded);
+            setMatch(guest);
             setStatus("detected");
             redirectRef.current = setTimeout(
-              () => router.push(`/guestbook/confirm?guest=${decoded}`),
+              () => foundRef.current?.(guest),
               REDIRECT_DELAY_MS,
             );
           } else {
-            // Unrecognized payload — keep the camera scanning, surface the
-            // error in the aside so the operator can retry or search manually.
+            // Unrecognized payload (or a uuid not in this wedding's list) —
+            // keep the camera scanning, surface the error in the aside so the
+            // operator can retry or search manually.
             setPayload(decoded);
             setQrError(true);
+            if (UUID_RE.test(decoded) && missedRef.current !== decoded) {
+              missedRef.current = decoded;
+              unknownRef.current?.();
+            }
           }
         }
       }, SCAN_INTERVAL_MS);
@@ -156,7 +192,7 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
         setErrorMsg("Kamera tidak bisa diakses. Pastikan halaman dibuka lewat HTTPS atau localhost.");
       }
     }
-  }, [router, stopLoop]);
+  }, [stopLoop]);
 
   // Retry from the error panel — state resets live in the click handler so the
   // mount effect stays free of synchronous setState.
@@ -164,7 +200,7 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
     setStatus("requesting");
     setErrorMsg("");
     setPayload(null);
-    setGuestId(null);
+    setMatch(null);
     setQrError(false);
     startCamera();
   }, [startCamera]);
@@ -198,12 +234,12 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
   const detected = status === "detected";
 
   return (
-    <GuestbookShell eyebrow="Buku Tamu · Pindai QR" header={header}>
+    <GuestbookShell eyebrow="Buku Tamu · Pindai QR" header={header} sync={sync}>
       <div className="h-full grid grid-cols-[1fr_330px] gap-[22px] px-12 pt-5 pb-[26px]">
         {/* LEFT: camera viewport */}
         <div className="flex flex-col gap-[14px] min-h-0">
           <div className="flex items-center justify-between gap-[18px]">
-            <GuestbookTabs active="qr" compact />
+            <GuestbookTabs active="qr" compact onSelect={onTab} />
             <h1 className="font-display [font-variation-settings:'opsz'_96] font-extrabold tracking-[-0.025em] leading-[1.04] text-charcoal text-[28px] m-0">
               Arahkan QR ke dalam <span className={cn(italic, "text-burgundy")}>bingkai.</span>
             </h1>
@@ -245,11 +281,15 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
                   <GuestbookButton kind="cream" h={48} fz={11.5} onClick={retry}>
                     Coba lagi
                   </GuestbookButton>
-                  <Link href="/guestbook/search" className="no-underline">
-                    <GuestbookButton kind="ghost" h={48} fz={11.5} className="border-[rgba(245,239,230,0.35)] text-cream" tabIndex={-1}>
-                      Cari manual
-                    </GuestbookButton>
-                  </Link>
+                  <GuestbookButton
+                    kind="ghost"
+                    h={48}
+                    fz={11.5}
+                    className="border-[rgba(245,239,230,0.35)] text-cream"
+                    onClick={onSearch}
+                  >
+                    Cari manual
+                  </GuestbookButton>
                 </div>
               </div>
             ) : (
@@ -299,25 +339,21 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
 
           {/* bottom toolbar */}
           <div className="flex items-center gap-3">
-            <Link href="/guestbook" className="no-underline">
-              <GuestbookButton kind="ghost" h={48} fz={11.5} icon={<Icon name="x" size={12} />} tabIndex={-1}>
-                Batal
-              </GuestbookButton>
-            </Link>
+            <GuestbookButton kind="ghost" h={48} fz={11.5} icon={<Icon name="x" size={12} />} onClick={onCancel}>
+              Batal
+            </GuestbookButton>
             <div className={cn(italic, "text-[15px] text-faint flex-1 text-center")}>
               QR ada di pesan WhatsApp tamu, di bawah link undangan
             </div>
-            <Link href="/guestbook/search" className="no-underline">
-              <GuestbookButton kind="dark" h={48} fz={11.5} icon={<Icon name="search" size={13} />} tabIndex={-1}>
-                Cari manual
-              </GuestbookButton>
-            </Link>
+            <GuestbookButton kind="dark" h={48} fz={11.5} icon={<Icon name="search" size={13} />} onClick={onSearch}>
+              Cari manual
+            </GuestbookButton>
           </div>
         </div>
 
         {/* RIGHT: detected guest */}
         <aside className="flex flex-col gap-3 min-h-0">
-          {detected && guestId ? (
+          {detected && match ? (
             <div className="bg-paper border-[1.5px] border-burgundy rounded-[18px] py-[18px] px-5 shadow-[0_18px_34px_-18px_rgba(124,45,45,0.4)] relative">
               <div className="absolute top-[14px] right-4 inline-flex items-center gap-[6px] bg-[rgba(77,216,145,0.18)] text-[#1c5a36] py-1 px-[10px] rounded-full font-body text-[9px] tracking-[0.16em] uppercase font-bold">
                 <Icon name="check" size={10} stroke="#1c5a36" />
@@ -330,7 +366,7 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
                 </span>
                 <div>
                   <div className="font-display font-bold text-[23px] tracking-[-0.025em] leading-[1.05] text-charcoal">
-                    Tamu cocok
+                    {match.name}
                   </div>
                   <div className={cn(eyebrow, "text-[9.5px] tracking-[0.18em] mt-1")}>
                     Menyiapkan konfirmasi…
@@ -340,11 +376,18 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
               <div className="mt-[14px] py-[10px] px-[14px] bg-cream rounded-[10px] font-body text-[12.5px] text-muted-ink leading-[1.5] break-all">
                 Kode tamu: {payload && payload.length > 64 ? `${payload.slice(0, 64)}…` : payload}
               </div>
-              <Link href={`/guestbook/confirm?guest=${guestId}`} className="block w-full mt-[14px] no-underline">
-                <GuestbookButton h={52} fz={12} className="w-full" iconAfter={<Icon name="arrow-r" size={15} />} tabIndex={-1}>
-                  Lanjut konfirmasi
-                </GuestbookButton>
-              </Link>
+              <GuestbookButton
+                h={52}
+                fz={12}
+                className="w-full mt-[14px]"
+                iconAfter={<Icon name="arrow-r" size={15} />}
+                onClick={() => {
+                  if (redirectRef.current) clearTimeout(redirectRef.current);
+                  onFound?.(match);
+                }}
+              >
+                Lanjut konfirmasi
+              </GuestbookButton>
             </div>
           ) : qrError ? (
             // Unrecognized QR — the camera keeps scanning, but the aside guides
@@ -367,11 +410,15 @@ export function GuestbookQr({ header }: { header?: KioskHeader | null }) {
               <div className="mt-[14px] py-[10px] px-[14px] bg-cream rounded-[10px] font-body text-[12.5px] text-muted-ink leading-[1.5] break-all">
                 Kode terbaca: {payload && payload.length > 64 ? `${payload.slice(0, 64)}…` : payload}
               </div>
-              <Link href="/guestbook/search" className="block w-full mt-[14px] no-underline">
-                <GuestbookButton h={52} fz={12} className="w-full" icon={<Icon name="search" size={14} />} tabIndex={-1}>
-                  Cari manual
-                </GuestbookButton>
-              </Link>
+              <GuestbookButton
+                h={52}
+                fz={12}
+                className="w-full mt-[14px]"
+                icon={<Icon name="search" size={14} />}
+                onClick={onSearch}
+              >
+                Cari manual
+              </GuestbookButton>
             </div>
           ) : (
             <div className="bg-paper border-[1.5px] border-dashed border-beige rounded-[18px] py-[18px] px-5 relative">

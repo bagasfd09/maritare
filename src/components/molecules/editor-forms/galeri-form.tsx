@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -29,6 +29,7 @@ import {
   FormHeading,
 } from "@/components/molecules/editor-forms/form-ui";
 import { useSectionAutosave } from "@/components/molecules/editor-forms/use-section-autosave";
+import { saveWeddingSection } from "@/server/actions/wedding";
 
 export type GaleriValue = { done: boolean; data: GaleriData };
 
@@ -64,6 +65,12 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
     .filter((p): p is EditorPhoto => !!p);
   const unselected = selectable.filter((p) => !selectedSet.has(p.id));
 
+  // MANUAL save. Reordering used to fire a server action on every single drag
+  // (each one revalidating the whole editor) which made this section feel
+  // heavy — now edits stay local (the live preview still updates instantly)
+  // until "Simpan galeri" is pressed.
+  const [dirty, setDirty] = useState(false);
+
   const buildPayload = useCallback(() => {
     // Recompute from props (not the derived `selected` array) so the memo dep is
     // stable: keep only ids that still point at a selectable photo, in order.
@@ -72,11 +79,56 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
     );
     return { data: { selectedPhotoIds: ids }, done: value.done };
   }, [value, photos]);
+
+  // Clear the dirty flag only once the save actually landed; an error keeps the
+  // button armed so the user can retry.
+  const handleStatus = useCallback(
+    (status: EditorSaveStatus) => {
+      if (status.state === "saved") {
+        setDirty(false);
+      }
+      onStatusChange?.(status);
+    },
+    [onStatusChange],
+  );
+
   const { saveNow } = useSectionAutosave({
     sectionId: "galeri",
     buildPayload,
-    onStatusChange,
+    onStatusChange: handleStatus,
   });
+
+  // Safety nets for unsaved edits: warn before the tab closes, and fire-and-
+  // forget a direct save when the user switches to another editor section
+  // (this form unmounts). The ref mirrors the latest values render-by-render.
+  const pendingRef = useRef<{ dirty: boolean; ids: string[]; done: boolean }>({
+    dirty: false,
+    ids: [],
+    done: value.done,
+  });
+  useEffect(() => {
+    pendingRef.current = { dirty, ids: selected, done: value.done };
+  });
+  useEffect(() => {
+    function warnUnsaved(event: BeforeUnloadEvent) {
+      if (pendingRef.current.dirty) {
+        event.preventDefault();
+      }
+    }
+    window.addEventListener("beforeunload", warnUnsaved);
+    return () => {
+      window.removeEventListener("beforeunload", warnUnsaved);
+      if (pendingRef.current.dirty) {
+        // Unmounting with unsaved order — persist it directly; no state updates
+        // are allowed here, so skip the status indicator on purpose.
+        void saveWeddingSection({
+          sectionId: "galeri",
+          data: { selectedPhotoIds: pendingRef.current.ids },
+          done: pendingRef.current.done,
+        });
+      }
+    };
+  }, []);
 
   // Desktop drags after a 6px move (so a click on the ✕ button still removes);
   // touch needs a ~180ms press (so a quick swipe still scrolls the panel);
@@ -87,10 +139,14 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Local-only commit: updates form state + live preview, arms the save button.
   function commit(nextIds: string[]) {
-    const next: GaleriValue = { ...value, data: { selectedPhotoIds: nextIds } };
-    onChange(next);
-    saveNow({ data: { selectedPhotoIds: nextIds }, done: next.done });
+    onChange({ ...value, data: { selectedPhotoIds: nextIds } });
+    setDirty(true);
+  }
+
+  function handleSave() {
+    saveNow({ data: { selectedPhotoIds: selected }, done: value.done });
   }
 
   // dnd-kit animates the tiles shifting DURING the drag; we only persist the new
@@ -130,6 +186,8 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
     commit([]);
   }
 
+  // The done toggle still saves right away — one light call — and its payload
+  // carries the current order, so it doubles as a save of any pending edits.
   function setDone(done: boolean) {
     const next: GaleriValue = { ...value, done };
     onChange(next);
@@ -144,7 +202,8 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
 
       <p className="text-[13px] text-[rgba(245,239,230,0.6)] leading-[1.6] mb-5">
         Pilih &amp; urutkan foto yang tampil di galeri undangan. <strong className="text-cream">Seret</strong>{" "}
-        foto untuk mengatur urutannya. Foto yang tidak dipilih{" "}
+        foto untuk mengatur urutannya, lalu klik{" "}
+        <strong className="text-cream">Simpan galeri</strong>. Foto yang tidak dipilih{" "}
         <strong className="text-cream">tidak ditampilkan</strong> ke tamu. Upload &amp; kelola foto di
         halaman Galeri.
       </p>
@@ -247,6 +306,28 @@ export function GaleriForm({ value, onChange, photos, onStatusChange }: GaleriFo
               </div>
             </>
           )}
+
+          {/* Manual save bar — edits (drag/add/remove) stay local until this. */}
+          <div className="flex items-center gap-3 mb-5">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty}
+              className="inline-flex items-center gap-[6px] rounded-full bg-peach px-5 py-[9px] text-[12px] font-bold text-charcoal cursor-pointer transition disabled:opacity-40 disabled:cursor-default hover:not-disabled:brightness-95"
+            >
+              <Icon name="check" size={13} stroke="#1a1a1a" />
+              Simpan galeri
+            </button>
+            <span
+              className={
+                dirty
+                  ? "text-[11.5px] font-semibold text-peach"
+                  : "text-[11.5px] text-[rgba(245,239,230,0.5)]"
+              }
+            >
+              {dirty ? "Ada perubahan yang belum disimpan" : "Semua perubahan tersimpan"}
+            </span>
+          </div>
 
           <a
             href="/dashboard/gallery"

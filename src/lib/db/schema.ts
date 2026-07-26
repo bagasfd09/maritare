@@ -17,6 +17,7 @@ import type { AdapterAccountType } from "next-auth/adapters";
 // TS type-stripping, which doesn't resolve path aliases for runtime imports.
 import type { TemplateManifest } from "@/lib/invitation/manifest";
 import type { NotificationPrefs } from "@/lib/notifications";
+import type { PaymentInstrument } from "@/lib/payment/channels";
 
 // ─────────────────────────────────────────────────────────────────
 // Enums
@@ -158,6 +159,10 @@ export const templates = pgTable("templates", {
   status: templateStatus("status").default("draft").notNull(),
   featured: boolean("featured").default(false).notNull(),
   isNew: boolean("is_new").default(false).notNull(),
+  // Exclusive targeting: when non-empty, the template only appears in the
+  // catalog of (and can only be chosen by) weddings whose CREATOR is listed —
+  // same anchor as promos. null/empty = public.
+  allowedUserIds: uuid("allowed_user_ids").array(),
   // Declares which editor form groups + photo slots this template exposes.
   // Authoritative source; renderer/editor fall back to DEFAULT_MANIFEST if empty.
   manifest: jsonb("manifest")
@@ -339,20 +344,30 @@ export const photos = pgTable("photos", {
 });
 
 // ─────────────────────────────────────────────────────────────────
-// Orders (Midtrans payments; money = integer rupiah)
+// Orders (DOKU Checkout payments; money = integer rupiah)
 // ─────────────────────────────────────────────────────────────────
 
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
-  invoiceNo: text("invoice_no").notNull().unique(), // "MTR-2026-0287"
+  // Also the DOKU `order.invoice_number` — the join key the payment
+  // notification comes back on, hence unique.
+  invoiceNo: text("invoice_no").notNull().unique(), // "MTR-20260725-K3F9QA"
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   weddingId: uuid("wedding_id").references(() => weddings.id, { onDelete: "set null" }),
   packageId: uuid("package_id").references(() => packages.id, { onDelete: "set null" }),
+  // Which promo (if any) discounted this order. `promos.used` is incremented
+  // from here when the order settles, so abandoned checkouts don't burn quota.
+  promoId: uuid("promo_id").references(() => promos.id, { onDelete: "set null" }),
   description: text("description"),
   amount: integer("amount").notNull(),
-  method: text("method"), // "Midtrans · BCA VA", "Manual · Mandiri", …
+  method: text("method"), // "DOKU · VIRTUAL_ACCOUNT_BCA", "Manual · Mandiri", …
+  // How to pay this order: the VA number or QR payload DOKU issued, plus its
+  // own expiry. Stored so our payment page re-renders on refresh without
+  // re-calling DOKU. Null for hosted-Checkout orders, which have no instrument
+  // of ours to show. The channel lives inside, so it needs no column.
+  paymentDetail: jsonb("payment_detail").$type<PaymentInstrument>(),
   status: orderStatus("status").default("pending").notNull(),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -372,7 +387,13 @@ export const promos = pgTable("promos", {
   discountType: promoDiscountType("discount_type").notNull(), // percent | fixed
   // percent: 1–100 ; fixed: rupiah amount (integer, no decimals)
   discountValue: integer("discount_value").notNull(),
-  scope: text("scope"), // human label, e.g. "Semua paket" / "Gold + Platinum"
+  scope: text("scope"), // display label, auto-derived ("Semua paket" / package name)
+  // Restrict to ONE package; null = redeemable on every package. Enforced in
+  // resolvePromo, not just display (scope above is display-only).
+  packageId: uuid("package_id").references(() => packages.id, { onDelete: "set null" }),
+  // Restrict to specific customers (orders are anchored to the wedding CREATOR,
+  // so the check runs against that user id). null/empty = every customer.
+  allowedUserIds: uuid("allowed_user_ids").array(),
   quota: integer("quota"), // max redemptions; null = unlimited
   used: integer("used").default(0).notNull(),
   // The timer: after this instant the promo is automatically expired. null = no expiry.

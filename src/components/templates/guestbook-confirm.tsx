@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Icon } from "@/components/atoms/icon";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { GuestbookShell } from "@/components/templates/guestbook-shell";
 import { GuestbookButton, GuestbookStep } from "@/components/molecules/guestbook-primitives";
-import { checkInGuest } from "@/server/actions/guestbook";
+import type { KioskSync } from "@/lib/kiosk-queue";
 import type { KioskGuest, KioskHeader } from "@/server/queries/guestbook";
 import { cn } from "@/lib/utils";
 
@@ -16,22 +14,27 @@ const MIN_GUESTS = 1;
 const MAX_GUESTS = 20;
 
 // Guestbook 04 · Konfirmasi — guest found, confirm check-in.
-// Ported from `Gb2_Confirm`; now wired to the real guest plus a server-action
-// check-in. The +pendamping stepper seeds from the guest's RSVP.
+// Ported from `Gb2_Confirm`. The check-in itself lives in the flow's
+// `onConfirm` (server first, offline queue on network failure); this screen
+// only owns the stepper + pending/error presentation.
 
 // gb2Eyebrow base (size applied per usage).
 const eyebrow = "font-body tracking-[0.24em] uppercase font-semibold text-muted-ink";
 
 type GuestbookConfirmProps = {
   header: KioskHeader | null;
+  sync?: KioskSync | null;
   guest: KioskGuest;
+  /** Resolves to an error message, or null when the flow has moved on. */
+  onConfirm?: (partySize: number) => Promise<string | null>;
+  /** "Bukan saya" — back to search. */
+  onBack?: () => void;
 };
 
-export function GuestbookConfirm({ header, guest }: GuestbookConfirmProps) {
-  const router = useRouter();
+export function GuestbookConfirm({ header, sync, guest, onConfirm, onBack }: GuestbookConfirmProps) {
   const [count, setCount] = useState(guest.partySize ?? 2);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   // Couple names + side label resolve from the live header, falling back to the
   // prototype couple so copy never renders blank.
@@ -46,23 +49,21 @@ export function GuestbookConfirm({ header, guest }: GuestbookConfirmProps) {
     { l: "RSVP", v: `${guest.partySize ?? "—"} orang` },
   ];
 
-  const onConfirm = () => {
+  const confirm = async () => {
+    if (pending) return;
     setError(null);
-    startTransition(async () => {
-      const result = await checkInGuest({
-        guestId: guest.id,
-        partySize: count,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      router.push(`/guestbook/thankyou?guest=${guest.id}`);
-    });
+    setPending(true);
+    const err = (await onConfirm?.(count)) ?? null;
+    // On success the flow swaps to the thank-you view and unmounts this
+    // screen — only a failure needs the button back.
+    if (err) {
+      setError(err);
+      setPending(false);
+    }
   };
 
   return (
-    <GuestbookShell eyebrow="Buku Tamu · Konfirmasi" header={header}>
+    <GuestbookShell eyebrow="Buku Tamu · Konfirmasi" header={header} sync={sync}>
       <div className="relative h-full grid grid-cols-[1.4fr_1fr] gap-10 px-14 pt-9 pb-[30px] overflow-hidden">
         {/* Decorative florals — subtle, behind everything (matches the kiosk's
             other screens). pointer-events-none so they never block taps. */}
@@ -159,7 +160,7 @@ export function GuestbookConfirm({ header, guest }: GuestbookConfirmProps) {
             )}
             <GuestbookButton
               type="button"
-              onClick={onConfirm}
+              onClick={confirm}
               disabled={pending}
               h={62}
               fz={13.5}
@@ -170,18 +171,20 @@ export function GuestbookConfirm({ header, guest }: GuestbookConfirmProps) {
             </GuestbookButton>
             {/* Back to search — outlined burgundy pill so the "wrong guest"
                 escape hatch reads clearly as a tappable button. */}
-            <Link
-              href="/guestbook/search"
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={pending}
               className={cn(
                 eyebrow,
                 "text-[11px] text-burgundy h-[50px] rounded-full border-[1.5px] border-burgundy/45 bg-burgundy/[0.04]",
-                "inline-flex items-center justify-center gap-[10px] no-underline",
+                "inline-flex items-center justify-center gap-[10px] cursor-pointer",
                 pending && "pointer-events-none opacity-50",
               )}
             >
               <Icon name="arrow-r" size={14} className="rotate-180" stroke="var(--color-burgundy)" />
               Bukan saya · Cari ulang
-            </Link>
+            </button>
           </div>
         </div>
       </div>

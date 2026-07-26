@@ -8,12 +8,12 @@
 // store/verify the object key here. User-facing copy is Bahasa; logs English.
 
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { templates } from "@/lib/db/schema";
+import { templates, users } from "@/lib/db/schema";
 import { headObject } from "@/lib/r2";
 import { logAudit } from "@/server/audit";
 
@@ -45,6 +45,8 @@ const updateTemplateSchema = z.object({
   status: z.enum(["draft", "published"]).optional(),
   featured: z.boolean().optional(),
   isNew: z.boolean().optional(),
+  // Exclusive targeting: empty array = public (stored as null).
+  allowedUserIds: z.array(z.uuid()).max(200, "Maksimal 200 user.").optional(),
 });
 
 export type UpdateTemplateInput = z.input<typeof updateTemplateSchema>;
@@ -72,6 +74,19 @@ export async function updateTemplate(
   if (fields.status !== undefined) patch.status = fields.status;
   if (fields.featured !== undefined) patch.featured = fields.featured;
   if (fields.isNew !== undefined) patch.isNew = fields.isNew;
+  if (fields.allowedUserIds !== undefined) {
+    // Verify the users exist so a stale/forged id never becomes a dangling grant.
+    if (fields.allowedUserIds.length > 0) {
+      const found = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(inArray(users.id, fields.allowedUserIds));
+      if (found.length !== fields.allowedUserIds.length) {
+        return { ok: false, error: "Ada user yang tidak ditemukan. Muat ulang lalu coba lagi." };
+      }
+    }
+    patch.allowedUserIds = fields.allowedUserIds.length > 0 ? fields.allowedUserIds : null;
+  }
 
   try {
     const [row] = await db

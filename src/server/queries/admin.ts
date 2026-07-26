@@ -11,7 +11,7 @@
 // Components / Server Actions. Patterns (drizzle imports, sql FILTER aggregates,
 // single round-trips, `relativeTimeId`) mirror `dashboard.ts`.
 
-import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -364,6 +364,8 @@ export type AdminTemplateRow = {
   palette: [string, string, string];
   /** Presigned GET URL for the admin-uploaded cover, or null (use static thumb). */
   coverUrl: string | null;
+  /** Exclusive grants — customers who can see this template. Empty = public. */
+  allowedUsers: { id: string; name: string | null; email: string }[];
 };
 
 /**
@@ -389,6 +391,7 @@ export async function getAdminTemplates(): Promise<AdminTemplateRow[]> {
       isNew: templates.isNew,
       palette: templates.palette,
       coverKey: templates.coverKey,
+      allowedUserIds: templates.allowedUserIds,
       uses: sql<number>`coalesce((
         select count(*)
         from ${weddings}
@@ -399,6 +402,16 @@ export async function getAdminTemplates(): Promise<AdminTemplateRow[]> {
     .from(templates)
     .where(isNull(templates.deletedAt))
     .orderBy(desc(templates.featured), desc(templates.isNew), templates.name);
+
+  // Resolve exclusive-grant user ids → {id, name, email} in one query.
+  const grantIds = [...new Set(rows.flatMap((r) => r.allowedUserIds ?? []))];
+  const grantUsers = grantIds.length
+    ? await db
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(inArray(users.id, grantIds))
+    : [];
+  const grantById = new Map(grantUsers.map((u) => [u.id, u]));
 
   // Sign a presigned GET per uploaded cover (in parallel).
   return Promise.all(
@@ -414,6 +427,9 @@ export async function getAdminTemplates(): Promise<AdminTemplateRow[]> {
       new: r.isNew,
       palette: paletteTriple(r.palette),
       coverUrl: r.coverKey ? await getViewUrl(r.coverKey) : null,
+      allowedUsers: (r.allowedUserIds ?? [])
+        .map((id) => grantById.get(id))
+        .filter((u): u is { id: string; name: string | null; email: string } => !!u),
     })),
   );
 }
@@ -633,6 +649,8 @@ export type AdminPromoRow = {
   quota: number | null;
   until: string;
   status: EffectivePromoStatus;
+  /** Targeted customers ("nama <email>"), empty = every customer. */
+  targetUsers: string[];
 };
 
 /**
@@ -660,10 +678,23 @@ export async function getAdminPromos(): Promise<AdminPromoRow[]> {
       used: promos.used,
       validUntil: promos.validUntil,
       active: promos.active,
+      allowedUserIds: promos.allowedUserIds,
     })
     .from(promos)
     .where(isNull(promos.deletedAt))
     .orderBy(desc(promos.createdAt));
+
+  // Resolve targeted user ids → "name <email>" labels in one query.
+  const allTargetIds = [...new Set(rows.flatMap((r) => r.allowedUserIds ?? []))];
+  const targetUsers = allTargetIds.length
+    ? await db
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(inArray(users.id, allTargetIds))
+    : [];
+  const userLabel = new Map(
+    targetUsers.map((u) => [u.id, u.name ? `${u.name} — ${u.email}` : u.email]),
+  );
 
   const now = Date.now();
 
@@ -688,6 +719,9 @@ export async function getAdminPromos(): Promise<AdminPromoRow[]> {
       quota: r.quota,
       until: formatTimestampDate(r.validUntil),
       status,
+      targetUsers: (r.allowedUserIds ?? [])
+        .map((id) => userLabel.get(id))
+        .filter((label): label is string => !!label),
     };
   });
 }

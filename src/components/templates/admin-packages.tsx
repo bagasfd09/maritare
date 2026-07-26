@@ -4,50 +4,35 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AdminShell } from "@/components/templates/admin-shell";
 import { AdminTopBar } from "@/components/organisms/admin-topbar";
-import { AdminStatus } from "@/components/molecules/admin-badges";
-import { AdminPromoForm } from "@/components/molecules/admin-promo-form";
 import { AdminPackageForm } from "@/components/molecules/admin-package-form";
 import { Icon } from "@/components/atoms/icon";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { CircleButton } from "@/components/atoms/circle-button";
 import { SectionNumber } from "@/components/atoms/section-number";
-import { ProgressBar } from "@/components/atoms/progress-bar";
 import { rupiah, rupiahShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { deletePromo, togglePromo } from "@/server/actions/promo";
 import {
   adminTogglePackageActive,
   adminTogglePackageFeatured,
 } from "@/server/actions/package";
-import type { AdminPackageRow, AdminPromoRow } from "@/server/queries/admin";
+import type { AdminPackageRow } from "@/server/queries/admin";
 
-// `.d-tbl` spec — shared header/cell classes for the promo table.
-const TH = "font-body text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-ink text-left px-[14px] py-3 border-b border-beige";
-const TD = "p-[14px] border-b border-line align-middle";
-
-// Admin · Paket & Promo — pricing package cards + promo code table, all from
-// real data. Packages render read-only (no package mutation actions exist yet).
-// Promos are live: the inline "Tambah promo" form creates rows, and each row can
-// be toggled active/inactive or deleted via Server Actions; every mutation calls
-// `router.refresh()` so the server-fetched lists re-render.
+// Admin · Paket — pricing package cards from real data. Promo management moved
+// to its own screen (/admin/promos).
 export function AdminPackages({
   packages,
-  promos,
 }: {
   packages: AdminPackageRow[];
-  promos: AdminPromoRow[];
 }) {
   const activePackages = packages.filter((p) => p.active).length;
-  const activePromos = promos.filter((p) => p.status === "active").length;
-  const exhaustedPromos = promos.filter((p) => p.status === "exhausted").length;
-  const eyebrow = `${activePackages} paket aktif · ${activePromos} promo aktif · ${exhaustedPromos} promo habis`;
+  const eyebrow = `${activePackages} paket aktif · ${packages.length} total`;
 
   return (
     <AdminShell active="packages">
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AdminTopBar
-          crumbs={["Admin", "Paket & Promo"]}
-          title="Paket & promo aktif"
+          crumbs={["Admin", "Paket"]}
+          title="Paket harga"
           eyebrow={eyebrow}
           actions={<AdminPackageForm mode="create" />}
         />
@@ -69,205 +54,9 @@ export function AdminPackages({
             )}
           </section>
 
-          {/* Promos */}
-          <section className="flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between mb-3">
-              <SectionNumber className="text-xs">ii. Kode promo</SectionNumber>
-            </div>
-            <AdminPromoForm />
-            {promos.length === 0 ? (
-              <div className="bg-paper border border-line rounded-[14px] px-5 py-10 text-center text-[12px] text-muted-ink font-display italic">
-                Belum ada promo. Tambah promo pertamamu.
-              </div>
-            ) : (
-              <div className="bg-paper border border-line rounded-[14px] overflow-hidden flex-1">
-                <table className="w-full border-separate border-spacing-0 text-[13px] [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:hover_td]:bg-[rgba(124,45,45,0.03)]">
-                  <thead>
-                    <tr className="bg-cream">
-                      <th className={cn(TH, "pl-5")}>Kode</th>
-                      <th className={TH}>Diskon</th>
-                      <th className={TH}>Berlaku untuk</th>
-                      <th className={TH}>Terpakai</th>
-                      <th className={TH}>Berakhir</th>
-                      <th className={TH}>Status</th>
-                      <th className={cn(TH, "w-20")}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promos.map((p) => (
-                      <PromoRow key={p.id} promo={p} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
         </div>
       </main>
     </AdminShell>
-  );
-}
-
-// One promo table row. Owns its own transition so a pending toggle/delete only
-// disables this row's controls. `quota === null` renders as "∞" — never `/ null`.
-function PromoRow({ promo: p }: { promo: AdminPromoRow }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const pct = p.quota != null && p.quota > 0 ? Math.min(100, (p.used / p.quota) * 100) : 0;
-  const isActive = p.status === "active";
-
-  const runToggle = () => {
-    startTransition(async () => {
-      const result = await togglePromo({ id: p.id, active: !isActive });
-      if (result.ok) {
-        router.refresh();
-      }
-    });
-  };
-
-  const runDelete = () => {
-    startTransition(async () => {
-      const result = await deletePromo({ id: p.id });
-      if (result.ok) {
-        router.refresh();
-      }
-    });
-  };
-
-  return (
-    <tr className={cn(isPending && "opacity-50")}>
-      <td className={cn(TD, "pl-5")}>
-        <span className="inline-block font-display font-extrabold text-[14px] text-charcoal px-3 py-1 bg-cream border border-dashed border-rule rounded-[5px] tracking-[0.06em]">
-          {p.code}
-        </span>
-      </td>
-      <td className={TD}>
-        <span className="font-display italic text-[16px] text-burgundy">—{p.off}</span>
-      </td>
-      <td className={cn(TD, "text-xs")}>{p.scope}</td>
-      <td className={TD}>
-        <div className="flex items-center gap-[10px]">
-          <ProgressBar
-            value={pct}
-            height={5}
-            trackClassName="flex-none w-20 bg-cream"
-            fillClassName={p.status === "exhausted" ? "bg-muted-ink" : "bg-burgundy"}
-          />
-          <span className="text-[11px] font-semibold text-charcoal">
-            {p.used} / {p.quota ?? "∞"}
-          </span>
-        </div>
-      </td>
-      <td className={cn(TD, "text-[11px] text-muted-ink italic font-display")}>{p.until}</td>
-      <td className={TD}><AdminStatus status={p.status} /></td>
-      <td className={TD}>
-        <div className="flex gap-1">
-          <CircleButton
-            size={26}
-            title={isActive ? "Nonaktifkan" : "Aktifkan"}
-            disabled={isPending}
-            onClick={runToggle}
-          >
-            <Icon name={isActive ? "x" : "check"} size={11} />
-          </CircleButton>
-          <ActionMenu
-            size={26}
-            title="Lainnya"
-            iconSize={11}
-            disabled={isPending}
-            items={[
-              {
-                label: isActive ? "Nonaktifkan" : "Aktifkan",
-                onSelect: runToggle,
-              },
-              { label: "Hapus", danger: true, onSelect: runDelete },
-            ]}
-          />
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-type ActionMenuItem = {
-  label: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onSelect: () => void;
-};
-
-// Local popover menu anchored to a "more" CircleButton. Fixed positioning so
-// it escapes `overflow-hidden` containers (table card, package cards); flips
-// upward near the viewport bottom. A full-screen click-away layer closes it.
-function ActionMenu({
-  items,
-  size,
-  title,
-  iconSize,
-  triggerClassName,
-  disabled,
-}: {
-  items: ActionMenuItem[];
-  size: number;
-  title?: string;
-  iconSize: number;
-  triggerClassName?: string;
-  disabled?: boolean;
-}) {
-  const [pos, setPos] = useState<{ top: number; left: number; up: boolean } | null>(null);
-
-  const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (pos) {
-      setPos(null);
-      return;
-    }
-    const r = e.currentTarget.getBoundingClientRect();
-    const up = r.bottom + 140 > window.innerHeight;
-    setPos({ top: up ? r.top - 6 : r.bottom + 6, left: r.right, up });
-  };
-
-  return (
-    <>
-      <CircleButton size={size} title={title} disabled={disabled} className={triggerClassName} onClick={toggle}>
-        <Icon name="more" size={iconSize} />
-      </CircleButton>
-      {pos && (
-        <>
-          {/* Click-away layer — closes the menu without triggering anything else. */}
-          <div aria-hidden className="fixed inset-0 z-40" onClick={() => setPos(null)} />
-          <div
-            role="menu"
-            className="fixed z-50 min-w-[180px] py-1 bg-paper border border-line rounded-[10px] shadow-[0_14px_30px_rgba(26,26,26,0.16)]"
-            style={{
-              top: pos.top,
-              left: pos.left,
-              transform: pos.up ? "translate(-100%, -100%)" : "translateX(-100%)",
-            }}
-          >
-            {items.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                disabled={item.disabled}
-                onClick={() => {
-                  setPos(null);
-                  item.onSelect();
-                }}
-                className={cn(
-                  "block w-full text-left font-body text-xs px-[14px] py-2 cursor-pointer",
-                  item.danger ? "text-burgundy hover:bg-[rgba(124,45,45,0.06)]" : "text-charcoal hover:bg-cream",
-                  item.disabled && "opacity-40 cursor-not-allowed hover:bg-transparent",
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </>
   );
 }
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/atoms/button";
 import { Icon } from "@/components/atoms/icon";
-import { createPromo } from "@/server/actions/promo";
+import { createPromo, searchCustomers, type CustomerHit } from "@/server/actions/promo";
 import { cn } from "@/lib/utils";
 
 type DiscountType = "percent" | "fixed";
@@ -30,11 +30,19 @@ function dateToIso(value: string): string | null {
   return d.toISOString();
 }
 
-// Inline "Tambah promo" create form (desktop). Collapsed by default; expands to
-// a card with the six fields, calls the real `createPromo` action inside a
-// transition, surfaces errors inline, and refreshes the route on success so the
-// server-fetched promo table picks up the new row.
-export function AdminPromoForm({ className }: { className?: string }) {
+export type PromoFormPackage = { packageId: string; name: string };
+
+// Inline "Tambah promo" create form. Collapsed by default; expands to a card:
+// code / type / value, a REAL package restriction (select — enforced by
+// resolvePromo, no more free-text "Berlaku untuk"), quota, end date, and an
+// optional list of targeted customers picked from existing users via search.
+export function AdminPromoForm({
+  packages,
+  className,
+}: {
+  packages: PromoFormPackage[];
+  className?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -43,17 +51,63 @@ export function AdminPromoForm({ className }: { className?: string }) {
   const [code, setCode] = useState("");
   const [discountType, setDiscountType] = useState<DiscountType>("percent");
   const [discountValue, setDiscountValue] = useState("");
-  const [scope, setScope] = useState("");
+  const [packageId, setPackageId] = useState(""); // "" = semua paket
   const [quota, setQuota] = useState("");
   const [validUntil, setValidUntil] = useState("");
+
+  // Targeted-customer picker: debounced live search against existing users.
+  const [userQuery, setUserQuery] = useState("");
+  const [hits, setHits] = useState<CustomerHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<CustomerHit[]>([]);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current !== null) {
+        clearTimeout(searchTimer.current);
+      }
+    };
+  }, []);
+
+  function onUserQueryChange(q: string) {
+    setUserQuery(q);
+    if (searchTimer.current !== null) {
+      clearTimeout(searchTimer.current);
+    }
+    if (q.trim().length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      const result = await searchCustomers({ query: q });
+      setSearching(false);
+      setHits(result.ok ? result.customers : []);
+    }, 300);
+  }
+
+  function addUser(hit: CustomerHit) {
+    setSelectedUsers((prev) => (prev.some((u) => u.id === hit.id) ? prev : [...prev, hit]));
+    setUserQuery("");
+    setHits([]);
+  }
+
+  function removeUser(id: string) {
+    setSelectedUsers((prev) => prev.filter((u) => u.id !== id));
+  }
 
   const reset = () => {
     setCode("");
     setDiscountType("percent");
     setDiscountValue("");
-    setScope("");
+    setPackageId("");
     setQuota("");
     setValidUntil("");
+    setUserQuery("");
+    setHits([]);
+    setSelectedUsers([]);
     setError(null);
   };
 
@@ -88,7 +142,8 @@ export function AdminPromoForm({ className }: { className?: string }) {
         code: code.trim().toUpperCase(),
         discountType,
         discountValue: value,
-        scope: scope.trim() || undefined,
+        packageId: packageId || null,
+        allowedUserIds: selectedUsers.map((u) => u.id),
         quota: parsedQuota,
         validUntil: dateToIso(validUntil),
       });
@@ -137,7 +192,7 @@ export function AdminPromoForm({ className }: { className?: string }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-[14px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-[14px]">
         <label className="block">
           <span className={LABEL}>Kode promo</span>
           <input
@@ -161,7 +216,7 @@ export function AdminPromoForm({ className }: { className?: string }) {
         </label>
         <label className="block">
           <span className={LABEL}>
-            {discountType === "percent" ? "Nilai diskon (%)" : "Nilai diskon (Rp)"}
+            {discountType === "percent" ? "Nilai diskon (%) · 100 = gratis" : "Nilai diskon (Rp)"}
           </span>
           <input
             value={discountValue}
@@ -173,15 +228,21 @@ export function AdminPromoForm({ className }: { className?: string }) {
         </label>
       </div>
 
-      <div className="grid grid-cols-3 gap-[14px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-[14px]">
         <label className="block">
-          <span className={LABEL}>Berlaku untuk</span>
-          <input
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
-            placeholder="Mis. Semua paket"
+          <span className={LABEL}>Berlaku untuk paket</span>
+          <select
+            value={packageId}
+            onChange={(e) => setPackageId(e.target.value)}
             className={FIELD}
-          />
+          >
+            <option value="">Semua paket</option>
+            {packages.map((p) => (
+              <option key={p.packageId} value={p.packageId}>
+                Paket {p.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="block">
           <span className={LABEL}>Kuota (kosong = unlimited)</span>
@@ -202,6 +263,58 @@ export function AdminPromoForm({ className }: { className?: string }) {
             className={FIELD}
           />
         </label>
+      </div>
+
+      {/* Targeted customers — empty means every customer can redeem. */}
+      <div>
+        <span className={LABEL}>Khusus user tertentu (kosong = semua user)</span>
+        {selectedUsers.length > 0 && (
+          <div className="flex flex-wrap gap-[6px] mb-2">
+            {selectedUsers.map((u) => (
+              <span
+                key={u.id}
+                className="inline-flex items-center gap-[6px] rounded-full bg-cream border border-line pl-3 pr-[6px] py-[4px] text-[11.5px] text-charcoal"
+              >
+                {u.name || u.email}
+                <button
+                  type="button"
+                  aria-label={`Hapus ${u.email}`}
+                  onClick={() => removeUser(u.id)}
+                  className="w-[18px] h-[18px] rounded-full bg-paper border border-line inline-flex items-center justify-center cursor-pointer hover:bg-peach"
+                >
+                  <Icon name="x" size={9} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="relative">
+          <input
+            value={userQuery}
+            onChange={(e) => onUserQueryChange(e.target.value)}
+            placeholder="Cari nama / email user…"
+            className={FIELD}
+          />
+          {userQuery.trim().length >= 2 && (hits.length > 0 || searching) && (
+            <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-paper border border-line rounded-[10px] shadow-[0_14px_30px_rgba(26,26,26,0.14)] overflow-hidden">
+              {searching ? (
+                <div className="px-3 py-2 text-[11.5px] text-muted-ink">Mencari…</div>
+              ) : (
+                hits.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => addUser(h)}
+                    className="block w-full text-left px-3 py-2 text-[12px] text-charcoal cursor-pointer hover:bg-cream"
+                  >
+                    <span className="font-semibold">{h.name || "—"}</span>{" "}
+                    <span className="text-muted-ink">{h.email}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <div className="text-[11px] text-burgundy font-semibold">{error}</div>}
