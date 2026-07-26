@@ -1,15 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Icon, type IconName } from "@/components/atoms/icon";
+import { Icon } from "@/components/atoms/icon";
 import { PhoneFrame } from "@/components/molecules/editor-phone-frame";
 import type { InvitationView } from "@/server/queries/invitation";
-
-const DEVICE_TABS: { ic: IconName; on: boolean }[] = [
-  { ic: "card", on: true },
-  { ic: "image", on: false },
-  { ic: "globe", on: false },
-];
 
 type EditorPhonePreviewProps = {
   /** Public slug shown in the address line. */
@@ -26,30 +19,12 @@ export function EditorPhonePreview({ slug, previewData }: EditorPhonePreviewProp
   return (
     <div className="border-l border-[rgba(245,239,230,0.08)] bg-[#0d0a07] px-[30px] py-7 flex flex-col items-center overflow-y-auto">
       {/* Header */}
-      <div className="w-full flex items-center justify-between mb-5">
-        <div>
-          <div className="text-[10px] text-peach tracking-[0.28em] uppercase font-semibold">
-            Live preview
-          </div>
-          <div className="text-[11px] text-[rgba(245,239,230,0.5)] font-body mt-[3px]">
-            maritare.id/<span className="text-peach">{slug}</span>
-          </div>
+      <div className="w-full mb-5">
+        <div className="text-[10px] text-peach tracking-[0.28em] uppercase font-semibold">
+          Live preview
         </div>
-        <div className="flex gap-1">
-          {DEVICE_TABS.map((d) => (
-            <button
-              key={d.ic}
-              type="button"
-              className={cn(
-                "w-7 h-7 rounded-[7px] border-none cursor-pointer",
-                d.on
-                  ? "bg-[rgba(245,239,230,0.12)] text-cream"
-                  : "bg-transparent text-[rgba(245,239,230,0.5)]",
-              )}
-            >
-              <Icon name={d.ic} size={13} />
-            </button>
-          ))}
+        <div className="text-[11px] text-[rgba(245,239,230,0.5)] font-body mt-[3px]">
+          maritare.id/<span className="text-peach">{slug}</span>
         </div>
       </div>
 

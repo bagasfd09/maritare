@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/atoms/icon";
 
@@ -76,30 +75,40 @@ export function GuestbookStep({
   );
 }
 
-// `GbTabs` — segmented Cari Nama / Pindai QR switch; tabs are real routes.
-export function GuestbookTabs({ active = "search", compact = false }: { active?: "search" | "qr"; compact?: boolean }) {
+// `GbTabs` — segmented Cari Nama / Pindai QR switch. In-flow view switch (no
+// route navigation) so it keeps working offline.
+export function GuestbookTabs({
+  active = "search",
+  compact = false,
+  onSelect,
+}: {
+  active?: "search" | "qr";
+  compact?: boolean;
+  onSelect?: (tab: "search" | "qr") => void;
+}) {
   const tabs = [
-    { id: "search" as const, l: "Cari Nama", icon: "search" as const, href: "/guestbook/search" },
-    { id: "qr" as const, l: "Pindai QR", icon: "qr" as const, href: "/guestbook/qr" },
+    { id: "search" as const, l: "Cari Nama", icon: "search" as const },
+    { id: "qr" as const, l: "Pindai QR", icon: "qr" as const },
   ];
   return (
     <div className="inline-flex gap-1 bg-charcoal/5 border border-beige rounded-full p-1">
       {tabs.map((tab) => {
         const on = tab.id === active;
         return (
-          <Link
+          <button
             key={tab.id}
-            href={tab.href}
+            type="button"
+            onClick={() => onSelect?.(tab.id)}
             className={cn(
               "rounded-full font-body font-semibold text-[12px] tracking-[0.16em] uppercase",
-              "inline-flex items-center gap-[10px] no-underline",
+              "inline-flex items-center gap-[10px] border-none cursor-pointer",
               compact ? "px-6 py-[10px]" : "px-[30px] py-[13px]",
               on ? "text-cream bg-charcoal" : "text-charcoal bg-transparent",
             )}
           >
             <Icon name={tab.icon} size={14} />
             {tab.l}
-          </Link>
+          </button>
         );
       })}
     </div>

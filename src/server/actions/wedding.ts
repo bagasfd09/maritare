@@ -289,7 +289,10 @@ export async function saveWeddingSection(
       }
     }
 
-    revalidatePath("/dashboard/editor");
+    // Deliberately NO revalidatePath here. The editor client already holds the
+    // state it just saved (refetching would re-presign every photo on each
+    // save — the "every drag lags" bug), and the public /inv/[slug] page is
+    // force-dynamic so guests always read fresh data anyway.
 
     return { ok: true, savedAt: savedAt.toISOString() };
   } catch (error) {
@@ -370,14 +373,22 @@ export async function createWedding(
 
     if (!existingMembership) {
       const template = await db.query.templates.findFirst({
-        columns: { id: true },
+        columns: { id: true, allowedUserIds: true },
         where: and(
           eq(templates.slug, templateSlug),
           eq(templates.status, "published"),
           isNull(templates.deletedAt),
         ),
       });
-      if (!template) {
+      // Exclusive template: the signed-in user becomes this wedding's creator,
+      // so they must be on the grant list. Mirrors the guard in chooseTemplate —
+      // onboarding accepts a slug from the client too.
+      if (
+        !template ||
+        (template.allowedUserIds &&
+          template.allowedUserIds.length > 0 &&
+          !template.allowedUserIds.includes(userId))
+      ) {
         return { ok: false, error: "Template tidak tersedia." };
       }
 
@@ -510,7 +521,7 @@ export async function chooseTemplate(input: {
 
   try {
     const wedding = await db.query.weddings.findFirst({
-      columns: { id: true },
+      columns: { id: true, userId: true },
       where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
     });
     if (!wedding) {
@@ -518,7 +529,7 @@ export async function chooseTemplate(input: {
     }
 
     const template = await db.query.templates.findFirst({
-      columns: { id: true },
+      columns: { id: true, allowedUserIds: true },
       where: and(
         eq(templates.slug, parsed.data.templateSlug),
         eq(templates.status, "published"),
@@ -526,6 +537,15 @@ export async function chooseTemplate(input: {
       ),
     });
     if (!template) {
+      return { ok: false, error: "Template tidak tersedia." };
+    }
+    // Exclusive template: only choosable when this wedding's CREATOR is granted
+    // (same anchor as promos). Reads as plain unavailable — no existence leak.
+    if (
+      template.allowedUserIds &&
+      template.allowedUserIds.length > 0 &&
+      !template.allowedUserIds.includes(wedding.userId)
+    ) {
       return { ok: false, error: "Template tidak tersedia." };
     }
 

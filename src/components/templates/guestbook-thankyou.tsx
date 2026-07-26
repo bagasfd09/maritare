@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Icon } from "@/components/atoms/icon";
@@ -18,6 +16,8 @@ const FALLBACK_SIGN_META = "14 Juni 2026 · Yogyakarta";
 type GuestbookThankYouProps = {
   header?: KioskHeader | null;
   guest?: KioskGuest | null;
+  /** Countdown finished (or the chip was tapped) — back to the idle screen. */
+  onDone?: () => void;
 };
 
 // Guestbook 07 — Terima Kasih. Full-bleed gratitude screen shown right after
@@ -25,8 +25,7 @@ type GuestbookThankYouProps = {
 // for real and auto-returns to the idle screen; tapping the chip skips ahead.
 // When a guest id resolves the receipt pill shows the real name + headcount;
 // otherwise it renders the prototype sample copy.
-export function GuestbookThankYou({ header, guest }: GuestbookThankYouProps) {
-  const router = useRouter();
+export function GuestbookThankYou({ header, guest, onDone }: GuestbookThankYouProps) {
   const [left, setLeft] = useState(RETURN_SECONDS);
 
   useEffect(() => {
@@ -35,8 +34,8 @@ export function GuestbookThankYou({ header, guest }: GuestbookThankYouProps) {
   }, []);
 
   useEffect(() => {
-    if (left <= 0) router.push("/guestbook");
-  }, [left, router]);
+    if (left <= 0) onDone?.();
+  }, [left, onDone]);
 
   const groomName = header?.groomName ?? FALLBACK_COUPLE.groom;
   const brideName = header?.brideName ?? FALLBACK_COUPLE.bride;
@@ -90,12 +89,13 @@ export function GuestbookThankYou({ header, guest }: GuestbookThankYouProps) {
         </p>
 
         {/* Auto-return countdown chip — live timer; tap to skip ahead */}
-        <Link
-          href="/guestbook"
-          className="animate-gb-fade-up [animation-delay:640ms] mt-9 px-5 py-[9px] border border-beige rounded-full font-body text-[10px] tracking-[0.24em] uppercase font-semibold text-faint no-underline tabular-nums"
+        <button
+          type="button"
+          onClick={onDone}
+          className="animate-gb-fade-up [animation-delay:640ms] mt-9 px-5 py-[9px] border border-beige rounded-full font-body text-[10px] tracking-[0.24em] uppercase font-semibold text-faint bg-transparent cursor-pointer tabular-nums"
         >
           Kembali ke beranda dalam {Math.max(left, 0)} detik…
-        </Link>
+        </button>
       </div>
 
       {/* Bottom signature */}

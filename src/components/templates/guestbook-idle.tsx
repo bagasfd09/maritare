@@ -1,8 +1,10 @@
-import Link from "next/link";
+"use client";
 
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { Logo } from "@/components/atoms/logo";
 import { Icon } from "@/components/atoms/icon";
+import { KioskSyncChip } from "@/components/templates/guestbook-shell";
+import type { KioskSync } from "@/lib/kiosk-queue";
 import type { KioskHeader } from "@/server/queries/guestbook";
 
 // Guestbook 01 — Idle / Welcome. Full-bleed attract screen shown while the
@@ -15,7 +17,15 @@ import type { KioskHeader } from "@/server/queries/guestbook";
 // Couple, live HADIR counter, and the date · venue line derive from the
 // session-owned wedding header when present; otherwise the prototype mock
 // (Andi & Putri · 142 / 280) renders so the design degrades gracefully.
-export function GuestbookIdle({ header }: { header?: KioskHeader | null }) {
+export function GuestbookIdle({
+  header,
+  sync,
+  onStart,
+}: {
+  header?: KioskHeader | null;
+  sync?: KioskSync | null;
+  onStart?: () => void;
+}) {
   const groomName = header?.groomName ?? "Andi";
   const brideName = header?.brideName ?? "Putri";
   const checkedIn = header?.stats.checkedIn ?? 142;
@@ -31,7 +41,12 @@ export function GuestbookIdle({ header }: { header?: KioskHeader | null }) {
   return (
     <div className="w-full h-screen min-w-[1280px] min-h-[800px] relative overflow-hidden font-body bg-[linear-gradient(170deg,var(--color-burgundy)_0%,var(--color-burgundy-deep)_100%)]">
       {/* Kiosk attract screen: the WHOLE screen is tappable, not just the CTA */}
-      <Link href="/guestbook/search" aria-label="Mulai check-in" className="absolute inset-0 z-[6]" />
+      <button
+        type="button"
+        onClick={onStart}
+        aria-label="Mulai check-in"
+        className="absolute inset-0 z-[6] bg-transparent border-none cursor-pointer"
+      />
 
       {/* Giant flower watermarks — ambient slow rotation */}
       <div className="absolute right-[-150px] bottom-[-180px] pointer-events-none animate-gb-spin-slow">
@@ -42,8 +57,12 @@ export function GuestbookIdle({ header }: { header?: KioskHeader | null }) {
       </div>
 
       {/* Corners */}
-      <div className="absolute top-9 left-12 z-[5] animate-gb-fade-up">
+      <div className="absolute top-9 left-12 z-[5] animate-gb-fade-up flex items-center gap-4">
         <Logo size={21} light />
+        {/* Offline/queue chip — the idle screen is what operators stare at
+            between guests, so connectivity trouble must be visible here.
+            Dark tone: this screen is a burgundy gradient, not the cream shell. */}
+        <KioskSyncChip sync={sync} tone="dark" />
       </div>
       <div className="absolute top-9 right-12 z-[5] text-right animate-gb-fade-up">
         <div className="font-body text-[9.5px] tracking-[0.26em] uppercase font-semibold text-[rgba(245,239,230,0.6)]">
@@ -84,13 +103,14 @@ export function GuestbookIdle({ header }: { header?: KioskHeader | null }) {
 
       {/* Bottom CTA */}
       <div className="absolute left-0 right-0 bottom-14 z-[5] text-center animate-gb-fade-up [animation-delay:640ms]">
-        <Link
-          href="/guestbook/search"
+        <button
+          type="button"
+          onClick={onStart}
           className="bg-cream text-burgundy-dark border-none h-[68px] px-[52px] rounded-full cursor-pointer font-body font-semibold text-[14px] tracking-[0.2em] uppercase shadow-[0_22px_44px_-18px_rgba(0,0,0,0.45)] inline-flex items-center gap-[14px] animate-gb-pulse"
         >
           Sentuh untuk check-in
           <Icon name="arrow-r" size={17} />
-        </Link>
+        </button>
         <div className="font-display italic font-normal tracking-[-0.01em] text-[16px] text-[rgba(245,239,230,0.6)] mt-4">
           Buku tamu digital — tulis nama atau pindai QR dari undangan
         </div>

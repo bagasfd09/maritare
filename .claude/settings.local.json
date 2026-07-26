@@ -11,7 +11,17 @@
       "Bash(python -c ' *)",
       "PowerShell(pnpm typecheck *)",
       "Read(//d/wedding-digital/**)",
-      "Read(//d/wedding-digital/Filan & Agung _ Katsudoto_files/**)"
+      "Read(//d/wedding-digital/Filan & Agung _ Katsudoto_files/**)",
+      "Bash(curl -s -A \"Mozilla/4.0\" \"https://fonts.googleapis.com/css?family=Fraunces:800\")",
+      "Bash(curl -s -A \"Mozilla/4.0\" \"https://fonts.googleapis.com/css?family=Instrument+Sans\")",
+      "Bash(curl -s -A \"Mozilla/4.0\" -o fraunces800.ttf \"https://fonts.gstatic.com/s/fraunces/v38/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0K7iN7hzFUPJH58nib1603gg7S2nfgRYIcNxyTCf7W.ttf\")",
+      "Bash(curl -s -A \"Mozilla/4.0\" -o instrument400.ttf \"https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npSTF-Tfykyk.ttf\")",
+      "Bash(npm init *)",
+      "Bash(npm i *)",
+      "Bash(node -e \"const o=require\\('opentype.js'\\); const f=o.loadSync\\('fraunces800.ttf'\\); console.log\\('Fraunces loaded; unitsPerEm',f.unitsPerEm,'names',f.names.fontFamily\\); const g=require\\('opentype.js'\\).loadSync\\('instrument400.ttf'\\); console.log\\('Instrument loaded', g.names.fontFamily\\);\")",
+      "Bash(node gen.js)",
+      "WebSearch",
+      "WebFetch(domain:developers.doku.com)"
     ]
   }
 }

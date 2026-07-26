@@ -22,9 +22,16 @@ import { resolveKioskWeddingId } from "@/server/guestbook-resolve";
 // Input schemas (validated at the boundary)
 // ─────────────────────────────────────────────────────────────────
 
+// `expectedWeddingId` is a fail-closed guard for the kiosk's offline replay:
+// when supplied, the mutation applies only if the token session still belongs
+// to that wedding. It can only NARROW what the session already grants (never
+// widen), so it does not violate the never-trust-client-ids rule — it protects
+// against the gb_session cookie being re-issued for a different wedding while
+// a kiosk tab still holds the previous wedding's queued ops.
 const checkInSchema = z.object({
   guestId: z.uuid(),
   partySize: z.number().int().min(1).max(20),
+  expectedWeddingId: z.uuid().optional(),
 });
 
 const addWalkInSchema = z.object({
@@ -33,6 +40,7 @@ const addWalkInSchema = z.object({
   partySize: z.number().int().min(1).max(20),
   note: z.string().trim().max(120).optional(),
   group: z.string().trim().max(60).optional(),
+  expectedWeddingId: z.uuid().optional(),
 });
 
 const addWishSchema = z.object({
@@ -44,13 +52,28 @@ export type CheckInInput = z.input<typeof checkInSchema>;
 export type AddWalkInInput = z.input<typeof addWalkInSchema>;
 export type AddKioskWishInput = z.input<typeof addWishSchema>;
 
-export type CheckInResult =
-  | { ok: true; guestName: string }
-  | { ok: false; error: string };
+// Failure flags for the kiosk's offline sync queue:
+// - `unauthenticated`: missing/kicked/wrong-wedding session — KEEP the op
+//   (it succeeds after the next login to the right wedding).
+// - `weddingMismatch` (always with unauthenticated): the session is VALID but
+//   for a different wedding than the op — the client reloads /guestbook to
+//   mount that wedding's flow instead of bouncing to the login screen.
+// - `retryable`: transient server-side failure (DB blip) — KEEP the op and
+//   retry on a later tick. A plain ok:false is a permanent rejection the
+//   queue may drop (validation failure, guest deleted meanwhile).
+type KioskMutationFailure = {
+  ok: false;
+  error: string;
+  unauthenticated?: true;
+  weddingMismatch?: true;
+  retryable?: true;
+};
+
+export type CheckInResult = { ok: true; guestName: string } | KioskMutationFailure;
 
 export type AddWalkInResult =
   | { ok: true; guestId: string; guestName: string }
-  | { ok: false; error: string };
+  | KioskMutationFailure;
 
 export type AddKioskWishResult = { ok: true } | { ok: false; error: string };
 
@@ -69,11 +92,12 @@ async function resolveOwnedWeddingId(): Promise<string | null> {
   return resolveKioskWeddingId();
 }
 
-/** Revalidate every kiosk path that renders mutated state. */
+/** Revalidate every kiosk path that renders mutated state. The guest-facing
+ * flow is a single client-stateful route (it refreshes itself by polling the
+ * snapshot endpoint, and /guestbook is dynamic anyway) — revalidating it would
+ * only fatten every mutation response with a re-rendered page the client
+ * ignores. Only the server-rendered attendant screen needs it. */
 function revalidateKiosk(): void {
-  revalidatePath("/guestbook");
-  revalidatePath("/guestbook/confirm");
-  revalidatePath("/guestbook/thankyou");
   revalidatePath("/guestbook/attendant");
 }
 
@@ -93,11 +117,24 @@ export async function checkInGuest(input: CheckInInput): Promise<CheckInResult> 
   if (!parsed.success) {
     return { ok: false, error: "Data check-in tidak valid. Coba lagi." };
   }
-  const { guestId, partySize } = parsed.data;
+  const { guestId, partySize, expectedWeddingId } = parsed.data;
 
   const weddingId = await resolveOwnedWeddingId();
   if (!weddingId) {
-    return { ok: false, error: "Kamu harus masuk dulu untuk check-in tamu." };
+    return {
+      ok: false,
+      error: "Kamu harus masuk dulu untuk check-in tamu.",
+      unauthenticated: true,
+    };
+  }
+  if (expectedWeddingId && expectedWeddingId !== weddingId) {
+    // Session now belongs to a different wedding than the op was recorded for.
+    return {
+      ok: false,
+      error: "Sesi kiosk sudah berpindah acara. Muat ulang halaman.",
+      unauthenticated: true,
+      weddingMismatch: true,
+    };
   }
 
   try {
@@ -128,7 +165,8 @@ export async function checkInGuest(input: CheckInInput): Promise<CheckInResult> 
     return { ok: true, guestName: updated.name };
   } catch (error) {
     console.error("checkInGuest failed", error);
-    return { ok: false, error: "Gagal check-in tamu. Coba lagi." };
+    // Transient (DB blip etc.) — the offline queue must keep the op and retry.
+    return { ok: false, error: "Gagal check-in tamu. Coba lagi.", retryable: true };
   }
 }
 
@@ -143,11 +181,26 @@ export async function addWalkInGuest(
   if (!parsed.success) {
     return { ok: false, error: "Data tamu tidak valid. Coba lagi." };
   }
-  const { name, side, partySize, note, group } = parsed.data;
+  const { name, side, partySize, note, group, expectedWeddingId } = parsed.data;
 
   const weddingId = await resolveOwnedWeddingId();
   if (!weddingId) {
-    return { ok: false, error: "Kamu harus masuk dulu untuk menambah tamu." };
+    return {
+      ok: false,
+      error: "Kamu harus masuk dulu untuk menambah tamu.",
+      unauthenticated: true,
+    };
+  }
+  if (expectedWeddingId && expectedWeddingId !== weddingId) {
+    // Session now belongs to a different wedding than the op was recorded for
+    // — refusing here is what keeps a stale kiosk queue from inserting one
+    // wedding's walk-ins into another wedding.
+    return {
+      ok: false,
+      error: "Sesi kiosk sudah berpindah acara. Muat ulang halaman.",
+      unauthenticated: true,
+      weddingMismatch: true,
+    };
   }
 
   try {
@@ -177,7 +230,8 @@ export async function addWalkInGuest(
     return { ok: true, guestId: inserted.id, guestName: name };
   } catch (error) {
     console.error("addWalkInGuest failed", error);
-    return { ok: false, error: "Gagal menambah tamu. Coba lagi." };
+    // Transient (DB blip etc.) — the offline queue must keep the op and retry.
+    return { ok: false, error: "Gagal menambah tamu. Coba lagi.", retryable: true };
   }
 }
 

@@ -39,8 +39,6 @@ export type Gallery = {
   limit: number | null;
   /** Package display name, or `null` when the wedding has no package. */
   packageName: string | null;
-  /** Real per-label counts for the gallery filter chips (label → count). */
-  labelCounts: { label: string; count: number }[];
 };
 
 const EMPTY_GALLERY: Gallery = {
@@ -48,18 +46,7 @@ const EMPTY_GALLERY: Gallery = {
   used: 0,
   limit: null,
   packageName: null,
-  labelCounts: [],
 };
-
-/** Aggregate photos by label for the gallery filter chips (null → "Belum berlabel"). */
-function countByLabel(rows: { label: string | null }[]): { label: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const r of rows) {
-    const key = r.label?.trim() || "Belum berlabel";
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-  return [...counts.entries()].map(([label, count]) => ({ label, count }));
-}
 
 /**
  * Get the current user's gallery: every non-deleted photo of the wedding they
@@ -134,6 +121,5 @@ export async function getMyGallery(): Promise<Gallery> {
     used: gallery.length,
     limit: owned.photoLimit,
     packageName: owned.packageName ?? null,
-    labelCounts: countByLabel(rows),
   };
 }

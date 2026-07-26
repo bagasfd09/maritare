@@ -1,8 +1,5 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-
 import { cn } from "@/lib/utils";
 import { DashboardShell } from "@/components/templates/dashboard-shell";
 import { DashboardTopBar } from "@/components/organisms/dashboard-topbar";
@@ -13,68 +10,9 @@ import { Em } from "@/components/atoms/typography";
 import { SectionNumber } from "@/components/atoms/section-number";
 import { FlowerMark } from "@/components/atoms/flower-mark";
 import { ProgressBar } from "@/components/atoms/progress-bar";
-import { PhotoPlaceholder, type PhotoTone } from "@/components/molecules/gallery-photo";
-import { uploadToR2 } from "@/lib/upload";
-import { addPhoto, deletePhoto } from "@/server/actions/photos";
+import { useGallery } from "@/components/templates/use-gallery";
 import type { DashboardChrome } from "@/server/queries/dashboard";
 import type { Gallery as GalleryData } from "@/server/queries/photos";
-
-// Client-side upload guards mirror the sign route's contract (#1): only these
-// image types, and at most 10 MB per file. Kept here so the user gets a friendly
-// Bahasa error before any network round-trip; the server re-validates anyway.
-const ACCEPTED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-]);
-const MAX_BYTES = 10_000_000;
-
-// Decorative tones cycled across the empty placeholder slots so the rest state
-// matches the design even before any real photo exists.
-const PLACEHOLDER_TONES: PhotoTone[] = [
-  "peach",
-  "sage",
-  "forest",
-  "burgundy",
-  "blush",
-  "dark",
-];
-
-// How many tiles the grid shows at rest (1 upload tile + this many photo/
-// placeholder tiles), matching the design's 12-photo mock.
-const REST_TILE_COUNT = 12;
-
-// The bucket name the query uses for photos with a null/empty label; mirrored
-// here so the "Belum berlabel" chip filters the matching photos client-side.
-const UNLABELED = "Belum berlabel";
-// Special chip that shows every photo regardless of label.
-const ALL = "Semua";
-
-// Normalize a photo's label to the same bucket key the query's `labelCounts`
-// uses, so chip filtering matches the real per-label counts.
-function labelBucket(label: string | null): string {
-  return label?.trim() || UNLABELED;
-}
-
-// Strip the extension off a file name and clamp to the action's 60-char label
-// cap, so the default label is a clean human-readable caption.
-function labelFromFileName(fileName: string): string {
-  const dot = fileName.lastIndexOf(".");
-  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
-  return base.trim().slice(0, 60);
-}
-
-// Friendly client-side validation; returns a Bahasa error string or null.
-function validateFile(file: File): string | null {
-  if (!ACCEPTED_TYPES.has(file.type)) {
-    return `"${file.name}" formatnya nggak didukung. Pakai JPG, PNG, WebP, atau AVIF ya.`;
-  }
-  if (file.size > MAX_BYTES) {
-    return `"${file.name}" kegedean (maks 10 MB).`;
-  }
-  return null;
-}
 
 type GalleryProps = {
   gallery: GalleryData;
@@ -83,186 +21,39 @@ type GalleryProps = {
 };
 
 // Screen 06 · Galeri Foto — real photos + quota from the DB, with direct-to-R2
-// uploads (presigned PUT) and soft-delete. Fed entirely by props from the page
-// server component; no ids are ever sent from the client (ownership is derived
-// server-side in the sign route and the photo actions).
+// uploads (presigned PUT), soft-delete, and cover/closing selection right on
+// the tiles. No filename labels, no filter chips, no decorative dummy tiles:
+// the grid is exactly the couple's photos plus one upload tile.
 export function Gallery({ gallery, chrome }: GalleryProps) {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { photos, used, limit, packageName } = gallery;
+  const {
+    fileInputRef,
+    uploading,
+    overallPct,
+    isDragOver,
+    error,
+    pendingPhotoId,
+    busy,
+    isUnlimited,
+    remaining,
+    handleDrop,
+    handleDragOver,
+    handleDragLeave,
+    handleInputChange,
+    openFilePicker,
+    handleDelete,
+    handleSetCover,
+    handleSetClosing,
+  } = useGallery(gallery);
 
-  const [isPending, startTransition] = useTransition();
-  // Upload progress surfaced on the drop-tile, e.g. { done: 1, total: 3 }.
-  const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
-  // Real 0–100 progress of the file currently streaming to R2 (per-file).
-  const [fileProgress, setFileProgress] = useState(0);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Track which photo is mid-delete so its tile can show a pending state.
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  // Active filter chip; `ALL` ("Semua") shows every photo.
-  const [activeLabel, setActiveLabel] = useState<string>(ALL);
-
-  const { photos, used, limit, packageName, labelCounts } = gallery;
-
-  // Filter chips: a leading "Semua" (= total used) followed by the real
-  // per-label counts from the query.
-  const chips = [{ label: ALL, count: used }, ...labelCounts];
-
-  // Photos shown in the grid, filtered by the active chip.
-  const visiblePhotos =
-    activeLabel === ALL
-      ? photos
-      : photos.filter((p) => labelBucket(p.label) === activeLabel);
-
-  // Cover caption: the real cover photo's label, or a neutral placeholder.
-  const coverPhoto = photos.find((p) => p.isCover) ?? null;
-  const coverLabel = coverPhoto?.label?.trim() || "Foto sampul";
-
-  const isUnlimited = limit === null;
-  const remaining = isUnlimited ? null : Math.max(0, limit - used);
-  const progress = isUnlimited
-    ? Math.min(100, used > 0 ? 8 : 0) // unlimited: a thin always-growing hint
-    : limit > 0
-      ? Math.min(100, Math.round((used / limit) * 100))
-      : 0;
+  const progress =
+    limit === null
+      ? Math.min(100, used > 0 ? 8 : 0) // unlimited: a thin always-growing hint
+      : limit > 0
+        ? Math.min(100, Math.round((used / limit) * 100))
+        : 0;
   const limitLabel = isUnlimited ? "∞" : String(limit);
   const packageLabel = packageName ?? "—";
-  const busy = uploading !== null || isPending;
-  // Overall batch progress: finished files + the in-flight file's fraction.
-  const overallPct = uploading
-    ? Math.min(
-        100,
-        Math.round(((uploading.done + fileProgress / 100) / uploading.total) * 100),
-      )
-    : 0;
-
-  // Number of decorative placeholder slots to keep so the rest state matches the
-  // design's full grid when there are few/no real photos in the current view.
-  const placeholderCount = Math.max(0, REST_TILE_COUNT - visiblePhotos.length);
-
-  // Upload a single file: presign + PUT-with-progress (uploadToR2) → register via
-  // addPhoto. Streams real progress into `fileProgress`. Returns a Bahasa error
-  // string on failure, or null on success.
-  async function uploadOne(file: File): Promise<string | null> {
-    const clientError = validateFile(file);
-    if (clientError) {
-      return clientError;
-    }
-
-    const up = await uploadToR2(file, { kind: "photo", onProgress: setFileProgress });
-    if (!up.ok) {
-      return up.error;
-    }
-
-    const add = await addPhoto({
-      objectKey: up.objectKey,
-      label: labelFromFileName(file.name),
-    });
-    if (!add.ok) {
-      return add.error;
-    }
-    return null;
-  }
-
-  // Sequentially upload the chosen files, surfacing progress and the first
-  // error, then refresh the route to pull the new server-rendered grid.
-  function handleFiles(fileList: FileList | null) {
-    if (busy) {
-      return;
-    }
-    const files = fileList ? Array.from(fileList) : [];
-    if (files.length === 0) {
-      return;
-    }
-
-    setError(null);
-
-    if (!isUnlimited && remaining !== null && files.length > remaining) {
-      setError(
-        remaining === 0
-          ? "Kuota foto paketmu sudah penuh."
-          : `Sisa kuota cuma ${remaining} foto, tapi kamu pilih ${files.length}.`,
-      );
-      return;
-    }
-
-    setUploading({ done: 0, total: files.length });
-    setFileProgress(0);
-
-    startTransition(async () => {
-      let firstError: string | null = null;
-      for (let i = 0; i < files.length; i += 1) {
-        const fileError = await uploadOne(files[i]);
-        if (fileError && !firstError) {
-          firstError = fileError;
-        }
-        setUploading({ done: i + 1, total: files.length });
-        // Reset so the overall bar reads done/total exactly at the file boundary
-        // (the next file's PUT streams fileProgress 0→100 again).
-        setFileProgress(0);
-      }
-      setFileProgress(0);
-      // Pull the fresh server-rendered grid (new presigned URLs + quota).
-      router.refresh();
-      if (firstError) {
-        // Surface the error and clear the indicator right away.
-        setUploading(null);
-        setError(firstError);
-      } else {
-        // Hold the completed 100% state one beat before clearing the upload tile
-        // (clearing immediately would batch away the final frame).
-        setTimeout(() => setUploading(null), 400);
-      }
-    });
-  }
-
-  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    setIsDragOver(false);
-    handleFiles(event.dataTransfer.files);
-  }
-
-  function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    if (!isDragOver) {
-      setIsDragOver(true);
-    }
-  }
-
-  function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    setIsDragOver(false);
-  }
-
-  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    handleFiles(event.target.files);
-    // Reset so picking the same file again re-fires onChange.
-    event.target.value = "";
-  }
-
-  function openFilePicker() {
-    if (busy) {
-      return;
-    }
-    fileInputRef.current?.click();
-  }
-
-  function handleDelete(photoId: string) {
-    if (busy || deletingId !== null) {
-      return;
-    }
-    setError(null);
-    setDeletingId(photoId);
-    startTransition(async () => {
-      const result = await deletePhoto({ photoId });
-      setDeletingId(null);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
 
   return (
     <DashboardShell active="photos" chrome={chrome}>
@@ -277,7 +68,6 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
                 <span className="font-display font-extrabold text-[16px] text-burgundy">{used}</span>
                 / {limitLabel} foto · paket {packageLabel}
               </span>
-              <Button variant="ghost"><Icon name="grip" size={14} />Atur urutan</Button>
               <Button variant="primary" onClick={openFilePicker} disabled={busy}>
                 <Icon name="upload" size={14} />Upload foto
               </Button>
@@ -286,78 +76,76 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
         />
 
         <div className="flex-1 px-10 py-7 overflow-y-auto flex flex-col">
-          {/* Quota strip + cover photo */}
+          {/* Quota strip + brand note */}
           <div className="grid grid-cols-[1.4fr_1fr] gap-4 mb-[22px]">
-            <div className="bg-paper border border-line rounded-[14px] px-[22px] py-[18px]">
-              <div className="flex items-center justify-between mb-3">
-                <SectionNumber className="text-[11px]">i. Quota</SectionNumber>
-                <span className="text-[11px] text-muted-ink [font-variant:small-caps] tracking-[0.18em]">
-                  {isUnlimited ? "Tak terbatas" : `Sisa ${remaining} foto`}
-                </span>
+            <div className="relative bg-paper border border-line rounded-[14px] px-[22px] py-[18px] overflow-hidden">
+              <div className="absolute -bottom-9 -right-9 w-[130px] h-[130px] opacity-[0.06] pointer-events-none" aria-hidden>
+                <FlowerMark size={130} color="var(--color-burgundy)" core="var(--color-terracotta)" stamen="var(--color-peach)" />
               </div>
-              <div className="flex items-baseline gap-[6px] mb-3">
-                <span className="font-display font-extrabold text-[44px] leading-none tracking-[-0.03em] text-charcoal">{used}</span>
-                <span className="font-display italic text-[22px] text-muted-ink">/ {limitLabel} foto</span>
-              </div>
-              <ProgressBar
-                value={progress}
-                height={6}
-                trackClassName="bg-cream mb-[10px]"
-                fillClassName="bg-linear-to-r from-terracotta to-burgundy"
-              />
-              <div className="flex items-center justify-between">
-                <div className="text-[12px] text-muted-ink">
-                  Butuh lebih? <a href="#" className="text-burgundy font-semibold no-underline">Upgrade ke Platinum →</a>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <SectionNumber className="text-[11px]">i. Quota</SectionNumber>
+                  <span className="text-[11px] text-muted-ink [font-variant:small-caps] tracking-[0.18em]">
+                    {isUnlimited ? "Tak terbatas" : `Sisa ${remaining} foto`}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-[6px] mb-3">
+                  <span className="font-display font-extrabold text-[44px] leading-none tracking-[-0.03em] text-charcoal">{used}</span>
+                  <span className="font-display italic text-[22px] text-muted-ink">/ {limitLabel} foto</span>
+                </div>
+                <ProgressBar
+                  value={progress}
+                  height={6}
+                  trackClassName="bg-cream mb-[10px]"
+                  fillClassName="bg-linear-to-r from-terracotta to-burgundy"
+                />
+                <div className="flex items-center justify-between">
+                  <div className="text-[12px] text-muted-ink">
+                    Butuh lebih?{" "}
+                    <a href="/dashboard/billing" className="text-burgundy font-semibold no-underline">
+                      Upgrade paket →
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Decorative brand note — the dark twin every screen pairs with. */}
             <div className="bg-charcoal text-cream rounded-[14px] px-[22px] py-[18px] flex items-center gap-4 relative overflow-hidden">
-              <div className="absolute -top-5 -right-[25px] w-[100px] h-[100px] opacity-[0.08]">
+              <div className="absolute -top-5 -right-[25px] w-[100px] h-[100px] opacity-[0.08]" aria-hidden>
                 <FlowerMark size={100} color="var(--color-peach)" core="var(--color-peach)" stamen="var(--color-terracotta)" />
               </div>
-              <div className="w-[60px] h-20 rounded-[6px] bg-[linear-gradient(135deg,var(--color-terracotta),var(--color-burgundy-deep))] shrink-0 relative">
-                <span className="absolute bottom-[6px] left-[6px] text-[8px] text-cream font-display italic">Cover</span>
+              <div className="w-11 h-11 rounded-full bg-[rgba(245,239,230,0.1)] border border-[rgba(245,239,230,0.2)] flex items-center justify-center shrink-0">
+                <FlowerMark size={22} color="var(--color-peach)" core="var(--color-peach)" stamen="var(--color-terracotta)" />
               </div>
               <div className="flex-1 relative z-[2]">
-                <SectionNumber className="text-[11px] text-peach mb-1">ii. Cover photo</SectionNumber>
-                <div className="font-display italic text-[18px] text-cream">{coverLabel}</div>
-                <div className="text-[11px] text-[rgba(245,239,230,0.6)] mt-1">Tampil sebagai foto utama di undangan</div>
-                <a
-                  href="#"
-                  className="mt-2 inline-flex items-center gap-[6px] text-[11px] text-peach tracking-[0.14em] uppercase font-semibold"
-                >
-                  Ganti cover <Icon name="arrow-r" size={11} stroke="var(--color-peach)" />
-                </a>
+                <SectionNumber className="text-[11px] text-peach mb-1">ii. Catatan</SectionNumber>
+                <div className="font-display italic text-[17px] text-cream leading-snug">
+                  Momen terbaik kalian, tersimpan rapi.
+                </div>
+                <div className="text-[11px] text-[rgba(245,239,230,0.6)] mt-1">
+                  Foto di sini otomatis bisa dipakai di galeri undangan & editor.
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Toolbar */}
+          {/* Toolbar — petal rule, matching the checkout group headers. */}
           <div className="flex items-center gap-3 mb-4">
             <SectionNumber className="text-[12px]">iii. Semua foto</SectionNumber>
-            <div className="flex-1" />
-            <div className="flex gap-1 bg-paper border border-line rounded-full p-[3px]">
-              {chips.map((t) => (
-                <button
-                  key={t.label}
-                  type="button"
-                  onClick={() => setActiveLabel(t.label)}
-                  className={cn(
-                    "px-3 py-[6px] rounded-full text-[11px] tracking-[0.12em] uppercase font-semibold cursor-pointer",
-                    activeLabel === t.label ? "text-cream bg-charcoal" : "text-muted-ink bg-transparent",
-                  )}
-                >
-                  {t.label} <span className="opacity-60 ml-1">{t.count}</span>
-                </button>
-              ))}
-            </div>
+            <span className="text-[11px] text-muted-ink font-display italic shrink-0">
+              {used > 0 ? `${used} foto` : "Mulai unggah foto pertamamu"}
+            </span>
+            <span className="h-px flex-1 bg-line" aria-hidden />
+            <FlowerMark size={9} color="var(--color-burgundy)" core="var(--color-terracotta)" stamen="var(--color-peach)" />
+            <span className="h-px w-10 bg-line" aria-hidden />
+            <span className="text-[10.5px] text-faint tracking-[0.14em] uppercase font-semibold shrink-0">
+              Hover foto untuk atur Cover · Penutup · Hapus
+            </span>
           </div>
 
           {/* Inline error line under the toolbar. */}
-          {error && (
-            <div className="text-[12px] text-burgundy mb-3">{error}</div>
-          )}
+          {error && <div className="text-[12px] text-burgundy mb-3">{error}</div>}
 
           {/* Hidden multi-file picker driving both the drop-tile and the topbar
               "Upload foto" button. */}
@@ -370,10 +158,36 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
             className="hidden"
           />
 
-          {/* Grid — natural height; the content wrapper above is the scroller. */}
-          <div>
+          {photos.length === 0 && !uploading ? (
+            /* Empty state — one wide branded dropzone instead of dummy tiles. */
+            <div
+              onClick={openFilePicker}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              className={cn(
+                "relative border-[1.5px] border-dashed rounded-2xl px-8 py-14 flex flex-col items-center justify-center gap-3 text-center transition-colors overflow-hidden",
+                busy ? "cursor-wait" : "cursor-pointer",
+                isDragOver ? "border-burgundy bg-peach/40" : "border-rule bg-paper",
+              )}
+            >
+              <div className="absolute -top-10 -right-10 w-[160px] h-[160px] opacity-[0.06] pointer-events-none" aria-hidden>
+                <FlowerMark size={160} color="var(--color-burgundy)" core="var(--color-terracotta)" stamen="var(--color-peach)" />
+              </div>
+              <div className="w-12 h-12 rounded-full bg-burgundy text-cream flex items-center justify-center">
+                <Icon name="upload" size={20} />
+              </div>
+              <div className="font-display italic text-[20px] text-charcoal">
+                Belum ada foto — mulai dari sini.
+              </div>
+              <div className="text-[12px] text-muted-ink max-w-[380px] leading-[1.6]">
+                Drop beberapa foto sekaligus di sini, atau klik untuk pilih dari perangkatmu.
+                JPG, PNG, WebP, atau AVIF — maksimal 10 MB per foto.
+              </div>
+            </div>
+          ) : (
+            /* Grid — upload tile + the couple's real photos. Nothing decorative. */
             <div className="grid grid-cols-6 gap-3">
-              {/* Upload tile */}
               <div
                 onClick={openFilePicker}
                 onDrop={handleDrop}
@@ -390,12 +204,8 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
                 </div>
                 {uploading ? (
                   <>
-                    <div className="font-display italic text-[13px] text-charcoal text-center">
-                      Mengunggah…
-                    </div>
-                    <div className="text-[20px] font-bold tabular-nums text-burgundy leading-none">
-                      {overallPct}%
-                    </div>
+                    <div className="font-display italic text-[13px] text-charcoal text-center">Mengunggah…</div>
+                    <div className="text-[20px] font-bold tabular-nums text-burgundy leading-none">{overallPct}%</div>
                     <div className="w-full h-[5px] rounded-full bg-rule/60 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-burgundy transition-[width] duration-200 ease-out"
@@ -414,11 +224,8 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
                 )}
               </div>
 
-              {/* Real photos from the DB (filtered by the active chip). */}
-              {visiblePhotos.map((p) => {
-                const isCover = p.isCover;
-                const isClosing = p.isClosing;
-                const isDeleting = deletingId === p.id;
+              {photos.map((p) => {
+                const isWorking = pendingPhotoId === p.id;
                 const dateLabel = new Intl.DateTimeFormat("id-ID", {
                   day: "numeric",
                   month: "short",
@@ -428,35 +235,30 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
                   <div
                     key={p.id}
                     className={cn(
-                      "group aspect-[1/1.2] rounded-xl overflow-hidden relative cursor-pointer bg-paper",
-                      isCover
+                      "group aspect-[1/1.2] rounded-xl overflow-hidden relative bg-paper",
+                      p.isCover
                         ? "border-2 border-burgundy"
-                        : isClosing
+                        : p.isClosing
                           ? "border-2 border-sage"
                           : "border border-line",
-                      isDeleting && "opacity-50",
+                      isWorking && "opacity-50",
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URLs are short-lived and not known at build time; next/image is not configured for arbitrary R2 hosts */}
                     <img
                       src={p.viewUrl}
-                      alt={p.label ?? "Foto undangan"}
+                      alt="Foto undangan"
                       className="w-full h-full object-cover rounded-[10px]"
                     />
-                    {/* Italic label bottom-left, matching PhotoPlaceholder. */}
-                    {p.label && (
-                      <span className="absolute left-[14px] bottom-[14px] z-[2] font-display italic text-[10px] text-[rgba(255,255,255,0.92)] [text-shadow:0_1px_8px_rgba(0,0,0,0.4)]">
-                        {p.label}
-                      </span>
-                    )}
-                    {/* Top-right controls */}
+
+                    {/* Status badges + delete (delete only on hover) */}
                     <div className="absolute top-2 right-2 flex gap-1 z-[3]">
-                      {isCover && (
+                      {p.isCover && (
                         <span className="text-[8px] px-[7px] py-[3px] rounded-full bg-burgundy text-cream font-bold tracking-[0.18em] uppercase">
                           Cover
                         </span>
                       )}
-                      {isClosing && (
+                      {p.isClosing && (
                         <span className="text-[8px] px-[7px] py-[3px] rounded-full bg-sage text-cream font-bold tracking-[0.18em] uppercase">
                           Penutup
                         </span>
@@ -465,39 +267,55 @@ export function Gallery({ gallery, chrome }: GalleryProps) {
                         size={22}
                         variant="solid"
                         title="Hapus foto"
-                        disabled={busy}
+                        disabled={busy || isWorking}
                         onClick={() => handleDelete(p.id)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                       >
                         <Icon name="x" size={11} />
                       </CircleButton>
                     </div>
-                    {/* Bottom date strip */}
-                    <div className="absolute bottom-0 left-0 right-0 pt-5 px-2 pb-2 bg-[linear-gradient(to_top,rgba(0,0,0,0.55),transparent)] flex items-center justify-between">
-                      <span className="text-[9px] text-[rgba(255,255,255,0.85)] font-display italic">
+
+                    {/* Bottom strip: date + cover/closing actions on hover */}
+                    <div className="absolute bottom-0 left-0 right-0 pt-6 px-2 pb-2 bg-[linear-gradient(to_top,rgba(0,0,0,0.6),transparent)] flex items-center justify-between gap-1">
+                      <span className="text-[9px] text-[rgba(255,255,255,0.85)] font-display italic shrink-0">
                         {dateLabel}
+                      </span>
+                      <span className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          disabled={busy || isWorking}
+                          onClick={() => handleSetCover(p.id, p.isCover)}
+                          title={p.isCover ? "Lepas dari cover" : "Jadikan foto sampul"}
+                          className={cn(
+                            "text-[8.5px] px-2 py-[3px] rounded-full font-bold tracking-[0.14em] uppercase cursor-pointer border",
+                            p.isCover
+                              ? "bg-burgundy text-cream border-burgundy"
+                              : "bg-[rgba(0,0,0,0.35)] text-white border-[rgba(255,255,255,0.5)]",
+                          )}
+                        >
+                          Cover
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy || isWorking}
+                          onClick={() => handleSetClosing(p.id, p.isClosing)}
+                          title={p.isClosing ? "Lepas dari penutup" : "Jadikan foto penutup"}
+                          className={cn(
+                            "text-[8.5px] px-2 py-[3px] rounded-full font-bold tracking-[0.14em] uppercase cursor-pointer border",
+                            p.isClosing
+                              ? "bg-sage text-cream border-sage"
+                              : "bg-[rgba(0,0,0,0.35)] text-white border-[rgba(255,255,255,0.5)]",
+                          )}
+                        >
+                          Penutup
+                        </button>
                       </span>
                     </div>
                   </div>
                 );
               })}
-
-              {/* Decorative empty slots so the rest state matches the design. */}
-              {Array.from({ length: placeholderCount }).map((_, i) => (
-                <div
-                  key={`ph-${i}`}
-                  className="aspect-[1/1.2] rounded-xl overflow-hidden relative bg-paper border border-line"
-                >
-                  <PhotoPlaceholder
-                    tone={PLACEHOLDER_TONES[i % PLACEHOLDER_TONES.length]}
-                    label={null}
-                    className="w-full h-full rounded-[10px]"
-                    labelClassName="text-[10px]"
-                  />
-                </div>
-              ))}
             </div>
-          </div>
+          )}
         </div>
       </main>
     </DashboardShell>

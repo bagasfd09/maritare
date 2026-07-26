@@ -40,6 +40,8 @@ export type KioskGuest = {
 };
 
 export type KioskHeader = {
+  /** Owning wedding id — the client uses it to key the offline check-in queue. */
+  weddingId: string;
   groomName: string;
   brideName: string;
   dateLabel: string | null;
@@ -170,6 +172,7 @@ async function buildHeader(resolved: ResolvedWedding): Promise<KioskHeader> {
   const eventDate = parseEventDate(wedding.eventDate);
 
   return {
+    weddingId: wedding.id,
     groomName: wedding.groomName,
     brideName: wedding.brideName,
     dateLabel: formatDateLabel(eventDate),

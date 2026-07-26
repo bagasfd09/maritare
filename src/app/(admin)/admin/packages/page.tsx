@@ -8,7 +8,8 @@ export default async function Page() {
   return (
     <>
       <div className="hidden lg:contents">
-        <AdminPackages packages={packages} promos={promos} />
+        {/* Desktop: promos moved to their own screen (/admin/promos). */}
+        <AdminPackages packages={packages} />
       </div>
       <AdminPackagesMobile packages={packages} promos={promos} />
     </>

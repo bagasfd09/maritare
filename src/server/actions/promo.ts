@@ -11,18 +11,18 @@
 // `{ ok: false, error: "Akses ditolak." }` before touching the database.
 
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { promos } from "@/lib/db/schema";
+import { packages, promos, users } from "@/lib/db/schema";
 import { logAudit } from "@/server/audit";
 
 export type PromoActionResult = { ok: true } | { ok: false; error: string };
 
 // The admin promos page to refresh after a mutation.
-const ADMIN_PROMOS_PATH = "/admin/packages";
+const ADMIN_PROMOS_PATH = "/admin/promos";
 
 /** Resolve the session and require admin role. Returns `null` for non-admins. */
 async function requireAdminId(): Promise<string | null> {
@@ -54,7 +54,10 @@ const createPromoSchema = z
       .number()
       .int("Nilai diskon harus bilangan bulat.")
       .positive("Nilai diskon harus lebih dari 0."),
-    scope: z.string().trim().max(120).optional().or(z.literal("")),
+    // null = redeemable on every package.
+    packageId: z.uuid("Paket tidak valid.").nullable(),
+    // Empty = every customer; else only these customers can redeem.
+    allowedUserIds: z.array(z.uuid()).max(100, "Maksimal 100 user per promo.").default([]),
     quota: z
       .number()
       .int("Kuota harus bilangan bulat.")
@@ -78,7 +81,10 @@ export type CreatePromoInput = {
   code: string;
   discountType: "percent" | "fixed";
   discountValue: number;
-  scope?: string;
+  /** Restrict to one package; null = all packages. */
+  packageId: string | null;
+  /** Restrict to specific customers; empty = everyone. */
+  allowedUserIds?: string[];
   quota: number | null;
   validUntil: string | null;
 };
@@ -86,6 +92,8 @@ export type CreatePromoInput = {
 /**
  * Create a promo. The code is uppercased and must be unique among non-deleted
  * promos (duplicates are rejected with a Bahasa message). Inserted as active.
+ * `scope` (the display label) is derived from the package restriction — it is
+ * no longer free text; resolvePromo enforces the restriction for real.
  */
 export async function createPromo(input: CreatePromoInput): Promise<PromoActionResult> {
   const adminId = await requireAdminId();
@@ -98,7 +106,8 @@ export async function createPromo(input: CreatePromoInput): Promise<PromoActionR
     const first = parsed.error.issues[0]?.message;
     return { ok: false, error: first || "Data promo tidak valid. Periksa lagi." };
   }
-  const { code, discountType, discountValue, scope, quota, validUntil } = parsed.data;
+  const { code, discountType, discountValue, packageId, allowedUserIds, quota, validUntil } =
+    parsed.data;
 
   try {
     // Reject duplicates against non-deleted promos (the column is globally
@@ -111,13 +120,40 @@ export async function createPromo(input: CreatePromoInput): Promise<PromoActionR
       return { ok: false, error: "Kode promo ini sudah dipakai. Coba kode lain." };
     }
 
+    // Verify the referenced package + users actually exist (forged ids from a
+    // compromised admin client must not create dangling restrictions).
+    let scope = "Semua paket";
+    if (packageId) {
+      const pkg = await db.query.packages.findFirst({
+        columns: { name: true },
+        where: eq(packages.id, packageId),
+      });
+      if (!pkg) {
+        return { ok: false, error: "Paket tidak ditemukan." };
+      }
+      scope = `Paket ${pkg.name}`;
+    }
+    let userIds: string[] = [];
+    if (allowedUserIds.length > 0) {
+      const found = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(inArray(users.id, allowedUserIds));
+      if (found.length !== allowedUserIds.length) {
+        return { ok: false, error: "Ada user yang tidak ditemukan. Muat ulang lalu coba lagi." };
+      }
+      userIds = found.map((u) => u.id);
+    }
+
     const [created] = await db
       .insert(promos)
       .values({
         code,
         discountType,
         discountValue,
-        scope: scope ? scope : null,
+        scope,
+        packageId,
+        allowedUserIds: userIds.length > 0 ? userIds : null,
         quota,
         validUntil: validUntil ? new Date(validUntil) : null,
         active: true,
@@ -135,6 +171,47 @@ export async function createPromo(input: CreatePromoInput): Promise<PromoActionR
   } catch (error) {
     console.error("createPromo failed", error);
     return { ok: false, error: "Gagal membuat promo. Coba lagi." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// searchCustomers — for the "promo untuk user tertentu" picker
+// ─────────────────────────────────────────────────────────────────
+
+const searchCustomersSchema = z.object({
+  query: z.string().trim().min(2).max(120),
+});
+
+export type CustomerHit = { id: string; name: string | null; email: string };
+export type SearchCustomersResult =
+  | { ok: true; customers: CustomerHit[] }
+  | { ok: false; error: string };
+
+/**
+ * Find existing customers by name/email for the promo user picker. Admin-only,
+ * capped at 8 rows; matching is a case-insensitive substring.
+ */
+export async function searchCustomers(input: { query: string }): Promise<SearchCustomersResult> {
+  const adminId = await requireAdminId();
+  if (!adminId) {
+    return { ok: false, error: "Akses ditolak." };
+  }
+  const parsed = searchCustomersSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: true, customers: [] }; // too-short query: just no results
+  }
+
+  try {
+    const pattern = `%${parsed.data.query.replace(/[%_]/g, "\\$&")}%`;
+    const rows = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(or(ilike(users.email, pattern), ilike(users.name, pattern)))
+      .limit(8);
+    return { ok: true, customers: rows };
+  } catch (error) {
+    console.error("searchCustomers failed", error);
+    return { ok: false, error: "Gagal mencari user. Coba lagi." };
   }
 }
 

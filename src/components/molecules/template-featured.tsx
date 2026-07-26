@@ -17,6 +17,8 @@ type TemplateFeaturedProps = {
   previewHref: string | null;
   thumbSrc: string | null;
   current: boolean;
+  /** Granted to this customer specifically — shown as a second pill. */
+  exclusive?: boolean;
 };
 
 // Featured hero for the templates gallery (dark surface). Data-driven: shows the
@@ -30,6 +32,7 @@ export function TemplateFeatured({
   previewHref,
   thumbSrc,
   current,
+  exclusive,
 }: TemplateFeaturedProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -56,8 +59,15 @@ export function TemplateFeatured({
 
       <div className="flex flex-col justify-between px-3 py-[10px] relative z-[2]">
         <div>
-          <div className="inline-flex items-center gap-[6px] px-[11px] py-[5px] rounded-full bg-burgundy text-peach text-[10px] font-bold tracking-[0.18em] uppercase mb-[18px]">
-            ★ {current ? "Aktif sekarang" : "Pilihan Maritare"}
+          <div className="flex flex-wrap items-center gap-2 mb-[18px]">
+            <span className="inline-flex items-center gap-[6px] px-[11px] py-[5px] rounded-full bg-burgundy text-peach text-[10px] font-bold tracking-[0.18em] uppercase">
+              ★ {current ? "Aktif sekarang" : "Pilihan Maritare"}
+            </span>
+            {exclusive && (
+              <span className="inline-flex items-center gap-[6px] px-[11px] py-[5px] rounded-full bg-peach text-[#5a2a18] text-[10px] font-bold tracking-[0.18em] uppercase">
+                ◆ Exclusive untukmu
+              </span>
+            )}
           </div>
           <Display as="div" className="text-[46px] tracking-[-0.03em] text-peach">
             {name}

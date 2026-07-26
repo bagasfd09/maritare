@@ -14,7 +14,7 @@ import { updateTemplate } from "@/server/actions/template";
 import type { AdminTemplateRow } from "@/server/queries/admin";
 import { cn } from "@/lib/utils";
 
-const FILTERS = ["Semua", "Published", "Draft", "Featured"] as const;
+const FILTERS = ["Semua", "Published", "Draft", "Featured", "Exclusive"] as const;
 type FilterKey = (typeof FILTERS)[number];
 
 const SORTS = ["Terpopuler", "Terbaru", "A–Z"] as const;
@@ -58,7 +58,11 @@ export function AdminTemplatesScreen({ templates }: AdminTemplatesScreenProps) {
   const publishedCount = templates.filter((t) => t.status === "published").length;
   const draftCount = templates.length - publishedCount;
   const totalUses = templates.reduce((sum, t) => sum + t.uses, 0);
-  const eyebrow = `${templates.length} template · ${publishedCount} published · ${draftCount} draft · ${totalUses} undangan total memakai`;
+  const exclusiveCount = templates.filter((t) => t.allowedUsers.length > 0).length;
+  const eyebrow =
+    `${templates.length} template · ${publishedCount} published · ${draftCount} draft` +
+    (exclusiveCount > 0 ? ` · ${exclusiveCount} exclusive` : "") +
+    ` · ${totalUses} undangan total memakai`;
 
   // "Most used" strip: real array is featured/new/name-ordered, so rank the top
   // three by usage explicitly for the performers strip.
@@ -74,6 +78,7 @@ export function AdminTemplatesScreen({ templates }: AdminTemplatesScreenProps) {
       if (filter === "Published") return t.status === "published";
       if (filter === "Draft") return t.status === "draft";
       if (filter === "Featured") return t.featured === true;
+      if (filter === "Exclusive") return t.allowedUsers.length > 0;
       return true;
     });
 
@@ -198,6 +203,14 @@ export function AdminTemplatesScreen({ templates }: AdminTemplatesScreenProps) {
                   {t.new && (
                     <span className="text-[9px] py-[3px] px-2 rounded bg-charcoal text-peach font-bold tracking-[0.16em] uppercase">
                       Baru
+                    </span>
+                  )}
+                  {t.allowedUsers.length > 0 && (
+                    <span
+                      title={t.allowedUsers.map((u) => u.name || u.email).join("\n")}
+                      className="text-[9px] py-[3px] px-2 rounded bg-burgundy text-cream font-bold tracking-[0.16em] uppercase cursor-help"
+                    >
+                      ◆ Exclusive · {t.allowedUsers.length}
                     </span>
                   )}
                 </div>

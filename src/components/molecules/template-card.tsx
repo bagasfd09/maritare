@@ -7,6 +7,7 @@ import { Button } from "@/components/atoms/button";
 import { Icon } from "@/components/atoms/icon";
 import { MiniInvite, type MiniInvitePalette } from "@/components/molecules/mini-invite";
 import { chooseTemplate } from "@/server/actions/wedding";
+import { cn } from "@/lib/utils";
 
 export type Template = {
   id: MiniInvitePalette;
@@ -17,6 +18,8 @@ export type Template = {
   featured?: boolean;
   current?: boolean;
   isNew?: boolean;
+  /** Granted to this customer specifically — the catalog already filtered it in. */
+  exclusive?: boolean;
 };
 
 type TemplateCardProps = {
@@ -61,7 +64,20 @@ export function TemplateCard({
   }
 
   return (
-    <div className="bg-paper rounded-2xl border border-line p-[14px] relative cursor-pointer">
+    <div
+      className={cn(
+        "bg-paper rounded-2xl p-[14px] relative cursor-pointer border",
+        // Exclusive tiles get a burgundy hairline instead of a second badge
+        // fighting for the same corner — quiet, but unmistakable in a full grid.
+        template.exclusive ? "border-burgundy/45" : "border-line",
+      )}
+    >
+      {/* Exclusive sits top-LEFT so it never collides with Dipakai / Baru. */}
+      {template.exclusive && (
+        <div className="absolute top-[10px] left-[10px] z-[3] bg-burgundy text-cream text-[9px] tracking-[0.2em] uppercase font-bold px-2 py-1 rounded-full">
+          ◆ Exclusive
+        </div>
+      )}
       {/* "Sedang dipakai" takes priority over the "Baru" badge for the current template. */}
       {template.current ? (
         <div className="absolute top-[10px] right-[10px] z-[3] bg-burgundy text-cream text-[9px] tracking-[0.2em] uppercase font-bold px-2 py-1 rounded-full">

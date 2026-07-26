@@ -123,8 +123,8 @@ export function GuestbookAttendant({ header, guests }: GuestbookAttendantProps) 
   const recent = live ?? SAMPLE_RECENT;
 
   const ACTIONS: AttendantAction[] = [
-    { icon: "search", label: "Cari tamu di daftar", sub: `Status semua ${invited} tamu`, href: "/guestbook/search" },
-    { icon: "plus", label: "Tambah walk-in manual", sub: "Tamu yang belum terdaftar", href: "/guestbook/notfound" },
+    { icon: "search", label: "Cari tamu di daftar", sub: `Status semua ${invited} tamu`, href: "/guestbook?v=search" },
+    { icon: "plus", label: "Tambah walk-in manual", sub: "Tamu yang belum terdaftar", href: "/guestbook?v=notfound" },
     { icon: "download", label: "Export check-in CSV", sub: "Kirim ke email pasangan", href: "#" },
     { icon: "settings", label: "Pengaturan kiosk", sub: "Auto-lock, bahasa, layar", href: "#" },
   ];
