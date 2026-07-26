@@ -17,8 +17,9 @@ export default async function Page() {
 
   const session = await auth();
 
-  // Only renderable templates (folk/scarlet) can actually be used.
-  const templates = (await getPublishedTemplates()).filter((t) =>
+  // Only renderable templates can actually be used. The session user becomes
+  // the wedding creator, so their exclusive grants already apply here.
+  const templates = (await getPublishedTemplates(session?.user?.id ?? null)).filter((t) =>
     isRenderableTemplateSlug(t.slug),
   );
 

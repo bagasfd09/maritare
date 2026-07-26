@@ -75,6 +75,7 @@ function toRows(data: TemplatesData): GalleryRow[] {
         category: toCardCategory(t.category),
         featured: t.featured,
         isNew: t.isNew,
+        exclusive: t.exclusive,
         current: t.slug === data.currentTemplateSlug,
       },
       source: t,
@@ -93,7 +94,11 @@ export function TemplatesGallery({ data }: { data: TemplatesData }) {
     rows.find((r) => r.template.current) ??
     rows.find((r) => r.source.featured) ??
     rows[0];
-  const gridRows = featured ? rows.filter((r) => r.slug !== featured.slug) : rows;
+  // Exclusive picks lead the grid — a template granted to this customer alone
+  // shouldn't be buried alphabetically once the catalog grows.
+  const gridRows = (featured ? rows.filter((r) => r.slug !== featured.slug) : rows)
+    .slice()
+    .sort((a, b) => Number(b.source.exclusive) - Number(a.source.exclusive));
 
   return (
     <DashboardShell active="templates" chrome={data.chrome}>
@@ -131,6 +136,7 @@ export function TemplatesGallery({ data }: { data: TemplatesData }) {
               previewHref={featured.previewHref}
               thumbSrc={featured.thumbSrc}
               current={featured.template.current ?? false}
+              exclusive={featured.source.exclusive}
             />
           )}
 

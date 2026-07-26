@@ -373,14 +373,22 @@ export async function createWedding(
 
     if (!existingMembership) {
       const template = await db.query.templates.findFirst({
-        columns: { id: true },
+        columns: { id: true, allowedUserIds: true },
         where: and(
           eq(templates.slug, templateSlug),
           eq(templates.status, "published"),
           isNull(templates.deletedAt),
         ),
       });
-      if (!template) {
+      // Exclusive template: the signed-in user becomes this wedding's creator,
+      // so they must be on the grant list. Mirrors the guard in chooseTemplate —
+      // onboarding accepts a slug from the client too.
+      if (
+        !template ||
+        (template.allowedUserIds &&
+          template.allowedUserIds.length > 0 &&
+          !template.allowedUserIds.includes(userId))
+      ) {
         return { ok: false, error: "Template tidak tersedia." };
       }
 

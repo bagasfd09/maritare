@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/button";
 import { Icon } from "@/components/atoms/icon";
 import { MiniInvite, type MiniInvitePalette } from "@/components/molecules/mini-invite";
+import { AdminUserPicker } from "@/components/molecules/admin-user-picker";
 import { updateTemplate, setTemplateCover } from "@/server/actions/template";
 import type { AdminTemplateRow } from "@/server/queries/admin";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,8 @@ export function AdminTemplateEdit({ template, open, onClose }: AdminTemplateEdit
   const [status, setStatus] = useState<AdminTemplateRow["status"]>(template.status);
   const [featured, setFeatured] = useState(template.featured);
   const [isNew, setIsNew] = useState(template.new);
+  // Exclusive grants: empty = public template, else only these customers see it.
+  const [allowedUsers, setAllowedUsers] = useState(template.allowedUsers);
 
   const [saving, startSave] = useTransition();
   const [coverBusy, setCoverBusy] = useState(false);
@@ -91,6 +94,7 @@ export function AdminTemplateEdit({ template, open, onClose }: AdminTemplateEdit
         status,
         featured,
         isNew,
+        allowedUserIds: allowedUsers.map((u) => u.id),
       });
       if (!res.ok) {
         setError(res.error);
@@ -371,6 +375,19 @@ export function AdminTemplateEdit({ template, open, onClose }: AdminTemplateEdit
               on={isNew}
               onToggle={() => setIsNew((v) => !v)}
             />
+          </div>
+
+          {/* Exclusive grants — chips + search stay compact however many
+              customers exist, so this panel never sprawls. */}
+          <div className="flex flex-col gap-[6px]">
+            <span className="text-[10px] text-muted-ink tracking-[0.18em] uppercase font-semibold">
+              Exclusive — khusus user tertentu
+            </span>
+            <span className="text-[11px] text-muted-ink leading-[1.5] -mt-[2px]">
+              Kosong = template publik. Terisi = hanya user ini yang melihat &
+              bisa memakai template ini.
+            </span>
+            <AdminUserPicker value={allowedUsers} onChange={setAllowedUsers} />
           </div>
 
           {/* Inline error */}

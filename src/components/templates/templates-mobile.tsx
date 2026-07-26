@@ -89,7 +89,12 @@ export function TemplatesMobile({ data }: { data: TemplatesData }) {
         {others.map((t) => {
           const thumb = templateThumbSrc(t.slug, t.coverUrl ?? null);
           return (
-          <MobileCard key={t.slug} className="p-[10px]">
+          <MobileCard key={t.slug} className="p-[10px] relative overflow-hidden">
+            {t.exclusive && (
+              <span className="absolute top-2 left-2 z-[2] bg-burgundy text-cream text-[8px] tracking-[0.18em] uppercase font-bold px-[6px] py-[3px] rounded-full">
+                ◆ Exclusive
+              </span>
+            )}
             <div className="flex justify-center">
               {thumb ? (
                 // eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL or static thumb; plain img keeps signed URLs off the optimizer
