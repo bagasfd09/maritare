@@ -45,6 +45,8 @@ export type AppSettings = {
   brandName: string;
   supportEmail: string;
   supportWhatsapp: string;
+  /** Payment channel ids switched off at checkout. */
+  disabledChannels: string[];
 };
 
 /** Defaults when the singleton row does not exist yet. */
@@ -52,7 +54,22 @@ const DEFAULTS: AppSettings = {
   brandName: "Maritare",
   supportEmail: "",
   supportWhatsapp: "",
+  disabledChannels: [],
 };
+
+/**
+ * Payment channels the admin has switched off — read by the CUSTOMER checkout
+ * path, so deliberately NOT admin-gated (unlike `getAppSettings` below, whose
+ * `null` is the not-an-admin signal). Nothing here is sensitive: it is the same
+ * set of choices the picker renders.
+ */
+export async function getDisabledPaymentChannels(): Promise<string[]> {
+  const row = await db.query.appSettings.findFirst({
+    columns: { disabledPaymentChannels: true },
+    where: eq(appSettings.id, "singleton"),
+  });
+  return row?.disabledPaymentChannels ?? [];
+}
 
 /**
  * The current platform settings for the admin Settings screen. Returns `null`
@@ -76,5 +93,6 @@ export async function getAppSettings(): Promise<AppSettings | null> {
     brandName: row.brandName ?? DEFAULTS.brandName,
     supportEmail: row.supportEmail ?? "",
     supportWhatsapp: row.supportWhatsapp ?? "",
+    disabledChannels: row.disabledPaymentChannels ?? [],
   };
 }

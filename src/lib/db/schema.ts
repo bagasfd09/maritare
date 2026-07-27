@@ -501,5 +501,12 @@ export const appSettings = pgTable("app_settings", {
   brandName: text("brand_name"),
   supportEmail: text("support_email"),
   supportWhatsapp: text("support_whatsapp"),
+  // Payment channel ids the admin has switched OFF at checkout. Stores the
+  // DISABLED set, not the enabled one, so a channel added to the catalog later
+  // ships on by default instead of silently missing.
+  disabledPaymentChannels: jsonb("disabled_payment_channels")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

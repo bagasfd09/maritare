@@ -11,7 +11,7 @@ import { BillingHistory, PendingPaymentBanner } from "@/components/molecules/bil
 import { PaymentChannelRow } from "@/components/molecules/payment-channel-row";
 import { useCheckout } from "@/components/templates/use-checkout";
 import { type CheckoutPlan } from "@/lib/checkout";
-import { CHECKOUT_CHANNELS, CHECKOUT_GROUPS } from "@/lib/payment/channels";
+import { CHECKOUT_CHANNELS, checkoutGroups } from "@/lib/payment/channels";
 import { rupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { BillingData, DashboardChrome } from "@/server/queries/dashboard";
@@ -29,12 +29,16 @@ export function Checkout({
   email,
   plans,
   orders,
+  disabledChannels,
 }: {
   chrome: DashboardChrome | null;
   email: string;
   plans: CheckoutPlan[];
   orders: BillingData["orders"];
+  /** Channel ids the admin switched off — hidden from the picker. */
+  disabledChannels: string[];
 }) {
+  const groups = checkoutGroups(disabledChannels);
   const {
     plan,
     setPlan,
@@ -55,8 +59,10 @@ export function Checkout({
     promoOff,
     total,
     verb,
-  } = useCheckout(plans);
+  } = useCheckout(plans, groups);
 
+  // Metadata lookup spans the FULL catalog on purpose: a channel disabled after
+  // selection still needs its label to render.
   const selChannel = CHECKOUT_CHANNELS.find((c) => c.id === channel) ?? null;
   const pendingOrder = orders.find((o) => o.status === "pending") ?? null;
 
@@ -253,7 +259,7 @@ export function Checkout({
                 </div>
 
                 <div className="relative flex flex-col gap-[18px]">
-                  {CHECKOUT_GROUPS.map((group) => (
+                  {groups.map((group) => (
                     <div key={group.title}>
                       <div className="flex items-center gap-2 mb-[10px]">
                         <FlowerMark size={11} color="var(--color-burgundy)" core="var(--color-terracotta)" stamen="var(--color-peach)" />

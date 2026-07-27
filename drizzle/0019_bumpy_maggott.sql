@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ADD COLUMN "disabled_payment_channels" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -109,9 +109,10 @@ export function newCustomerNo(serviceIdLength: number, customerPrefix = ""): str
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Per-bank v2 endpoints, verified against sandbox. A bank missing here cannot
- * be issued in-app yet (BTN has no v2 path; BNI's sandbox endpoint is broken —
- * both are also hidden from the checkout catalog in channels.ts).
+ * Per-bank v2 endpoints, every one verified live against sandbox with
+ * scripts/doku-probe-va.ts. A bank missing here has no v2 endpoint (404 "No
+ * static resource") and cannot be issued in-app: BTN, Bank Neo Commerce, Bank
+ * Sahabat Sampoerna, BJB, Sinarmas. They are hidden from the catalog too.
  */
 const VA_V2_PATHS: Partial<Record<VaChannel, string>> = {
   VIRTUAL_ACCOUNT_BCA: "/bca-virtual-account/v2/payment-code",
@@ -120,7 +121,42 @@ const VA_V2_PATHS: Partial<Record<VaChannel, string>> = {
   VIRTUAL_ACCOUNT_BANK_PERMATA: "/permata-virtual-account/v2/payment-code",
   VIRTUAL_ACCOUNT_BANK_CIMB: "/cimb-virtual-account/v2/payment-code",
   VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI: "/bsm-virtual-account/v2/payment-code",
+  VIRTUAL_ACCOUNT_BNI: "/bni-virtual-account/v2/payment-code",
+  VIRTUAL_ACCOUNT_BANK_DANAMON: "/danamon-virtual-account/v2/payment-code",
+  VIRTUAL_ACCOUNT_MAYBANK: "/maybank-virtual-account/v2/payment-code",
+  VIRTUAL_ACCOUNT_DOKU: "/doku-virtual-account/v2/payment-code",
 };
+
+/**
+ * `virtual_account_info` for one bank. Most take the same body; two don't, and
+ * both quirks were pinned by live probe (2026-07-26) — DOKU's docs describe
+ * neither:
+ *
+ * - BNI rejects a body without `merchant_unique_reference`, and rejects one of
+ *   13+ digits ("should less than 13 digits").
+ * - Danamon answers 400 "Invalid Billing Type Value" for EVERY documented
+ *   billing_type; it only succeeds when the field is omitted entirely. The
+ *   resulting VA may therefore be open-amount — harmless for money, because the
+ *   webhook refuses to settle an order whose notified amount doesn't match ours
+ *   (see api/webhook/doku/route.ts), but an underpayment would leave the order
+ *   pending rather than paid.
+ */
+function vaInfoFor(channel: VaChannel): Record<string, unknown> {
+  const base = {
+    billing_type: "FIX_BILL", // closed amount: pays exactly order.amount
+    expired_time: PAYMENT_WINDOW_MINUTES,
+    reusable_status: false,
+  };
+  if (channel === "VIRTUAL_ACCOUNT_BNI") {
+    // 12 digits: under BNI's limit, and random so a retry can't collide.
+    return { ...base, merchant_unique_reference: String(randomInt(1e11, 1e12)) };
+  }
+  if (channel === "VIRTUAL_ACCOUNT_BANK_DANAMON") {
+    const { billing_type: _unsupported, ...rest } = base;
+    return rest;
+  }
+  return base;
+}
 
 /**
  * Create a Virtual Account through the non-SNAP v2 API. DOKU generates the VA
@@ -149,11 +185,7 @@ export async function createVirtualAccountV2(input: {
 
   const rawBody = JSON.stringify({
     order: { invoice_number: input.invoiceNo, amount: input.amount },
-    virtual_account_info: {
-      billing_type: "FIX_BILL", // closed amount: pays exactly order.amount
-      expired_time: PAYMENT_WINDOW_MINUTES,
-      reusable_status: false,
-    },
+    virtual_account_info: vaInfoFor(input.channel),
     customer: { name: input.customerName.slice(0, 255), email: input.customerEmail },
   });
 

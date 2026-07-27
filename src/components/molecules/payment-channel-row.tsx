@@ -33,7 +33,10 @@ export function PaymentChannelRow({
         </span>
       ) : (
         <span
-          className="w-11 h-[30px] rounded-md text-white flex items-center justify-center text-[8.5px] font-extrabold tracking-[0.04em] shrink-0 uppercase"
+          // min-w + nowrap, not a fixed w-11: the VA banks without a logo asset
+          // put their full name in here ("Danamon", "Maybank"), and a fixed width
+          // would wrap or clip them.
+          className="min-w-11 px-[3px] h-[30px] rounded-md text-white flex items-center justify-center text-[8.5px] font-extrabold tracking-[0.04em] shrink-0 uppercase whitespace-nowrap"
           style={{ background: option.color }}
         >
           {option.badge}

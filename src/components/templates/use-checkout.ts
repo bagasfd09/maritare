@@ -9,7 +9,7 @@ import {
   type CheckoutPlan,
   type Order,
 } from "@/lib/checkout";
-import { CHECKOUT_CHANNELS, type PaymentChannel } from "@/lib/payment/channels";
+import { type checkoutGroups, type PaymentChannel } from "@/lib/payment/channels";
 import { checkPromo, startCheckout } from "@/server/actions/checkout";
 
 export type CheckoutState = Order & {
@@ -40,9 +40,20 @@ export type CheckoutState = Order & {
 // Prices come from `plans` (the packages table) and the promo discount is
 // whatever the server confirmed — nothing here invents a number, and
 // startCheckout re-derives the charge server-side regardless.
-export function useCheckout(plans: CheckoutPlan[]): CheckoutState {
+//
+// `groups` is the picker AFTER the admin's disabled channels are filtered out —
+// the default selection must come from it, not from the full catalog, or a
+// customer who never touches the picker submits a channel the server rejects.
+export function useCheckout(
+  plans: CheckoutPlan[],
+  groups: ReturnType<typeof checkoutGroups>,
+): CheckoutState {
   const [plan, setPlanState] = useState(() => defaultPlanId(plans));
-  const [channel, setChannel] = useState<PaymentChannel>(CHECKOUT_CHANNELS[0].id);
+  // "CHECKOUT" (DOKU's hosted page) is the floor when every channel is off —
+  // saveAppSettings forbids that, so this is belt-and-braces.
+  const [channel, setChannel] = useState<PaymentChannel>(
+    () => groups[0]?.options[0]?.id ?? "CHECKOUT",
+  );
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   const [promoErr, setPromoErr] = useState("");

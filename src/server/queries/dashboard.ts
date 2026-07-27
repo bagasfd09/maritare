@@ -32,6 +32,7 @@ import {
   normalizeNotificationPrefs,
   type NotificationPrefs,
 } from "@/lib/notifications";
+import { getDisabledPaymentChannels } from "@/server/queries/app-settings";
 import { resolveEditorUserId } from "@/server/queries/wedding";
 
 // ─────────────────────────────────────────────────────────────────
@@ -844,6 +845,8 @@ export type BillingData = {
   upgrade: { name: string; price: number; priceDiff: number; perks: string[] } | null;
   /** Active catalog, priced from the `packages` table — what checkout renders. */
   plans: CheckoutPlan[];
+  /** Payment channels the admin switched off — hidden from the picker. */
+  disabledChannels: string[];
   /** Billing contact (the account owner). NPWP isn't modeled yet. */
   billingContact: { name: string; email: string };
   orders: Array<{
@@ -958,6 +961,7 @@ export async function getBillingData(): Promise<BillingData | null> {
     .orderBy(desc(orders.createdAt));
 
   const pendingWishes = await countPendingWishes(wedding.id);
+  const disabledChannels = await getDisabledPaymentChannels();
 
   return {
     chrome: buildChrome(wedding, user, resolved.packageName, pendingWishes),
@@ -982,6 +986,7 @@ export async function getBillingData(): Promise<BillingData | null> {
         }
       : null,
     plans,
+    disabledChannels,
     // Billing is anchored to the wedding's creator (orders.userId), so the
     // contact shown is the creator — even when the signed-in viewer is the partner.
     billingContact: { name: creator.name?.trim() ?? "", email: creator.email },
