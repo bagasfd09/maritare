@@ -17,6 +17,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { appSettings, users } from "@/lib/db/schema";
+import { CHECKOUT_CHANNELS } from "@/lib/payment/channels";
 import { logAudit } from "@/server/audit";
 
 export type AppSettingsActionResult = { ok: true } | { ok: false; error: string };
@@ -46,12 +47,32 @@ const saveAppSettingsSchema = z.object({
     .optional()
     .or(z.literal("")),
   supportWhatsapp: z.string().trim().max(30).optional().or(z.literal("")),
+  // Payment channels switched off at checkout. Every id must exist in the
+  // catalog, and at least one channel has to survive — an all-off list would
+  // leave customers with no way to pay.
+  disabledChannels: z
+    .array(z.string())
+    .max(CHECKOUT_CHANNELS.length)
+    .optional()
+    .refine(
+      (ids) => !ids || ids.every((id) => CHECKOUT_CHANNELS.some((c) => c.id === id)),
+      "Metode pembayaran tidak dikenal.",
+    )
+    .refine(
+      (ids) => !ids || ids.length < CHECKOUT_CHANNELS.length,
+      "Minimal satu metode pembayaran harus tetap aktif.",
+    ),
 });
 
 export async function saveAppSettings(input: {
   brandName: string;
   supportEmail?: string;
   supportWhatsapp?: string;
+  /**
+   * Required, not optional: this action always OVERWRITES the stored list, so an
+   * omitted field would silently re-enable every channel.
+   */
+  disabledChannels: string[];
 }): Promise<AppSettingsActionResult> {
   const isSuperAdmin = await requireSuperAdmin();
   if (!isSuperAdmin) {
@@ -68,6 +89,8 @@ export async function saveAppSettings(input: {
     brandName: parsed.data.brandName,
     supportEmail: parsed.data.supportEmail ? parsed.data.supportEmail : null,
     supportWhatsapp: parsed.data.supportWhatsapp ? parsed.data.supportWhatsapp : null,
+    // Deduped so the stored set stays canonical regardless of what the form sent.
+    disabledPaymentChannels: [...new Set(parsed.data.disabledChannels ?? [])],
   };
 
   try {
@@ -83,10 +106,15 @@ export async function saveAppSettings(input: {
       action: "settings.update",
       targetType: "settings",
       targetId: "singleton",
-      summary: `Memperbarui pengaturan platform (brand ${fields.brandName})`,
+      summary:
+        `Memperbarui pengaturan platform (brand ${fields.brandName})` +
+        (fields.disabledPaymentChannels.length
+          ? ` — metode pembayaran nonaktif: ${fields.disabledPaymentChannels.join(", ")}`
+          : " — semua metode pembayaran aktif"),
     });
 
     revalidatePath("/admin/settings");
+    revalidatePath("/dashboard/billing");
     return { ok: true };
   } catch (error) {
     console.error("saveAppSettings failed", error);

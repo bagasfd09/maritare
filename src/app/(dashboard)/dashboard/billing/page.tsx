@@ -13,9 +13,9 @@ export default async function Page() {
     <>
       {/* Checkout screen (design 08) on both surfaces; mobile is the stacked twin. */}
       <div className="hidden lg:contents">
-        <Checkout chrome={data.chrome} email={data.billingContact.email} plans={data.plans} orders={data.orders} />
+        <Checkout chrome={data.chrome} email={data.billingContact.email} plans={data.plans} orders={data.orders} disabledChannels={data.disabledChannels} />
       </div>
-      <CheckoutMobile chrome={data.chrome} email={data.billingContact.email} plans={data.plans} orders={data.orders} />
+      <CheckoutMobile chrome={data.chrome} email={data.billingContact.email} plans={data.plans} orders={data.orders} disabledChannels={data.disabledChannels} />
     </>
   );
 }

@@ -134,6 +134,13 @@
       "when": 1785061672807,
       "tag": "0018_certain_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785069535722,
+      "tag": "0019_bumpy_maggott",
+      "breakpoints": true
     }
   ]
 }

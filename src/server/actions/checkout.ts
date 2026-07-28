@@ -32,6 +32,7 @@ import { createDokuCheckout } from "@/lib/payment/doku";
 import { createPaymentInstrument } from "@/lib/payment/doku-channels";
 import { logAudit } from "@/server/audit";
 import { applyPaidEntitlements } from "@/server/entitlements";
+import { getDisabledPaymentChannels } from "@/server/queries/app-settings";
 import { resolveMemberWeddingId } from "@/server/queries/wedding";
 
 /** `redirect` is our own payment page for VA/QRIS, or DOKU's hosted page for cards. */
@@ -353,6 +354,15 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
   if (amount <= 0) {
     // Zero without a promo means a zero-priced package — misconfiguration.
     return { ok: false, error: "Paket ini belum bisa dibeli. Hubungi admin." };
+  }
+
+  // The picker hides disabled channels, but a stale tab (or a hand-rolled call)
+  // can still name one — this is the actual enforcement. Only the CREATE path is
+  // gated: orders already issued against a channel keep working, since the
+  // customer may have paid their VA before it was switched off.
+  const disabledChannels = await getDisabledPaymentChannels();
+  if (disabledChannels.includes(channel)) {
+    return { ok: false, error: "Metode pembayaran ini lagi nggak tersedia. Pilih metode lain, ya." };
   }
 
   // `||`, not `??`: a blank env var must fall through, not be taken as a value.

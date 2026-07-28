@@ -16,10 +16,16 @@ export const VA_CHANNELS = [
   { id: "VIRTUAL_ACCOUNT_BANK_PERMATA", bank: "Permata", label: "Permata Virtual Account", color: "#00857C", logo: "/brand/payments/permata.webp" },
   { id: "VIRTUAL_ACCOUNT_BANK_CIMB", bank: "CIMB Niaga", label: "CIMB Niaga Virtual Account", color: "#7A1F2B", logo: "/brand/payments/cimb.webp" },
   { id: "VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI", bank: "BSI", label: "BSI Virtual Account", color: "#00A39D", logo: "/brand/payments/bsi.webp" },
-  // BNI & BTN: no working v2 endpoint on DOKU sandbox (BNI 400s, BTN 404s) and
-  // SNAP VA isn't provisioned on this account — re-add once DOKU enables them.
-  // { id: "VIRTUAL_ACCOUNT_BNI", bank: "BNI", label: "BNI Virtual Account", color: "#F05A22" },
-  // { id: "VIRTUAL_ACCOUNT_BTN", bank: "BTN", label: "BTN Virtual Account", color: "#00529B" },
+  { id: "VIRTUAL_ACCOUNT_BNI", bank: "BNI", label: "BNI Virtual Account", color: "#F05A22", logo: "/brand/payments/bni.webp" },
+  { id: "VIRTUAL_ACCOUNT_BANK_DANAMON", bank: "Danamon", label: "Danamon Virtual Account", color: "#F58220", logo: "/brand/payments/danamon.webp" },
+  { id: "VIRTUAL_ACCOUNT_MAYBANK", bank: "Maybank", label: "Maybank Virtual Account", color: "#FABC19", logo: "/brand/payments/maybank.svg" },
+  // Not a bank — DOKU's own VA, payable from several banks' transfer menus.
+  { id: "VIRTUAL_ACCOUNT_DOKU", bank: "DOKU", label: "DOKU Virtual Account", color: "#EA1D25", logo: "/brand/payments/doku.svg" },
+  // Absent on purpose — verified 2026-07-26 with scripts/doku-probe-va.ts. These
+  // five have NO non-SNAP v2 endpoint at all (404 "No static resource"), and this
+  // account is not provisioned for SNAP VA, so the Back Office listing them as
+  // Active is cosmetic. Re-probe before adding; do not add on a screenshot alone.
+  // BTN, Bank Neo Commerce (bnc), Bank Sahabat Sampoerna (bss), BJB, Sinarmas.
 ] as const satisfies ReadonlyArray<{ id: string; bank: string; label: string; color: string; logo?: string }>;
 
 export type VaChannel = (typeof VA_CHANNELS)[number]["id"];
@@ -116,10 +122,29 @@ export const CHECKOUT_GROUPS: Array<{ title: string; options: ChannelOption[] }>
       desc: "Transfer & verifikasi otomatis",
       badge: c.bank,
       color: c.color,
-      logo: c.logo,
+      // `as const` narrows each entry, so banks without an asset have no `logo`
+      // key at all — spread it conditionally rather than reading it off.
+      ...("logo" in c ? { logo: c.logo } : {}),
     })),
   },
 ];
 
 /** Flat view of the picker, in display order — first entry is the default. */
 export const CHECKOUT_CHANNELS: ChannelOption[] = CHECKOUT_GROUPS.flatMap((g) => g.options);
+
+/**
+ * The picker minus whatever the admin switched off (`app_settings
+ * .disabled_payment_channels`). A group whose every option is disabled is
+ * dropped rather than rendered empty.
+ *
+ * Only the CREATE path filters — an order already issued against a channel
+ * keeps rendering its instructions after that channel is disabled, since the
+ * customer may already have paid it.
+ */
+export function checkoutGroups(disabled: readonly string[] = []) {
+  if (disabled.length === 0) return CHECKOUT_GROUPS;
+  return CHECKOUT_GROUPS.map((g) => ({
+    ...g,
+    options: g.options.filter((o) => !disabled.includes(o.id)),
+  })).filter((g) => g.options.length > 0);
+}
