@@ -45,10 +45,34 @@ export function ActiveSectionForm({
           photos={photos}
           onChange={(v) => setSections((s) => ({ ...s, hero: v }))}
           onStatusChange={onStatusChange}
-          heroAsset={templateSlug === "folk"}
+          // Folk shows the hero asset full-bleed at the top; Onyx uses the same
+          // upload as its fixed cinematic backdrop (video or still) behind every
+          // section, so both need the block — with Onyx's own wording, since
+          // "tampil di paling atas" would be wrong there.
+          heroAsset={templateSlug === "folk" || templateSlug === "onyx"}
+          {...(templateSlug === "onyx"
+            ? {
+                heroAssetTitle: "Latar Undangan — Foto / Video",
+                heroAssetHint: (
+                  <>
+                    Media <strong className="text-cream">full-screen</strong> yang jadi{" "}
+                    <strong className="text-cream">latar belakang</strong> seluruh undangan — semua
+                    bagian bergulir di atasnya. Bisa <strong className="text-cream">foto</strong>{" "}
+                    atau <strong className="text-cream">video</strong> (autoplay, tanpa suara).
+                    Kalau kosong, otomatis pakai foto sampul.
+                  </>
+                ),
+                // Onyx always renders the backdrop full-bleed — the toggle would
+                // do nothing, so it isn't shown.
+                heroFullWidthToggle: false,
+              }
+            : {})}
           // Only templates whose closing section renders the isClosing photo
-          // (folk footnote, ivory footnote) get the Penutup upload block.
-          closingAsset={templateSlug === "folk" || templateSlug === "ivory"}
+          // (folk footnote, ivory footnote, onyx closing band) get the Penutup
+          // upload block.
+          closingAsset={
+            templateSlug === "folk" || templateSlug === "ivory" || templateSlug === "onyx"
+          }
         />
       );
     case "pasangan":

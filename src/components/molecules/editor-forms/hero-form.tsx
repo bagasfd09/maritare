@@ -513,9 +513,19 @@ type HeroFormProps = {
   onChange: (next: HeroValue) => void;
   photos: EditorPhoto[];
   onStatusChange?: (status: EditorSaveStatus) => void;
-  /** Show the folk-only full-bleed "Hero (Atas)" asset block. Templates that
-   *  only use the cover + closing photos (ivory) pass false. Default true. */
+  /** Show the full-bleed hero asset block. Templates that only use the cover +
+   *  closing photos (ivory) pass false. Default true. */
   heroAsset?: boolean;
+  /** Heading + explainer for the hero asset block. Defaults to folk's wording
+   *  (a full-screen banner at the top); Onyx overrides it because there the same
+   *  upload becomes the fixed backdrop behind every section. */
+  heroAssetTitle?: string;
+  heroAssetHint?: React.ReactNode;
+  /** Show the "Tampilkan full (tanpa bingkai template)" switch. Only meaningful
+   *  where the template actually reads heroFullWidth (folk) — Onyx renders the
+   *  asset full-bleed unconditionally, so it passes false rather than showing a
+   *  toggle that changes nothing. Default true. */
+  heroFullWidthToggle?: boolean;
   /** Show the "Foto / Video Penutup" block. Templates whose closing section is
    *  text-only (sienna, plum) pass false. Default true. */
   closingAsset?: boolean;
@@ -538,6 +548,9 @@ export function HeroForm({
   photos,
   onStatusChange,
   heroAsset = true,
+  heroAssetTitle = "Hero (Atas) — Foto / Video",
+  heroAssetHint,
+  heroFullWidthToggle = true,
   closingAsset = true,
 }: HeroFormProps) {
   const buildPayload = useCallback(
@@ -592,16 +605,22 @@ export function HeroForm({
       />
 
       {/* Dedicated full-bleed HERO asset (image or video) — separate upload.
-          Folk-only; hidden for templates with no home for it (heroAsset=false). */}
+          Hidden for templates with no home for it (heroAsset=false). Wording is
+          overridable because the same upload means different things per template
+          (folk: a banner at the top; onyx: the backdrop behind everything). */}
       {heroAsset && (
       <div className="mt-8 pt-7 border-t border-[rgba(245,239,230,0.1)]">
-        <FormHeading>Hero (Atas) — Foto / Video</FormHeading>
+        <FormHeading>{heroAssetTitle}</FormHeading>
         <p className="text-[13px] text-[rgba(245,239,230,0.6)] leading-[1.6] mb-6">
-          Media <strong className="text-cream">full-screen</strong> yang tampil di paling atas{" "}
-          <em>setelah</em> tamu buka undangan. Bisa <strong className="text-cream">foto</strong> atau{" "}
-          <strong className="text-cream">video</strong> (autoplay, tanpa suara). Ini{" "}
-          <strong className="text-cream">terpisah</strong> dari foto sampul di atas. Kalau kosong, bagian
-          ini nggak ditampilkan.
+          {heroAssetHint ?? (
+            <>
+              Media <strong className="text-cream">full-screen</strong> yang tampil di paling atas{" "}
+              <em>setelah</em> tamu buka undangan. Bisa <strong className="text-cream">foto</strong>{" "}
+              atau <strong className="text-cream">video</strong> (autoplay, tanpa suara). Ini{" "}
+              <strong className="text-cream">terpisah</strong> dari foto sampul di atas. Kalau
+              kosong, bagian ini nggak ditampilkan.
+            </>
+          )}
         </p>
 
         <HeroAssetSlot
@@ -616,7 +635,7 @@ export function HeroForm({
           onClear={() => patchHero({ imageKey: undefined, videoKey: undefined })}
         />
 
-        {(value.data.imageKey || value.data.videoKey) && (
+        {heroFullWidthToggle && (value.data.imageKey || value.data.videoKey) && (
           <div className="mt-5">
             <Toggle
               checked={value.data.heroFullWidth}

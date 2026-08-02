@@ -9,6 +9,7 @@ import type { ComponentType } from "react";
 
 import { FolkTemplate } from "@/components/invitation/folk/folk-template";
 import { IvoryTemplate } from "@/components/invitation/ivory/ivory-template";
+import { OnyxTemplate } from "@/components/invitation/onyx/onyx-template";
 import { PlumTemplate } from "@/components/invitation/plum/plum-template";
 import { ScarletTemplate } from "@/components/invitation/scarlet/scarlet-template";
 import { SiennaTemplate } from "@/components/invitation/sienna/sienna-template";
@@ -20,6 +21,7 @@ const REGISTRY: Record<string, ComponentType<InvitationTemplateProps>> = {
   scarlet: ScarletTemplate,
   sienna: SiennaTemplate,
   plum: PlumTemplate,
+  onyx: OnyxTemplate,
 };
 
 export function getInvitationTemplate(
