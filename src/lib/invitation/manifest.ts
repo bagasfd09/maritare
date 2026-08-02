@@ -199,6 +199,33 @@ export const PLUM_MANIFEST: TemplateManifest = {
   ],
 };
 
+// Onyx (cinematic dark editorial port) — carries a "Cerita" (love-story) chapter
+// and a closing photo (the closing band washes it behind the names). Its "Sampul"
+// group is the richest of any template: besides the gate/cover photo it uses the
+// folk HERO ASSET slot for the fixed background VIDEO or still that the whole
+// invitation scrolls over — that backdrop IS this template's identity, so the
+// hero-asset block stays enabled in the editor.
+export const ONYX_MANIFEST: TemplateManifest = {
+  formGroups: [
+    { id: "hero", label: "Sampul", order: 1 },
+    { id: "pasangan", label: "Mempelai", order: 2 },
+    { id: "cerita", label: "Cerita", order: 3 },
+    { id: "galeri", label: "Galeri", order: 4 },
+    { id: "acara", label: "Acara", order: 5 },
+    { id: "amplop", label: "Hadiah", order: 6 },
+    { id: "musik", label: "Musik", order: 7 },
+    { id: "rsvp", label: "RSVP", order: 8 },
+    { id: "bagikan", label: "Bagikan", order: 9 },
+  ],
+  photoSlots: [
+    { id: "cover", label: "Foto sampul", kind: "cover", where: "Backdrop + cover gate" },
+    { id: "groom", label: "Foto mempelai pria", kind: "couple-groom", where: "Couple — groom" },
+    { id: "bride", label: "Foto mempelai wanita", kind: "couple-bride", where: "Couple — bride" },
+    { id: "closing", label: "Foto penutup", kind: "closing", where: "Closing band wash" },
+    { id: "gallery", label: "Galeri foto", kind: "gallery", where: "Masonry grid", max: 20 },
+  ],
+};
+
 /** Slug → manifest, for seeding and any code-side lookups. */
 export const TEMPLATE_MANIFESTS: Record<string, TemplateManifest> = {
   folk: FOLK_MANIFEST,
@@ -206,4 +233,5 @@ export const TEMPLATE_MANIFESTS: Record<string, TemplateManifest> = {
   scarlet: SCARLET_MANIFEST,
   sienna: SIENNA_MANIFEST,
   plum: PLUM_MANIFEST,
+  onyx: ONYX_MANIFEST,
 };

@@ -2,7 +2,14 @@
 // implementation. Kept free of component imports so server queries/pages can
 // import it without pulling client component trees.
 
-export const RENDERABLE_TEMPLATE_SLUGS = ["folk", "scarlet", "ivory", "sienna", "plum"] as const;
+export const RENDERABLE_TEMPLATE_SLUGS = [
+  "folk",
+  "scarlet",
+  "ivory",
+  "sienna",
+  "plum",
+  "onyx",
+] as const;
 
 export type RenderableTemplateSlug = (typeof RENDERABLE_TEMPLATE_SLUGS)[number];
 
@@ -15,6 +22,7 @@ export function isRenderableTemplateSlug(slug: string): slug is RenderableTempla
 const TEMPLATE_THUMBS: Record<string, string> = {
   folk: "/invitation/thumbs/folk.webp",
   ivory: "/invitation/thumbs/ivory.webp",
+  onyx: "/invitation/thumbs/onyx.webp",
 };
 
 // Cover thumbnail for a catalog template, resolved identically on web + mobile:

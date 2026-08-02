@@ -32,19 +32,28 @@ type Props = {
    * first interaction anywhere.
    */
   waitForOpen?: boolean;
+  /**
+   * Template-supplied default track, used ONLY when the couple configured no
+   * music of their own (Onyx ships the reference design's soundtrack this way).
+   * A missing file is harmless: <audio> fires onError and the toggle hides.
+   */
+  fallbackSrc?: string;
 };
 
-export function ScarletAudio({ data, mode, waitForOpen = false }: Props) {
+export function ScarletAudio({ data, mode, waitForOpen = false, fallbackSrc }: Props) {
   const { musik } = data.sections;
   const isPreview = mode === "editorPreview";
 
-  const fileSrc =
+  const configuredSrc =
     musik.source === "upload"
       ? musik.audioUrl
       : musik.source === "preset" && musik.track
         ? MUSIC_TRACKS.find((t) => t.id === musik.track)?.src
         : undefined;
   const youtubeId = musik.source === "youtube" ? musik.youtubeId : undefined;
+  // The couple's own choice always wins; the template default only fills a gap
+  // (and never competes with a YouTube track).
+  const fileSrc = configuredSrc ?? (youtubeId ? undefined : fallbackSrc);
   const startSec = musik.startSec ?? 0;
   const endSec = musik.endSec;
 

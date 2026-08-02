@@ -17,6 +17,13 @@ export function demoInvitation(templateSlug: string): InvitationView {
   const today = new Date().toISOString().slice(0, 10);
   const now = new Date().toISOString();
 
+  // Templates that ship their OWN artwork as built-in defaults (Onyx: the
+  // reference design's backdrop video, couple portraits and gallery — see
+  // onyx-sample.ts) must get NO placeholder photos here. Those defaults only
+  // apply where nothing is uploaded, so handing them the neutral silhouettes
+  // would override the very design the customer is shopping for.
+  const usesBuiltInArt = templateSlug === "onyx";
+
   return {
     slug: "preview",
     groomName: "Groom",
@@ -77,24 +84,26 @@ export function demoInvitation(templateSlug: string): InvitationView {
         body: "",
         items: [
           {
-            photoId: "demo-2",
+            photoId: usesBuiltInArt ? undefined : "demo-2",
             title: "Awal Pertemuan",
             body: "Kisah kami bermula dari sebuah pertemuan sederhana yang tak pernah kami sangka akan menjadi awal dari perjalanan panjang ini.",
           },
           {
-            photoId: "demo-0",
+            photoId: usesBuiltInArt ? undefined : "demo-0",
             title: "Saling Menguatkan",
             body: "Waktu membawa kami semakin mengenal, memahami, dan menguatkan satu sama lain di setiap langkah.",
           },
           {
-            photoId: "demo-1",
+            photoId: usesBuiltInArt ? undefined : "demo-1",
             title: "Memilih Selamanya",
             body: "Dengan penuh rasa syukur, kami memilih satu sama lain — hari ini, esok, dan selamanya.",
           },
         ],
       },
       // Catalog preview curates all demo gallery photos so the grid still shows.
-      galeri: { selectedPhotoIds: DEMO_GALLERY.map((_, i) => `demo-${i}`) },
+      galeri: {
+        selectedPhotoIds: usesBuiltInArt ? [] : DEMO_GALLERY.map((_, i) => `demo-${i}`),
+      },
       amplop: {
         accounts: [{ bank: "BCA", number: "1234567890", holder: "Bride", side: "both" }],
         ewallets: [],
@@ -106,25 +115,28 @@ export function demoInvitation(templateSlug: string): InvitationView {
     },
     // Hero/cover = couple3_silhouette (isCover); gallery = the dummy placeholders.
     // Couple profile photos fall back to the template defaults (couplePhotoUrls
-    // empty → default-groom/default-bride).
-    photos: [
-      {
-        id: "demo-cover",
-        url: "/invitation/scarlet/default-cover.jpg",
-        thumbUrl: "/invitation/scarlet/default-cover.jpg",
-        label: null,
-        isCover: true,
-        isClosing: false,
-      },
-      ...DEMO_GALLERY.map((file, i) => ({
-        id: `demo-${i}`,
-        url: `/invitation/scarlet/${file}`,
-        thumbUrl: `/invitation/scarlet/${file}`,
-        label: null,
-        isCover: false,
-        isClosing: false,
-      })),
-    ],
+    // empty → default-groom/default-bride). Templates with built-in art get an
+    // empty set so their own defaults show through (see usesBuiltInArt above).
+    photos: usesBuiltInArt
+      ? []
+      : [
+          {
+            id: "demo-cover",
+            url: "/invitation/scarlet/default-cover.jpg",
+            thumbUrl: "/invitation/scarlet/default-cover.jpg",
+            label: null,
+            isCover: true,
+            isClosing: false,
+          },
+          ...DEMO_GALLERY.map((file, i) => ({
+            id: `demo-${i}`,
+            url: `/invitation/scarlet/${file}`,
+            thumbUrl: `/invitation/scarlet/${file}`,
+            label: null,
+            isCover: false,
+            isClosing: false,
+          })),
+        ],
     couplePhotoUrls: {},
     wishes: [
       { fromName: "Sahabat", body: "Selamat menempuh hidup baru! Bahagia selalu ya 🌿", createdAt: now },

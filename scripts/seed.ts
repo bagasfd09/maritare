@@ -26,7 +26,7 @@ import {
   orders,
 } from "../src/lib/db/schema.ts";
 import type { TemplateManifest } from "../src/lib/invitation/manifest.ts";
-import { FOLK_MANIFEST, IVORY_MANIFEST, SCARLET_MANIFEST, SIENNA_MANIFEST, PLUM_MANIFEST } from "../src/lib/invitation/manifest.ts";
+import { FOLK_MANIFEST, IVORY_MANIFEST, SCARLET_MANIFEST, SIENNA_MANIFEST, PLUM_MANIFEST, ONYX_MANIFEST } from "../src/lib/invitation/manifest.ts";
 import { hashPassword } from "../src/lib/password.ts";
 
 // Enum literal unions, kept in sync with src/lib/db/schema.ts pgEnum defs.
@@ -125,10 +125,14 @@ const TEMPLATE_SEED: {
   { slug: "sienna", name: "Sienna", style: "Warm Botanical", category: "Romantic", palette: ["#FBF6F0", "#D6A191", "#CB3A31"], status: "published", featured: false, isNew: true, manifest: SIENNA_MANIFEST },
   // Renderable plum/forest botanical template — Katsudoto "Kinanti" port (src/components/invitation/plum/).
   { slug: "plum", name: "Plum", style: "Forest Botanical", category: "Romantic", palette: ["#F3E4D8", "#613947", "#D0A25E"], status: "published", featured: false, isNew: true, manifest: PLUM_MANIFEST },
+  // Renderable cinematic dark template — video-backdrop editorial (src/components/invitation/onyx/).
+  // Kept DRAFT: visible in the admin templates list (no status filter there) but
+  // hidden from the customer catalog + template picker, which read published only.
+  { slug: "onyx", name: "Onyx", style: "Cinematic Noir", category: "Editorial", palette: ["#0D0D0D", "#C9A96E", "#F7F7F5"], status: "draft", featured: false, isNew: true, manifest: ONYX_MANIFEST },
 ];
 
 // Slugs to retire (soft-delete) — everything that is no longer offered.
-const KEEP_TEMPLATE_SLUGS = ["folk", "scarlet", "ivory", "sienna", "plum"];
+const KEEP_TEMPLATE_SLUGS = ["folk", "scarlet", "ivory", "sienna", "plum", "onyx"];
 
 // src/components/templates/guests.tsx → GUESTS (the 8-guest array)
 // side: P = bride, A = groom, — = both. inv: sent | opened.

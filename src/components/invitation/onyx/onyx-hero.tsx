@@ -1,0 +1,173 @@
+// Onyx hero — the reference's `HeroSection`: a full-viewport opening frame over
+// the fixed backdrop, with the names centred, a hairline-flanked date line and a
+// "Scroll" cue pinned to the bottom. Entrance uses the `onyxFadeUp` keyframe
+// (onyx-theme) rather than the scroll observer, exactly as the reference does —
+// this section is already in view on load.
+//
+// Height: `100svh` on a real page, but a fixed px in the editor preview — the
+// preview is a SCALED DIV, not an iframe, so viewport units there resolve
+// against the whole browser window and the hero would tower over the phone
+// frame (the vh trap that bit sienna).
+
+import { format, parseISO } from "date-fns";
+import { id } from "date-fns/locale";
+
+import type { InvitationView } from "@/server/queries/invitation";
+
+import { ONYX, gold, warm } from "./onyx-theme";
+
+type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
+
+function firstName(fullName: string | undefined, fallback: string): string {
+  const n = (fullName ?? "").trim() || fallback;
+  return n.split(/\s+/)[0] || fallback;
+}
+
+export function OnyxHero({ data, mode }: Props) {
+  const { pasangan } = data.sections;
+  const groom = firstName(pasangan.groom.fullName, data.groomName);
+  const bride = firstName(pasangan.bride.fullName, data.brideName);
+
+  const eventDate = data.sections.acara.events[0]?.date ?? data.eventDate;
+  // No weekday here: the reference's hero meta is a single hairline-flanked
+  // line, and "Sabtu · 01 Agustus 2026 · Yogyakarta" wraps to two at 430px.
+  // The weekday still shows in full on the event cards.
+  const metaLine = [
+    eventDate ? format(parseISO(eventDate), "dd MMMM yyyy", { locale: id }) : null,
+    data.city,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <section
+      id="onyx-hero"
+      style={{
+        position: "relative",
+        minHeight: mode === "editorPreview" ? "620px" : "100svh",
+        display: "flex",
+        alignItems: "flex-end",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          maxWidth: "1400px",
+          margin: "auto",
+          padding: "clamp(4rem, 8vw, 8rem) clamp(1.5rem, 5vw, 5rem)",
+          paddingTop: "8rem",
+          textAlign: "center",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: ONYX.font.body,
+            fontSize: "0.6rem",
+            letterSpacing: "0.42em",
+            textTransform: "uppercase",
+            color: ONYX.color.champagne,
+            marginBottom: "1.5rem",
+            animation: "onyxFadeUp 1s ease 0.3s both",
+          }}
+        >
+          The Wedding of
+        </p>
+
+        <h1
+          style={{
+            fontFamily: ONYX.font.display,
+            fontSize: "clamp(3.2rem, 9vw, 8rem)",
+            fontWeight: 300,
+            color: ONYX.color.warmWhite,
+            lineHeight: 1.02,
+            letterSpacing: "-0.02em",
+            margin: "0 0 0.6rem",
+            animation: "onyxFadeUp 1s ease 0.5s both",
+          }}
+        >
+          {groom} &amp; {bride}
+        </h1>
+
+        <p
+          style={{
+            fontFamily: ONYX.font.display,
+            fontStyle: "italic",
+            fontWeight: 300,
+            fontSize: "clamp(1rem, 2.8vw, 1.75rem)",
+            color: warm(0.58),
+            letterSpacing: "0.02em",
+            marginBottom: "2.5rem",
+            animation: "onyxFadeUp 1s ease 0.7s both",
+          }}
+        >
+          &quot;Two Souls. One Light. One Forever.&quot;
+        </p>
+
+        {metaLine && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "1.25rem",
+              animation: "onyxFadeUp 1s ease 0.9s both",
+            }}
+          >
+            <div style={{ height: "1px", width: "36px", background: gold(0.5) }} />
+            <p
+              style={{
+                fontFamily: ONYX.font.body,
+                fontSize: "0.6rem",
+                letterSpacing: "0.3em",
+                textTransform: "uppercase",
+                color: warm(0.45),
+                margin: 0,
+              }}
+            >
+              {metaLine}
+            </p>
+            <div style={{ height: "1px", width: "36px", background: gold(0.5) }} />
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: "2rem",
+          left: 0,
+          width: "100%",
+          zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "6px",
+          animation: "onyxFadeUp 1s ease 1.3s both",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: ONYX.font.body,
+            fontSize: "0.52rem",
+            letterSpacing: "0.35em",
+            textTransform: "uppercase",
+            color: warm(0.28),
+            margin: 0,
+          }}
+        >
+          Scroll
+        </p>
+        <div
+          style={{
+            width: "1px",
+            height: "36px",
+            background: `linear-gradient(to bottom, ${warm(0.3)}, transparent)`,
+          }}
+        />
+      </div>
+    </section>
+  );
+}
