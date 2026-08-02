@@ -70,16 +70,16 @@ export function OnyxGallery({ data }: Props) {
   return (
     <section
       id="onyx-gallery"
-      style={{ padding: "clamp(5rem, 10vw, 10rem) clamp(1rem, 3vw, 3rem)" }}
+      style={{ padding: "clamp(5rem, calc(10 * var(--onyx-vw)), 10rem) clamp(1rem, calc(3 * var(--onyx-vw)), 3rem)" }}
     >
       <OnyxReveal
-        style={{ textAlign: "center", marginBottom: "clamp(3rem, 6vw, 5rem)", padding: "0 1rem" }}
+        style={{ textAlign: "center", marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)", padding: "0 1rem" }}
       >
         <OnyxLabel>Gallery</OnyxLabel>
         <h2
           style={{
             fontFamily: ONYX.font.display,
-            fontSize: "clamp(2rem, 5vw, 3.5rem)",
+            fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
             fontWeight: 300,
             color: ONYX.color.warmWhite,
             letterSpacing: "-0.01em",
@@ -94,8 +94,8 @@ export function OnyxGallery({ data }: Props) {
         style={{
           maxWidth: "1400px",
           margin: "0 auto",
-          columns: "clamp(180px, 28vw, 340px)",
-          columnGap: "clamp(0.5rem, 1.2vw, 1.2rem)",
+          columns: "clamp(180px, calc(28 * var(--onyx-vw)), 340px)",
+          columnGap: "clamp(0.5rem, calc(1.2 * var(--onyx-vw)), 1.2rem)",
         }}
       >
         {photos.map((photo, i) => (
@@ -104,7 +104,7 @@ export function OnyxGallery({ data }: Props) {
             delay={i * 50}
             style={{
               breakInside: "avoid",
-              marginBottom: "clamp(0.5rem, 1.2vw, 1.2rem)",
+              marginBottom: "clamp(0.5rem, calc(1.2 * var(--onyx-vw)), 1.2rem)",
               display: "block",
             }}
           >
@@ -147,7 +147,7 @@ export function OnyxGallery({ data }: Props) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "clamp(1rem, 4vw, 3rem)",
+            padding: "clamp(1rem, calc(4 * var(--onyx-vw)), 3rem)",
             animation: "onyxFadeUp 0.25s ease",
           }}
         >
@@ -156,7 +156,7 @@ export function OnyxGallery({ data }: Props) {
             src={lightbox.full}
             alt={lightbox.label}
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "100%", maxHeight: "90svh", objectFit: "contain" }}
+            style={{ maxWidth: "100%", maxHeight: "calc(90 * var(--onyx-vh))", objectFit: "contain" }}
           />
           <button
             type="button"

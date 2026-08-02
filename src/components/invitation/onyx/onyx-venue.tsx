@@ -30,12 +30,12 @@ export function OnyxVenue({ data }: Props) {
   return (
     <section id="onyx-venue" style={{ padding: SECTION_PAD }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, 6vw, 5rem)" }}>
+        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)" }}>
           <OnyxLabel>Venue</OnyxLabel>
           <h2
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.01em",
@@ -50,7 +50,7 @@ export function OnyxVenue({ data }: Props) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 440px), 1fr))",
-            gap: "clamp(2.5rem, 5vw, 6rem)",
+            gap: "clamp(2.5rem, calc(5 * var(--onyx-vw)), 6rem)",
             alignItems: "center",
           }}
         >
@@ -58,7 +58,7 @@ export function OnyxVenue({ data }: Props) {
             <div
               style={{
                 position: "relative",
-                height: "clamp(260px, 40vw, 460px)",
+                height: "clamp(260px, calc(40 * var(--onyx-vw)), 460px)",
                 backgroundColor: "rgba(255,255,255,0.04)",
                 overflow: "hidden",
               }}
@@ -155,7 +155,7 @@ export function OnyxVenue({ data }: Props) {
                   <h3
                     style={{
                       fontFamily: ONYX.font.display,
-                      fontSize: "clamp(1.4rem, 3vw, 2rem)",
+                      fontSize: "clamp(1.4rem, calc(3 * var(--onyx-vw)), 2rem)",
                       fontWeight: 300,
                       color: ONYX.color.warmWhite,
                       marginBottom: "0.5rem",

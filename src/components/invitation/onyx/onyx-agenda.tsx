@@ -63,12 +63,12 @@ export function OnyxAgenda({ data }: Props) {
 
   return (
     <section id="onyx-events" style={{ padding: SECTION_PAD }}>
-      <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, 6vw, 5rem)" }}>
+      <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)" }}>
         <OnyxLabel>Save the Date</OnyxLabel>
         <h2
           style={{
             fontFamily: ONYX.font.display,
-            fontSize: "clamp(2rem, 5vw, 3.5rem)",
+            fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
             fontWeight: 300,
             color: ONYX.color.warmWhite,
             letterSpacing: "-0.01em",
@@ -81,7 +81,7 @@ export function OnyxAgenda({ data }: Props) {
           <p
             style={{
               fontFamily: ONYX.font.body,
-              fontSize: "clamp(0.84rem, 2vw, 0.95rem)",
+              fontSize: "clamp(0.84rem, calc(2 * var(--onyx-vw)), 0.95rem)",
               lineHeight: 1.85,
               color: warm(0.45),
               fontWeight: 300,
@@ -100,7 +100,7 @@ export function OnyxAgenda({ data }: Props) {
           margin: "0 auto",
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 440px), 1fr))",
-          gap: "clamp(1.25rem, 3vw, 2.5rem)",
+          gap: "clamp(1.25rem, calc(3 * var(--onyx-vw)), 2.5rem)",
         }}
       >
         {events.map((evt, i) => (
@@ -109,7 +109,7 @@ export function OnyxAgenda({ data }: Props) {
               style={{
                 backgroundColor: "rgba(23,23,23,0.82)",
                 border: `1px solid ${gold(0.12)}`,
-                padding: "clamp(2rem, 5vw, 3.5rem)",
+                padding: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
                 position: "relative",
                 overflow: "hidden",
                 height: "100%",
@@ -132,7 +132,7 @@ export function OnyxAgenda({ data }: Props) {
                 <h3
                   style={{
                     fontFamily: ONYX.font.display,
-                    fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
+                    fontSize: "clamp(1.8rem, calc(4 * var(--onyx-vw)), 2.8rem)",
                     fontWeight: 300,
                     color: ONYX.color.warmWhite,
                     marginBottom: "2rem",

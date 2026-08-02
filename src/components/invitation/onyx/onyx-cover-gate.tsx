@@ -82,6 +82,10 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
 
   return (
     <div
+      // The gate mounts OUTSIDE the .onyx-inv embed, so it needs its own copy of
+      // the viewport-unit basis (`onyx-gate`) and the editor rebase
+      // (`onyx-boxed`) — its type is the most vw-driven in the whole template.
+      className={mode === "editorPreview" ? "onyx-gate onyx-boxed" : "onyx-gate"}
       style={{
         position: "fixed",
         inset: 0,
@@ -107,8 +111,8 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           left: "50%",
           top: "50%",
           transform: "translate(-50%,-50%)",
-          width: "min(700px, 90vmin)",
-          height: "min(700px, 90vmin)",
+          width: "min(700px, calc(90 * var(--onyx-vmin)))",
+          height: "min(700px, calc(90 * var(--onyx-vmin)))",
           border: `1px solid ${gold(0.07)}`,
           borderRadius: "50%",
           pointerEvents: "none",
@@ -120,8 +124,8 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           left: "50%",
           top: "50%",
           transform: "translate(-50%,-50%)",
-          width: "min(560px, 72vmin)",
-          height: "min(560px, 72vmin)",
+          width: "min(560px, calc(72 * var(--onyx-vmin)))",
+          height: "min(560px, calc(72 * var(--onyx-vmin)))",
           border: `1px solid ${gold(0.05)}`,
           borderRadius: "50%",
           pointerEvents: "none",
@@ -133,7 +137,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           position: "relative",
           zIndex: 1,
           textAlign: "center",
-          padding: "0 clamp(1.5rem, 5vw, 4rem)",
+          padding: "0 clamp(1.5rem, calc(5 * var(--onyx-vw)), 4rem)",
           opacity: loaded ? 1 : 0,
           transform: loaded ? "translateY(0)" : "translateY(24px)",
           transition:
@@ -172,7 +176,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
                 fontFamily: ONYX.font.display,
                 fontStyle: "italic",
                 fontWeight: 300,
-                fontSize: "clamp(1rem, 3vw, 1.4rem)",
+                fontSize: "clamp(1rem, calc(3 * var(--onyx-vw)), 1.4rem)",
                 color: warm(0.85),
               }}
             >
@@ -185,7 +189,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           <h1
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(4.5rem, 14vw, 10rem)",
+              fontSize: "clamp(4.5rem, calc(14 * var(--onyx-vw)), 10rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.02em",
@@ -197,7 +201,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           <p
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(1.8rem, 5vw, 3.5rem)",
+              fontSize: "clamp(1.8rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.champagne,
               margin: "0.2rem 0",
@@ -210,7 +214,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           <h1
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(4.5rem, 14vw, 10rem)",
+              fontSize: "clamp(4.5rem, calc(14 * var(--onyx-vw)), 10rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.02em",
@@ -253,7 +257,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
             fontFamily: ONYX.font.display,
             fontStyle: "italic",
             fontWeight: 300,
-            fontSize: "clamp(0.95rem, 2.5vw, 1.3rem)",
+            fontSize: "clamp(0.95rem, calc(2.5 * var(--onyx-vw)), 1.3rem)",
             color: warm(0.45),
             marginBottom: "3rem",
             letterSpacing: "0.02em",

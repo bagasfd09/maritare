@@ -15,12 +15,17 @@ import { ONYX_THEME_CSS } from "./onyx-theme";
 
 type Props = {
   data: InvitationView;
+  mode: "public" | "ownerPreview" | "editorPreview";
   children: React.ReactNode;
 };
 
-export function OnyxEmbed({ data, children }: Props) {
+export function OnyxEmbed({ data, mode, children }: Props) {
   return (
-    <div className="onyx-inv">
+    // `onyx-boxed` rebases the --onyx-vw/vh/vmin custom properties from real
+    // viewport units to the editor canvas's fixed 390x844 — without it this
+    // fluid design renders at DESKTOP scale inside the phone frame and spills
+    // out of it (see the basis block in onyx-theme).
+    <div className={mode === "editorPreview" ? "onyx-inv onyx-boxed" : "onyx-inv"}>
       <style dangerouslySetInnerHTML={{ __html: ONYX_THEME_CSS }} />
       <OnyxBackdrop data={data} />
       {/* Explicit z-index so sections always paint ABOVE the fixed backdrop —

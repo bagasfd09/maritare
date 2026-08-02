@@ -194,12 +194,12 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
   return (
     <section id="onyx-rsvp" style={{ padding: SECTION_PAD }}>
       <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, 6vw, 5rem)" }}>
+        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)" }}>
           <OnyxLabel>RSVP</OnyxLabel>
           <h2
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.01em",
@@ -214,7 +214,7 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 440px), 1fr))",
-            gap: "clamp(3rem, 6vw, 7rem)",
+            gap: "clamp(3rem, calc(6 * var(--onyx-vw)), 7rem)",
           }}
         >
           <OnyxReveal>

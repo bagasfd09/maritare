@@ -75,8 +75,8 @@ function CoupleCard({
         <div
           className="onyx-zoom"
           style={{
-            width: "clamp(200px, 30vw, 300px)",
-            height: "clamp(200px, 30vw, 300px)",
+            width: "clamp(200px, calc(30 * var(--onyx-vw)), 300px)",
+            height: "clamp(200px, calc(30 * var(--onyx-vw)), 300px)",
             borderRadius: "50%",
             overflow: "hidden",
             border: `1px solid ${gold(0.2)}`,
@@ -109,7 +109,7 @@ function CoupleCard({
       <h3
         style={{
           fontFamily: ONYX.font.display,
-          fontSize: "clamp(2rem, 5vw, 3rem)",
+          fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3rem)",
           fontWeight: 300,
           color: ONYX.color.warmWhite,
           margin: "0 0 0.2rem",
@@ -122,7 +122,7 @@ function CoupleCard({
         style={{
           fontFamily: ONYX.font.display,
           fontStyle: "italic",
-          fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
+          fontSize: "clamp(0.9rem, calc(2 * var(--onyx-vw)), 1.1rem)",
           color: warm(0.75),
           marginBottom: "1rem",
           fontWeight: 300,
@@ -183,15 +183,15 @@ export function OnyxCouple({ data }: Props) {
   return (
     <section
       id="onyx-couple"
-      style={{ padding: "clamp(4rem, 8vw, 8rem) clamp(1.5rem, 5vw, 5rem)" }}
+      style={{ padding: "clamp(4rem, calc(8 * var(--onyx-vw)), 8rem) clamp(1.5rem, calc(5 * var(--onyx-vw)), 5rem)" }}
     >
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, 6vw, 5rem)" }}>
+        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)" }}>
           <OnyxLabel>The Couple</OnyxLabel>
           <h2
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.01em",
@@ -204,7 +204,7 @@ export function OnyxCouple({ data }: Props) {
             <p
               style={{
                 fontFamily: ONYX.font.body,
-                fontSize: "clamp(0.84rem, 2vw, 0.95rem)",
+                fontSize: "clamp(0.84rem, calc(2 * var(--onyx-vw)), 0.95rem)",
                 lineHeight: 1.9,
                 color: warm(0.45),
                 fontWeight: 300,
@@ -221,7 +221,7 @@ export function OnyxCouple({ data }: Props) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))",
-            gap: "clamp(3rem, 6vw, 5rem)",
+            gap: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)",
             alignItems: "start",
             justifyItems: "center",
           }}
@@ -236,7 +236,7 @@ export function OnyxCouple({ data }: Props) {
 
           <OnyxReveal
             delay={100}
-            className="hidden lg:flex"
+            className="onyx-amp hidden lg:flex"
             style={{
               flexDirection: "column",
               alignItems: "center",

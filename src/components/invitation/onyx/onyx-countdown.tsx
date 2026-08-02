@@ -94,7 +94,7 @@ export function OnyxCountdown({ data }: Props) {
           <h2
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.01em",
@@ -107,9 +107,9 @@ export function OnyxCountdown({ data }: Props) {
             style={{
               fontFamily: ONYX.font.display,
               fontStyle: "italic",
-              fontSize: "clamp(0.9rem, 2vw, 1.2rem)",
+              fontSize: "clamp(0.9rem, calc(2 * var(--onyx-vw)), 1.2rem)",
               color: warm(0.38),
-              marginBottom: "clamp(3rem, 6vw, 5rem)",
+              marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)",
             }}
           >
             {formatFullDateId(dateStr)}
@@ -121,7 +121,7 @@ export function OnyxCountdown({ data }: Props) {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "clamp(1.5rem, 5vw, 5rem)",
+              gap: "clamp(1.5rem, calc(5 * var(--onyx-vw)), 5rem)",
               flexWrap: "wrap",
             }}
           >
@@ -133,13 +133,13 @@ export function OnyxCountdown({ data }: Props) {
                 <span
                   style={{
                     fontFamily: ONYX.font.display,
-                    fontSize: "clamp(3rem, 9vw, 7.5rem)",
+                    fontSize: "clamp(3rem, calc(9 * var(--onyx-vw)), 7.5rem)",
                     fontWeight: 300,
                     color: ONYX.color.warmWhite,
                     lineHeight: 1,
                     letterSpacing: "-0.04em",
                     display: "block",
-                    minWidth: "clamp(56px, 10vw, 115px)",
+                    minWidth: "clamp(56px, calc(10 * var(--onyx-vw)), 115px)",
                   }}
                 >
                   {String(u.value).padStart(2, "0")}
@@ -176,7 +176,7 @@ export function OnyxCountdown({ data }: Props) {
               rel="nofollow noopener noreferrer"
               style={{
                 display: "inline-block",
-                marginTop: "clamp(2.5rem, 5vw, 4rem)",
+                marginTop: "clamp(2.5rem, calc(5 * var(--onyx-vw)), 4rem)",
                 border: `1px solid ${gold(0.45)}`,
                 color: ONYX.color.warmWhite,
                 fontFamily: ONYX.font.body,

@@ -34,6 +34,27 @@ export const warm = (alpha: number) => `rgba(247,247,245,${alpha})`;
 export const ONYX_THEME_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Inter:wght@300;400;500;600&display=swap');
 
+/* Viewport-unit basis.
+   This design is fluid — nearly every size is a clamp() driven by vw. But the
+   editor preview renders the template inside a 390x844 canvas scaled by 0.692,
+   and REAL viewport units there resolve against the browser window (1440px on a
+   desktop), so the invitation came out at desktop scale inside a phone frame and
+   overflowed. Every vw/vh/vmin in the components is therefore expressed as
+   calc(N * var(--onyx-*)), and the embed swaps the basis to the canvas's own
+   dimensions by adding .onyx-boxed. Same problem the vh trap causes; same fix.
+   Both the embed root and the (separately mounted) cover gate carry these. */
+.onyx-inv,.onyx-gate{--onyx-vw:1vw;--onyx-vh:1svh;--onyx-vmin:1vmin;}
+.onyx-inv.onyx-boxed,.onyx-gate.onyx-boxed{--onyx-vw:3.9px;--onyx-vh:8.44px;--onyx-vmin:3.9px;}
+
+/* Tailwind's md:/lg: breakpoints test the REAL viewport too, so on a desktop
+   editor the phone frame would get the DESKTOP nav (six links, overflowing the
+   390px canvas) and the couple section's desktop-only ampersand column. Force
+   the mobile arrangement inside the frame — the same job sienna's .force-mobile
+   does for its ported media queries. */
+.onyx-inv.onyx-boxed .onyx-nav-desktop{display:none!important;}
+.onyx-inv.onyx-boxed .onyx-nav-burger{display:flex!important;}
+.onyx-inv.onyx-boxed .onyx-amp{display:none!important;}
+
 .onyx-inv{
   font-family:'Inter',system-ui,sans-serif;
   color:${ONYX.color.warmWhite};

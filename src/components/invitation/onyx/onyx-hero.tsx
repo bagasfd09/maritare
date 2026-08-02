@@ -4,10 +4,11 @@
 // (onyx-theme) rather than the scroll observer, exactly as the reference does —
 // this section is already in view on load.
 //
-// Height: `100svh` on a real page, but a fixed px in the editor preview — the
-// preview is a SCALED DIV, not an iframe, so viewport units there resolve
-// against the whole browser window and the hero would tower over the phone
-// frame (the vh trap that bit sienna).
+// Height is one screen — `calc(100 * var(--onyx-vh))`. The var, not a raw `svh`,
+// because the editor preview is a SCALED DIV rather than an iframe: real
+// viewport units there resolve against the whole browser window, so the hero
+// would tower over the phone frame. `.onyx-boxed` rebases the var to the
+// canvas's own 844px (see onyx-theme).
 
 import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
@@ -23,7 +24,7 @@ function firstName(fullName: string | undefined, fallback: string): string {
   return n.split(/\s+/)[0] || fallback;
 }
 
-export function OnyxHero({ data, mode }: Props) {
+export function OnyxHero({ data }: Props) {
   const { pasangan } = data.sections;
   const groom = firstName(pasangan.groom.fullName, data.groomName);
   const bride = firstName(pasangan.bride.fullName, data.brideName);
@@ -44,7 +45,7 @@ export function OnyxHero({ data, mode }: Props) {
       id="onyx-hero"
       style={{
         position: "relative",
-        minHeight: mode === "editorPreview" ? "620px" : "100svh",
+        minHeight: "calc(100 * var(--onyx-vh))",
         display: "flex",
         alignItems: "flex-end",
         overflow: "hidden",
@@ -57,7 +58,7 @@ export function OnyxHero({ data, mode }: Props) {
           width: "100%",
           maxWidth: "1400px",
           margin: "auto",
-          padding: "clamp(4rem, 8vw, 8rem) clamp(1.5rem, 5vw, 5rem)",
+          padding: "clamp(4rem, calc(8 * var(--onyx-vw)), 8rem) clamp(1.5rem, calc(5 * var(--onyx-vw)), 5rem)",
           paddingTop: "8rem",
           textAlign: "center",
         }}
@@ -79,7 +80,7 @@ export function OnyxHero({ data, mode }: Props) {
         <h1
           style={{
             fontFamily: ONYX.font.display,
-            fontSize: "clamp(3.2rem, 9vw, 8rem)",
+            fontSize: "clamp(3.2rem, calc(9 * var(--onyx-vw)), 8rem)",
             fontWeight: 300,
             color: ONYX.color.warmWhite,
             lineHeight: 1.02,
@@ -96,7 +97,7 @@ export function OnyxHero({ data, mode }: Props) {
             fontFamily: ONYX.font.display,
             fontStyle: "italic",
             fontWeight: 300,
-            fontSize: "clamp(1rem, 2.8vw, 1.75rem)",
+            fontSize: "clamp(1rem, calc(2.8 * var(--onyx-vw)), 1.75rem)",
             color: warm(0.58),
             letterSpacing: "0.02em",
             marginBottom: "2.5rem",

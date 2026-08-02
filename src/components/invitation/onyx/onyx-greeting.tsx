@@ -26,7 +26,7 @@ export function OnyxGreeting({ data }: Props) {
         <h2
           style={{
             fontFamily: ONYX.font.display,
-            fontSize: "clamp(2rem, 5vw, 3.5rem)",
+            fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
             fontWeight: 300,
             color: ONYX.color.warmWhite,
             lineHeight: 1.2,
@@ -39,7 +39,7 @@ export function OnyxGreeting({ data }: Props) {
         <p
           style={{
             fontFamily: ONYX.font.body,
-            fontSize: "clamp(0.88rem, 2vw, 1rem)",
+            fontSize: "clamp(0.88rem, calc(2 * var(--onyx-vw)), 1rem)",
             lineHeight: 1.9,
             color: warm(0.5),
             marginBottom: "2rem",
@@ -67,7 +67,7 @@ export function OnyxGreeting({ data }: Props) {
                 lang="ar"
                 style={{
                   fontFamily: ONYX.font.display,
-                  fontSize: "clamp(1.2rem, 3.5vw, 1.7rem)",
+                  fontSize: "clamp(1.2rem, calc(3.5 * var(--onyx-vw)), 1.7rem)",
                   color: warm(0.75),
                   lineHeight: 2,
                   marginBottom: text ? "1.25rem" : 0,
@@ -81,7 +81,7 @@ export function OnyxGreeting({ data }: Props) {
                 style={{
                   fontFamily: ONYX.font.display,
                   fontStyle: "italic",
-                  fontSize: "clamp(1rem, 2.5vw, 1.3rem)",
+                  fontSize: "clamp(1rem, calc(2.5 * var(--onyx-vw)), 1.3rem)",
                   color: ONYX.color.warmWhite,
                   fontWeight: 300,
                   lineHeight: 1.75,

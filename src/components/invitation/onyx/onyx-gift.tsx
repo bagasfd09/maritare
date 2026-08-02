@@ -86,12 +86,12 @@ export function OnyxGift({ data, guestSide }: Props) {
   return (
     <section id="onyx-gift" style={{ padding: SECTION_PAD }}>
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, 6vw, 5rem)" }}>
+        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)" }}>
           <OnyxLabel>Wedding Gift</OnyxLabel>
           <h2
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.01em",
@@ -103,7 +103,7 @@ export function OnyxGift({ data, guestSide }: Props) {
           <p
             style={{
               fontFamily: ONYX.font.body,
-              fontSize: "clamp(0.84rem, 2vw, 0.95rem)",
+              fontSize: "clamp(0.84rem, calc(2 * var(--onyx-vw)), 0.95rem)",
               color: warm(0.42),
               lineHeight: 1.85,
               fontWeight: 300,
@@ -144,8 +144,8 @@ export function OnyxGift({ data, guestSide }: Props) {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
-              gap: "clamp(1rem, 2vw, 1.75rem)",
-              marginBottom: hasAddress ? "clamp(3rem, 6vw, 5rem)" : 0,
+              gap: "clamp(1rem, calc(2 * var(--onyx-vw)), 1.75rem)",
+              marginBottom: hasAddress ? "clamp(3rem, calc(6 * var(--onyx-vw)), 5rem)" : 0,
             }}
           >
             {cards.map((card, i) => {
@@ -156,7 +156,7 @@ export function OnyxGift({ data, guestSide }: Props) {
                     style={{
                       backgroundColor: i % 2 === 0 ? "rgba(28,28,28,0.88)" : "rgba(22,22,22,0.88)",
                       border: `1px solid ${gold(0.14)}`,
-                      padding: "clamp(1.5rem, 3vw, 2.5rem)",
+                      padding: "clamp(1.5rem, calc(3 * var(--onyx-vw)), 2.5rem)",
                       position: "relative",
                       overflow: "hidden",
                       height: "100%",
@@ -227,7 +227,7 @@ export function OnyxGift({ data, guestSide }: Props) {
                       <p
                         style={{
                           fontFamily: ONYX.font.body,
-                          fontSize: "clamp(1rem, 2.5vw, 1.3rem)",
+                          fontSize: "clamp(1rem, calc(2.5 * var(--onyx-vw)), 1.3rem)",
                           letterSpacing: "0.12em",
                           color: ONYX.color.warmWhite,
                           marginBottom: "0.5rem",
@@ -280,7 +280,7 @@ export function OnyxGift({ data, guestSide }: Props) {
           <OnyxReveal
             style={{
               borderTop: `1px solid ${warm(0.06)}`,
-              paddingTop: "clamp(2rem, 5vw, 3.5rem)",
+              paddingTop: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               textAlign: "center",
             }}
           >
@@ -289,7 +289,7 @@ export function OnyxGift({ data, guestSide }: Props) {
               style={{
                 fontFamily: ONYX.font.display,
                 fontWeight: 300,
-                fontSize: "clamp(1rem, 2.5vw, 1.35rem)",
+                fontSize: "clamp(1rem, calc(2.5 * var(--onyx-vw)), 1.35rem)",
                 color: ONYX.color.warmWhite,
                 lineHeight: 1.85,
                 letterSpacing: "0.01em",

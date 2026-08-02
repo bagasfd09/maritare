@@ -73,7 +73,7 @@ export function OnyxTemplate({ data, mode, guestName, checkin }: InvitationTempl
   return (
     <>
       <OnyxCoverGate data={data} mode={mode} guestName={checkin?.guestName ?? guestName} />
-      <OnyxEmbed data={data}>
+      <OnyxEmbed data={data} mode={mode}>
         <OnyxNav initials={`${groom.charAt(0)} & ${bride.charAt(0)}`} links={links} />
         <OnyxHero data={data} mode={mode} />
         <OnyxGreeting data={data} mode={mode} />

@@ -45,7 +45,7 @@ export function OnyxNav({ initials, links }: Props) {
         left: 0,
         right: 0,
         zIndex: 50,
-        padding: `${scrolled ? "0.9rem" : "1.4rem"} clamp(1.25rem, 4vw, 4rem)`,
+        padding: `${scrolled ? "0.9rem" : "1.4rem"} clamp(1.25rem, calc(4 * var(--onyx-vw)), 4rem)`,
         backdropFilter: scrolled ? "blur(16px)" : "none",
         backgroundColor: scrolled ? "rgba(13,13,13,0.55)" : "transparent",
         borderBottom: scrolled ? `1px solid ${gold(0.12)}` : "1px solid transparent",
@@ -73,7 +73,11 @@ export function OnyxNav({ initials, links }: Props) {
         {initials}
       </button>
 
-      <div className="hidden md:flex" style={{ gap: "2.5rem", alignItems: "center" }}>
+      {/* onyx-nav-desktop / onyx-nav-burger are hooks for the editor preview:
+          Tailwind's md: breakpoint tests the REAL viewport, so inside the phone
+          frame the desktop link row would show and overflow (see .onyx-boxed
+          rules in onyx-theme). */}
+      <div className="onyx-nav-desktop hidden md:flex" style={{ gap: "2.5rem", alignItems: "center" }}>
         {links.map((l) => (
           <button
             key={l.id}
@@ -106,7 +110,7 @@ export function OnyxNav({ initials, links }: Props) {
 
       <button
         type="button"
-        className="md:hidden"
+        className="onyx-nav-burger md:hidden"
         onClick={() => setMenuOpen((o) => !o)}
         aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
         aria-expanded={menuOpen}
@@ -152,7 +156,7 @@ export function OnyxNav({ initials, links }: Props) {
             backgroundColor: "rgba(13,13,13,0.97)",
             backdropFilter: "blur(16px)",
             borderBottom: `1px solid ${gold(0.12)}`,
-            padding: "1.5rem clamp(1.25rem, 4vw, 4rem)",
+            padding: "1.5rem clamp(1.25rem, calc(4 * var(--onyx-vw)), 4rem)",
             display: "flex",
             flexDirection: "column",
             gap: "1.25rem",
@@ -203,8 +207,8 @@ export function OnyxBackToTop() {
       aria-label="Kembali ke atas"
       style={{
         position: "fixed",
-        bottom: "clamp(1rem, 3vw, 2rem)",
-        right: "clamp(1rem, 3vw, 2rem)",
+        bottom: "clamp(1rem, calc(3 * var(--onyx-vw)), 2rem)",
+        right: "clamp(1rem, calc(3 * var(--onyx-vw)), 2rem)",
         zIndex: 40,
         width: "42px",
         height: "42px",

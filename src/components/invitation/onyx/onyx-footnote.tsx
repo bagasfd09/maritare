@@ -43,7 +43,7 @@ export function OnyxFootnote({ data }: Props) {
     <>
       <section
         style={{
-          padding: "clamp(5rem, 12vw, 12rem) clamp(1.5rem, 5vw, 5rem)",
+          padding: "clamp(5rem, calc(12 * var(--onyx-vw)), 12rem) clamp(1.5rem, calc(5 * var(--onyx-vw)), 5rem)",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
@@ -87,7 +87,7 @@ export function OnyxFootnote({ data }: Props) {
             <h2
               style={{
                 fontFamily: ONYX.font.display,
-                fontSize: "clamp(2.5rem, 8vw, 6rem)",
+                fontSize: "clamp(2.5rem, calc(8 * var(--onyx-vw)), 6rem)",
                 fontWeight: 300,
                 color: ONYX.color.warmWhite,
                 letterSpacing: "-0.02em",
@@ -102,7 +102,7 @@ export function OnyxFootnote({ data }: Props) {
                 fontFamily: ONYX.font.display,
                 fontStyle: "italic",
                 fontWeight: 300,
-                fontSize: "clamp(0.95rem, 2.5vw, 1.35rem)",
+                fontSize: "clamp(0.95rem, calc(2.5 * var(--onyx-vw)), 1.35rem)",
                 color: warm(0.5),
                 lineHeight: 1.85,
                 marginBottom: "3rem",
@@ -148,7 +148,7 @@ export function OnyxFootnote({ data }: Props) {
         style={{
           position: "relative",
           backgroundColor: "rgba(13,13,13,0.92)",
-          padding: "clamp(2rem, 4vw, 3rem) clamp(1.5rem, 5vw, 5rem)",
+          padding: "clamp(2rem, calc(4 * var(--onyx-vw)), 3rem) clamp(1.5rem, calc(5 * var(--onyx-vw)), 5rem)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",

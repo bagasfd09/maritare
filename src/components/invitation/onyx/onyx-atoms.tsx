@@ -56,7 +56,7 @@ export function OnyxHeading({ children }: { children: ReactNode }) {
     <h2
       style={{
         fontFamily: ONYX.font.display,
-        fontSize: "clamp(2rem, 5vw, 3.5rem)",
+        fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
         fontWeight: 300,
         color: ONYX.color.warmWhite,
         letterSpacing: "-0.01em",
@@ -69,4 +69,4 @@ export function OnyxHeading({ children }: { children: ReactNode }) {
 }
 
 /** Standard section padding rhythm used by every Onyx band. */
-export const SECTION_PAD = "clamp(5rem, 10vw, 10rem) clamp(1.5rem, 5vw, 5rem)";
+export const SECTION_PAD = "clamp(5rem, calc(10 * var(--onyx-vw)), 10rem) clamp(1.5rem, calc(5 * var(--onyx-vw)), 5rem)";

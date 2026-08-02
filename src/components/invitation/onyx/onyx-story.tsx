@@ -56,8 +56,8 @@ export function OnyxStory({ data }: Props) {
           left: "50%",
           top: "45%",
           transform: "translate(-50%,-50%)",
-          width: "min(900px, 90vw)",
-          height: "min(900px, 90vw)",
+          width: "min(900px, calc(90 * var(--onyx-vw)))",
+          height: "min(900px, calc(90 * var(--onyx-vw)))",
           background: `radial-gradient(circle, ${gold(0.04)} 0%, transparent 65%)`,
           borderRadius: "50%",
           pointerEvents: "none",
@@ -65,13 +65,13 @@ export function OnyxStory({ data }: Props) {
       />
 
       <div style={{ maxWidth: "860px", margin: "0 auto", position: "relative" }}>
-        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3.5rem, 7vw, 5.5rem)" }}>
+        <OnyxReveal style={{ textAlign: "center", marginBottom: "clamp(3.5rem, calc(7 * var(--onyx-vw)), 5.5rem)" }}>
           <OnyxLabel>Our Story</OnyxLabel>
           <OnyxGoldLine vertical />
           <h2
             style={{
               fontFamily: ONYX.font.display,
-              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
               fontWeight: 300,
               color: ONYX.color.warmWhite,
               letterSpacing: "-0.01em",
@@ -82,7 +82,7 @@ export function OnyxStory({ data }: Props) {
           </h2>
         </OnyxReveal>
 
-        <div style={{ position: "relative", paddingLeft: "clamp(1.5rem, 4vw, 2.5rem)" }}>
+        <div style={{ position: "relative", paddingLeft: "clamp(1.5rem, calc(4 * var(--onyx-vw)), 2.5rem)" }}>
           <div
             style={{
               position: "absolute",
@@ -98,12 +98,12 @@ export function OnyxStory({ data }: Props) {
             <OnyxReveal
               key={i}
               delay={i * 80}
-              style={{ position: "relative", marginBottom: "clamp(2.5rem, 5vw, 4rem)" }}
+              style={{ position: "relative", marginBottom: "clamp(2.5rem, calc(5 * var(--onyx-vw)), 4rem)" }}
             >
               <div
                 style={{
                   position: "absolute",
-                  left: "calc(-1 * clamp(1.5rem, 4vw, 2.5rem) - 3.5px)",
+                  left: "calc(-1 * clamp(1.5rem, calc(4 * var(--onyx-vw)), 2.5rem) - 3.5px)",
                   top: "5px",
                   width: "8px",
                   height: "8px",
@@ -141,7 +141,7 @@ export function OnyxStory({ data }: Props) {
                     <h3
                       style={{
                         fontFamily: ONYX.font.display,
-                        fontSize: "clamp(1.3rem, 3vw, 1.9rem)",
+                        fontSize: "clamp(1.3rem, calc(3 * var(--onyx-vw)), 1.9rem)",
                         fontWeight: 400,
                         color: ONYX.color.warmWhite,
                         marginBottom: "0.6rem",
@@ -156,7 +156,7 @@ export function OnyxStory({ data }: Props) {
                     <p
                       style={{
                         fontFamily: ONYX.font.body,
-                        fontSize: "clamp(0.84rem, 1.8vw, 0.94rem)",
+                        fontSize: "clamp(0.84rem, calc(1.8 * var(--onyx-vw)), 0.94rem)",
                         lineHeight: 1.85,
                         color: warm(0.5),
                         fontWeight: 300,

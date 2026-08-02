@@ -57,7 +57,7 @@ export function OnyxQr({ checkin }: Props) {
         <h2
           style={{
             fontFamily: ONYX.font.display,
-            fontSize: "clamp(2rem, 5vw, 3.5rem)",
+            fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
             fontWeight: 300,
             color: ONYX.color.warmWhite,
             letterSpacing: "-0.01em",
@@ -69,7 +69,7 @@ export function OnyxQr({ checkin }: Props) {
         <p
           style={{
             fontFamily: ONYX.font.body,
-            fontSize: "clamp(0.82rem, 2vw, 0.92rem)",
+            fontSize: "clamp(0.82rem, calc(2 * var(--onyx-vw)), 0.92rem)",
             color: warm(0.42),
             lineHeight: 1.85,
             fontWeight: 300,
@@ -82,8 +82,8 @@ export function OnyxQr({ checkin }: Props) {
 
         <div
           style={{
-            marginTop: "clamp(2rem, 4vw, 3rem)",
-            padding: "clamp(1.75rem, 4vw, 2.5rem)",
+            marginTop: "clamp(2rem, calc(4 * var(--onyx-vw)), 3rem)",
+            padding: "clamp(1.75rem, calc(4 * var(--onyx-vw)), 2.5rem)",
             backgroundColor: "rgba(23,23,23,0.82)",
             border: `1px solid ${gold(0.16)}`,
             position: "relative",
