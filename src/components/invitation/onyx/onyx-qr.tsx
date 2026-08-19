@@ -17,7 +17,7 @@ import QRCode from "qrcode";
 
 import { OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 type Props = {
   checkin?: { guestId: string; guestName: string } | null;
@@ -86,6 +86,7 @@ export function OnyxQr({ checkin }: Props) {
             padding: "clamp(1.75rem, calc(4 * var(--onyx-vw)), 2.5rem)",
             backgroundColor: "rgba(23,23,23,0.82)",
             border: `1px solid ${gold(0.16)}`,
+            borderRadius: RADIUS,
             position: "relative",
             overflow: "hidden",
           }}
@@ -122,6 +123,7 @@ export function OnyxQr({ checkin }: Props) {
                 display: "inline-block",
                 padding: "12px",
                 backgroundColor: ONYX.color.warmWhite,
+                borderRadius: RADIUS,
                 aspectRatio: "1/1",
                 width: "min(240px, 70%)",
               }}

@@ -17,7 +17,7 @@ import type { InvitationView } from "@/server/queries/invitation";
 import { OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
 import { ONYX_SAMPLE } from "./onyx-sample";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
@@ -60,6 +60,7 @@ export function OnyxVenue({ data }: Props) {
                 position: "relative",
                 height: "clamp(260px, calc(40 * var(--onyx-vw)), 460px)",
                 backgroundColor: "rgba(255,255,255,0.04)",
+                borderRadius: RADIUS,
                 overflow: "hidden",
               }}
             >
@@ -110,6 +111,7 @@ export function OnyxVenue({ data }: Props) {
                     style={{
                       backgroundColor: "rgba(23,23,23,0.92)",
                       backdropFilter: "blur(8px)",
+                      borderRadius: RADIUS,
                       padding: "4px 12px",
                       fontFamily: ONYX.font.body,
                       fontSize: "0.6rem",

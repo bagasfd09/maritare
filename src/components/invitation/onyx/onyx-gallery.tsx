@@ -21,7 +21,7 @@ import { InvImage } from "../scarlet/inv-image";
 import { OnyxLabel } from "./onyx-atoms";
 import { ONYX_SAMPLE_GALLERY } from "./onyx-sample";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, warm } from "./onyx-theme";
+import { ONYX, RADIUS, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
@@ -118,6 +118,7 @@ export function OnyxGallery({ data }: Props) {
                 width: "100%",
                 padding: 0,
                 border: "none",
+                borderRadius: RADIUS,
                 overflow: "hidden",
                 cursor: "pointer",
                 background: "rgba(255,255,255,0.04)",

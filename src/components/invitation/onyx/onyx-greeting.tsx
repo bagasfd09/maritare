@@ -1,8 +1,8 @@
-// Onyx greeting — the reference's `GreetingSection`. The Bismillah label, the
-// "With Love & Grace" heading and the invitation paragraph are the template's
-// own design copy (kept verbatim); the verse block below the divider is bound to
-// the editable opening quote (pasangan.quote: arabic / text / source) and hides
-// itself entirely when the couple left the quote blank.
+// Onyx greeting — the reference's `GreetingSection`. The Bismillah label and the
+// invitation paragraph are the template's own design copy (the reference's
+// "With Love & Grace" heading was dropped on request); the verse block below the
+// divider is bound to the editable opening quote (pasangan.quote: arabic / text
+// / source) and hides itself entirely when the couple left the quote blank.
 
 import { OnyxGoldLine, OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
@@ -16,28 +16,21 @@ export function OnyxGreeting({ data }: Props) {
   const quote = data.sections.pasangan.quote;
   const arabic = quote?.arabic?.trim();
   const text = quote?.text?.trim();
-  const source = quote?.source?.trim();
+  // Onyx's verse is Ar-Rum 21, so an unfilled source falls back to its citation
+  // rather than leaving the quote unattributed. Gated on there BEING a verse —
+  // otherwise a blank quote would render a lone citation under the divider.
+  const source = quote?.source?.trim() || (arabic || text ? "QS. Ar-Rum: 21" : undefined);
 
   return (
     <section style={{ padding: SECTION_PAD }}>
       <OnyxReveal style={{ maxWidth: "680px", margin: "0 auto", textAlign: "center" }}>
         <OnyxLabel>Bismillahirrahmanirrahim</OnyxLabel>
         <OnyxGoldLine vertical />
-        <h2
-          style={{
-            fontFamily: ONYX.font.display,
-            fontSize: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
-            fontWeight: 300,
-            color: ONYX.color.warmWhite,
-            lineHeight: 1.2,
-            letterSpacing: "-0.01em",
-            margin: "1.5rem 0 2rem",
-          }}
-        >
-          With Love &amp; Grace
-        </h2>
         <p
           style={{
+            // The dropped "With Love & Grace" heading used to carry the gap
+            // under the gold line; the paragraph holds it now.
+            marginTop: "2rem",
             fontFamily: ONYX.font.body,
             fontSize: "clamp(0.88rem, calc(2 * var(--onyx-vw)), 1rem)",
             lineHeight: 1.9,

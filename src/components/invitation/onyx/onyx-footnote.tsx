@@ -15,19 +15,14 @@ import type { InvitationView } from "@/server/queries/invitation";
 import { OnyxGoldLine } from "./onyx-atoms";
 import { ONYX_SAMPLE } from "./onyx-sample";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, gold, shortName, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
-function firstName(fullName: string | undefined, fallback: string): string {
-  const n = (fullName ?? "").trim() || fallback;
-  return n.split(/\s+/)[0] || fallback;
-}
-
 export function OnyxFootnote({ data }: Props) {
   const { pasangan } = data.sections;
-  const groom = firstName(pasangan.groom.fullName, data.groomName);
-  const bride = firstName(pasangan.bride.fullName, data.brideName);
+  const groom = shortName(pasangan.groom.fullName, data.groomName);
+  const bride = shortName(pasangan.bride.fullName, data.brideName);
 
   const closingVideoUrl = data.sections.hero.closingVideoUrl;
   // Dedicated closing photo → cover photo → the reference's own closing wash.

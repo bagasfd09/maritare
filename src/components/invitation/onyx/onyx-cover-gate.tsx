@@ -20,7 +20,7 @@ import { format, parseISO } from "date-fns";
 import type { InvitationView } from "@/server/queries/invitation";
 
 import { ONYX_SAMPLE } from "./onyx-sample";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, shortName, warm } from "./onyx-theme";
 
 type Props = {
   data: InvitationView;
@@ -30,13 +30,6 @@ type Props = {
 };
 
 const EXIT_MS = 1100;
-
-/** First word of the editable full name, falling back to the wedding's short
- *  name — the cover renders short names (mirrors sienna's firstName). */
-function firstName(fullName: string | undefined, fallback: string): string {
-  const n = (fullName ?? "").trim() || fallback;
-  return n.split(/\s+/)[0] || fallback;
-}
 
 /** "2026-10-18" → "18 · 10 · 2026" (the reference's dotted cover date). */
 export function dottedDate(date: string): string {
@@ -64,8 +57,8 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
 
   if (hidden) return null;
 
-  const groom = firstName(data.sections.pasangan.groom.fullName, data.groomName);
-  const bride = firstName(data.sections.pasangan.bride.fullName, data.brideName);
+  const groom = shortName(data.sections.pasangan.groom.fullName, data.groomName);
+  const bride = shortName(data.sections.pasangan.bride.fullName, data.brideName);
   const eventDate = data.sections.acara.events[0]?.date ?? data.eventDate;
   const metaLine = [eventDate ? dottedDate(eventDate) : null, data.city]
     .filter(Boolean)
@@ -272,6 +265,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           onClick={handleOpen}
           style={{
             border: `1px solid ${gold(0.45)}`,
+            borderRadius: RADIUS,
             color: ONYX.color.warmWhite,
             fontFamily: ONYX.font.body,
             fontSize: "0.62rem",
@@ -299,31 +293,21 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
 }
 
 function OnyxGateBackdrop({ data }: { data: InvitationView }) {
-  const { hero } = data.sections;
-  const imageUrl = hero.imageUrl ?? data.photos.find((p) => p.isCover)?.url;
-  // Same precedence as OnyxBackdrop: the sample trailer is the last resort.
-  const videoUrl = hero.videoUrl ?? (imageUrl ? undefined : ONYX_SAMPLE.video);
+  // The opening screen is ALWAYS video: the couple's own upload if they have
+  // one, otherwise the reference trailer. Unlike OnyxBackdrop (which still
+  // honours an uploaded still), a photo never replaces it here — the moving
+  // frame behind the names is what the gate is.
+  const videoUrl = data.sections.hero.videoUrl ?? ONYX_SAMPLE.video;
   return (
     <div aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {videoUrl ? (
-        <video
-          src={videoUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      ) : imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- presigned R2 src
-        <img
-          src={imageUrl}
-          alt=""
-          loading="eager"
-          decoding="async"
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      ) : null}
+      <video
+        src={videoUrl}
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)" }} />
     </div>
   );

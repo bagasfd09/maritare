@@ -23,7 +23,7 @@ import { formatShortDateId } from "../flora/format";
 import { burstConfetti } from "../folk/folk-wishes";
 import { OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 type Props = {
   data: InvitationView;
@@ -62,7 +62,7 @@ const WISHES_PAGE = 5;
 const CONFETTI_COLORS = ["#C9A96E", "#F7F7F5", "#A5854F", "#E8E8E6", "#6B6B6B"];
 
 const pillBase =
-  "border px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition disabled:cursor-not-allowed disabled:opacity-60";
+  "border rounded-[10px] px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition disabled:cursor-not-allowed disabled:opacity-60";
 const pillOn = "border-[#C9A96E] bg-[#C9A96E] text-[#171717]";
 const pillOff =
   "border-[rgba(201,169,110,0.35)] bg-transparent text-[rgba(247,247,245,0.6)] hover:border-[#C9A96E] hover:text-[#C9A96E]";
@@ -108,7 +108,8 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
     outline: "none",
     fontWeight: 300,
     boxSizing: "border-box",
-    borderRadius: 0,
+    // Explicit (not inherited): iOS Safari rounds bare inputs on its own.
+    borderRadius: RADIUS,
     WebkitAppearance: "none",
     appearance: "none",
   };
@@ -261,6 +262,7 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
                   <div
                     style={{
                       border: `1px solid ${gold(0.18)}`,
+                      borderRadius: RADIUS,
                       backgroundColor: "rgba(23,23,23,0.6)",
                       padding: "1.25rem 1rem",
                     }}
@@ -285,6 +287,7 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
                           style={{
                             display: "inline-block",
                             border: `1px solid ${ONYX.color.champagne}`,
+                            borderRadius: RADIUS,
                             backgroundColor: ONYX.color.champagne,
                             color: ONYX.color.charcoal,
                             fontFamily: ONYX.font.body,
@@ -469,6 +472,7 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
                     backgroundColor: ONYX.color.champagne,
                     color: ONYX.color.charcoal,
                     border: "none",
+                    borderRadius: RADIUS,
                     fontFamily: ONYX.font.body,
                     fontSize: "0.62rem",
                     letterSpacing: "0.32em",
@@ -544,6 +548,7 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
                           textTransform: "uppercase",
                           color: wish.pendingModeration ? warm(0.35) : ONYX.color.champagne,
                           border: `1px solid ${wish.pendingModeration ? warm(0.2) : gold(0.4)}`,
+                          borderRadius: RADIUS,
                           padding: "0.2rem 0.55rem",
                           flexShrink: 0,
                           whiteSpace: "nowrap",
@@ -579,6 +584,7 @@ export function OnyxWishes({ data, mode, guestName, checkin }: Props) {
                     marginTop: "1.5rem",
                     background: "none",
                     border: `1px solid ${gold(0.3)}`,
+                    borderRadius: RADIUS,
                     color: warm(0.6),
                     fontFamily: ONYX.font.body,
                     fontSize: "0.58rem",

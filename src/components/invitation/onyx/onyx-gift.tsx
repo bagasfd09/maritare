@@ -5,7 +5,8 @@
 // full-width copy button that flips to a confirmation.
 //
 // maritare behavior folded in (ivory/sienna parity):
-//   - the accounts hide behind a "Buka Amplop" reveal in EVERY mode,
+//   - the account cards show straight away — no "Buka Amplop" reveal to tap
+//     through first (dropped on request; ivory/sienna keep theirs),
 //   - copy strips spaces/dashes so the paste is bank-app ready,
 //   - the shipping address (giftAddress) renders below the cards,
 //   - visibleForSide — the CLAUDE.md privacy rule — is IDENTICAL to
@@ -22,7 +23,7 @@ import type { InvitationView } from "@/server/queries/invitation";
 
 import { OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 type Props = {
   data: InvitationView;
@@ -55,7 +56,6 @@ export function OnyxGift({ data, guestSide }: Props) {
   ];
   const hasAddress = !!giftAddress?.trim();
 
-  const [revealed, setRevealed] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,30 +116,7 @@ export function OnyxGift({ data, guestSide }: Props) {
           </p>
         </OnyxReveal>
 
-        {!revealed && (
-          <OnyxReveal style={{ textAlign: "center" }}>
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              style={{
-                border: `1px solid ${gold(0.45)}`,
-                backgroundColor: "transparent",
-                color: ONYX.color.warmWhite,
-                fontFamily: ONYX.font.body,
-                fontSize: "0.62rem",
-                letterSpacing: "0.32em",
-                textTransform: "uppercase",
-                padding: "1rem 3rem",
-                cursor: "pointer",
-                transition: "all 0.35s ease",
-              }}
-            >
-              Buka Amplop
-            </button>
-          </OnyxReveal>
-        )}
-
-        {revealed && cards.length > 0 && (
+        {cards.length > 0 && (
           <div
             style={{
               display: "grid",
@@ -156,6 +133,7 @@ export function OnyxGift({ data, guestSide }: Props) {
                     style={{
                       backgroundColor: i % 2 === 0 ? "rgba(28,28,28,0.88)" : "rgba(22,22,22,0.88)",
                       border: `1px solid ${gold(0.14)}`,
+                      borderRadius: RADIUS,
                       padding: "clamp(1.5rem, calc(3 * var(--onyx-vw)), 2.5rem)",
                       position: "relative",
                       overflow: "hidden",
@@ -256,6 +234,7 @@ export function OnyxGift({ data, guestSide }: Props) {
                           width: "100%",
                           padding: "0.8rem",
                           border: `1px solid ${copied ? ONYX.color.champagne : gold(0.35)}`,
+                          borderRadius: RADIUS,
                           backgroundColor: copied ? ONYX.color.champagne : "transparent",
                           color: copied ? ONYX.color.charcoal : warm(0.65),
                           fontFamily: ONYX.font.body,
@@ -276,7 +255,7 @@ export function OnyxGift({ data, guestSide }: Props) {
           </div>
         )}
 
-        {revealed && hasAddress && (
+        {hasAddress && (
           <OnyxReveal
             style={{
               borderTop: `1px solid ${warm(0.06)}`,
@@ -304,6 +283,7 @@ export function OnyxGift({ data, guestSide }: Props) {
               style={{
                 marginTop: "1.25rem",
                 border: `1px solid ${gold(0.35)}`,
+                borderRadius: RADIUS,
                 backgroundColor: "transparent",
                 color: warm(0.65),
                 fontFamily: ONYX.font.body,

@@ -18,7 +18,7 @@ import type { InvitationView } from "@/server/queries/invitation";
 import { formatFullDateId } from "../flora/format";
 import { OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
@@ -178,6 +178,7 @@ export function OnyxCountdown({ data }: Props) {
                 display: "inline-block",
                 marginTop: "clamp(2.5rem, calc(5 * var(--onyx-vw)), 4rem)",
                 border: `1px solid ${gold(0.45)}`,
+                borderRadius: RADIUS,
                 color: ONYX.color.warmWhite,
                 fontFamily: ONYX.font.body,
                 fontSize: "0.6rem",

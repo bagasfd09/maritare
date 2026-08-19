@@ -15,19 +15,14 @@ import { id } from "date-fns/locale";
 
 import type { InvitationView } from "@/server/queries/invitation";
 
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, gold, shortName, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
-function firstName(fullName: string | undefined, fallback: string): string {
-  const n = (fullName ?? "").trim() || fallback;
-  return n.split(/\s+/)[0] || fallback;
-}
-
 export function OnyxHero({ data }: Props) {
   const { pasangan } = data.sections;
-  const groom = firstName(pasangan.groom.fullName, data.groomName);
-  const bride = firstName(pasangan.bride.fullName, data.brideName);
+  const groom = shortName(pasangan.groom.fullName, data.groomName);
+  const bride = shortName(pasangan.bride.fullName, data.brideName);
 
   const eventDate = data.sections.acara.events[0]?.date ?? data.eventDate;
   // No weekday here: the reference's hero meta is a single hairline-flanked
@@ -85,27 +80,14 @@ export function OnyxHero({ data }: Props) {
             color: ONYX.color.warmWhite,
             lineHeight: 1.02,
             letterSpacing: "-0.02em",
-            margin: "0 0 0.6rem",
+            // The tagline that used to sit here carried the gap down to the
+            // date line; with it gone the names hold that spacing themselves.
+            margin: "0 0 3.1rem",
             animation: "onyxFadeUp 1s ease 0.5s both",
           }}
         >
           {groom} &amp; {bride}
         </h1>
-
-        <p
-          style={{
-            fontFamily: ONYX.font.display,
-            fontStyle: "italic",
-            fontWeight: 300,
-            fontSize: "clamp(1rem, calc(2.8 * var(--onyx-vw)), 1.75rem)",
-            color: warm(0.58),
-            letterSpacing: "0.02em",
-            marginBottom: "2.5rem",
-            animation: "onyxFadeUp 1s ease 0.7s both",
-          }}
-        >
-          &quot;Two Souls. One Light. One Forever.&quot;
-        </p>
 
         {metaLine && (
           <div

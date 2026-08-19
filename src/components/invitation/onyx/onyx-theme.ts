@@ -26,6 +26,32 @@ export const ONYX = {
   },
 } as const;
 
+/**
+ * Corner radius for the template's BOXY surfaces (cards, panels, framed photos,
+ * inputs, buttons). The reference was all sharp corners; softened on request.
+ * The circles (`borderRadius: "50%"` — portraits, ghost rings, badges, the
+ * back-to-top dot) are a different element of the design and keep their own.
+ */
+export const RADIUS = "10px";
+
+/**
+ * The name Onyx sets in display type (cover gate, hero, couple cards, footer
+ * initials, nav monogram).
+ *
+ * The wedding's own `groomName`/`brideName` IS the couple's nickname (ivory
+ * passes it as `nickname` for the same reason), so it wins — "Muhammad Ihsan
+ * Pratama" with nickname "Ihsan" must read Ihsan, not Muhammad. Only with no
+ * nickname stored does this fall back to the full name's first word.
+ *
+ * Lives here (not onyx-atoms) so the check in onyx-theme.test.ts can import it
+ * without Node having to strip JSX.
+ */
+export function shortName(fullName: string | undefined, nickname: string): string {
+  const nick = nickname.trim();
+  if (nick) return nick;
+  return (fullName ?? "").trim().split(/\s+/)[0] || "";
+}
+
 /** Champagne at an arbitrary alpha — the reference writes these as literals. */
 export const gold = (alpha: number) => `rgba(201,169,110,${alpha})`;
 /** Warm white at an arbitrary alpha (body copy, captions, dividers). */

@@ -4,9 +4,9 @@
 // matching the reference.
 //
 // Bindings: the portrait comes from couplePhotoUrls (InvImage, never a raw
-// <img>), the short name from the full name's first word, and the parents block
-// from childOrder / fatherName / motherName via parentsLines — copied from
-// sienna-couple so every template renders parents identically.
+// <img>), the heading from the wedding's nickname (shortName, onyx-theme), and
+// the parents block from childOrder / fatherName / motherName via parentsLines —
+// copied from sienna-couple so every template renders parents identically.
 
 import { Fragment } from "react";
 
@@ -17,7 +17,7 @@ import { InvImage } from "../scarlet/inv-image";
 import { OnyxLabel } from "./onyx-atoms";
 import { ONYX_SAMPLE } from "./onyx-sample";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, gold, shortName, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
@@ -48,21 +48,22 @@ function parentsLines(person: Person): string[] {
 
 function CoupleCard({
   person,
-  fallbackName,
+  nickname,
   photoUrl,
   bio,
   delay,
 }: {
   person: Person;
-  fallbackName: string;
+  /** The wedding's short name (data.groomName | data.brideName) — the heading. */
+  nickname: string;
   /** Always set — the caller falls back to the sample portrait. */
   photoUrl: string;
   bio: string;
   delay: number;
 }) {
   const fullName = (person.fullName ?? "").trim();
-  const displayName = fullName || fallbackName;
-  const shortName = displayName.split(/\s+/)[0] || fallbackName;
+  const displayName = fullName || nickname;
+  const short = shortName(fullName, nickname);
   const parents = parentsLines(person);
 
   return (
@@ -116,7 +117,7 @@ function CoupleCard({
           letterSpacing: "-0.01em",
         }}
       >
-        {shortName}
+        {short}
       </h3>
       <p
         style={{
@@ -228,7 +229,7 @@ export function OnyxCouple({ data }: Props) {
         >
           <CoupleCard
             person={pasangan.groom}
-            fallbackName={data.groomName}
+            nickname={data.groomName}
             photoUrl={data.couplePhotoUrls.groom ?? ONYX_SAMPLE.groom}
             bio="The Groom"
             delay={0}
@@ -275,7 +276,7 @@ export function OnyxCouple({ data }: Props) {
 
           <CoupleCard
             person={pasangan.bride}
-            fallbackName={data.brideName}
+            nickname={data.brideName}
             photoUrl={data.couplePhotoUrls.bride ?? ONYX_SAMPLE.bride}
             bio="The Bride"
             delay={150}

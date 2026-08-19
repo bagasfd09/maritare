@@ -35,18 +35,14 @@ import { OnyxBackToTop, OnyxNav, type OnyxNavLink } from "./onyx-nav";
 import { OnyxQr } from "./onyx-qr";
 import { ONYX_SAMPLE } from "./onyx-sample";
 import { OnyxStory } from "./onyx-story";
+import { shortName } from "./onyx-theme";
 import { OnyxVenue } from "./onyx-venue";
 import { OnyxWishes } from "./onyx-wishes";
 
-function firstName(fullName: string | undefined, fallback: string): string {
-  const n = (fullName ?? "").trim() || fallback;
-  return n.split(/\s+/)[0] || fallback;
-}
-
 export function OnyxTemplate({ data, mode, guestName, checkin }: InvitationTemplateProps) {
   const { pasangan, cerita, acara, amplop } = data.sections;
-  const groom = firstName(pasangan.groom.fullName, data.groomName);
-  const bride = firstName(pasangan.bride.fullName, data.brideName);
+  const groom = shortName(pasangan.groom.fullName, data.groomName);
+  const bride = shortName(pasangan.bride.fullName, data.brideName);
 
   // Nav links must match what actually renders — each section below self-hides
   // on empty data, so these conditions mirror their own guards.

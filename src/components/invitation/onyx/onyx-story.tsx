@@ -14,7 +14,7 @@ import { parseStoryChapters } from "../folk/folk-story-parse";
 import { InvImage } from "../scarlet/inv-image";
 import { OnyxGoldLine, OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPreview" };
 
@@ -172,6 +172,7 @@ export function OnyxStory({ data }: Props) {
                       style={{
                         marginTop: "1.25rem",
                         overflow: "hidden",
+                        borderRadius: RADIUS,
                         border: `1px solid ${gold(0.18)}`,
                         backgroundColor: "rgba(255,255,255,0.03)",
                       }}

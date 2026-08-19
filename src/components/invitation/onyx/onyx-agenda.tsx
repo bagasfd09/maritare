@@ -11,7 +11,7 @@
 import { formatFullDateId, formatTimeRangeId } from "../flora/format";
 import { OnyxLabel, SECTION_PAD } from "./onyx-atoms";
 import { OnyxReveal } from "./onyx-reveal";
-import { ONYX, gold, warm } from "./onyx-theme";
+import { ONYX, RADIUS, gold, warm } from "./onyx-theme";
 
 import type { InvitationView } from "@/server/queries/invitation";
 
@@ -109,6 +109,7 @@ export function OnyxAgenda({ data }: Props) {
               style={{
                 backgroundColor: "rgba(23,23,23,0.82)",
                 border: `1px solid ${gold(0.12)}`,
+                borderRadius: RADIUS,
                 padding: "clamp(2rem, calc(5 * var(--onyx-vw)), 3.5rem)",
                 position: "relative",
                 overflow: "hidden",

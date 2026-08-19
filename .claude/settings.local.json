@@ -21,7 +21,8 @@
       "Bash(node -e \"const o=require\\('opentype.js'\\); const f=o.loadSync\\('fraunces800.ttf'\\); console.log\\('Fraunces loaded; unitsPerEm',f.unitsPerEm,'names',f.names.fontFamily\\); const g=require\\('opentype.js'\\).loadSync\\('instrument400.ttf'\\); console.log\\('Instrument loaded', g.names.fontFamily\\);\")",
       "Bash(node gen.js)",
       "WebSearch",
-      "WebFetch(domain:developers.doku.com)"
+      "WebFetch(domain:developers.doku.com)",
+      "Bash(grep -n \"backgroundColor:\\\\|background:\\\\s*\\\\\"rgba\\\\|border: \\\\`1px solid\\\\|<button\\\\|<input\\\\|<textarea\\\\|<select\" onyx-countdown.tsx onyx-qr.tsx onyx-footnote.tsx onyx-nav.tsx onyx-embed.tsx onyx-wishes.tsx)"
     ]
   }
 }

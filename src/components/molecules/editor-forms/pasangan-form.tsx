@@ -90,11 +90,14 @@ function PersonColumn({
         maxLength={120}
       />
 
-      <FieldLabel>Anak ke-</FieldLabel>
+      {/* The old "Anak ke-" label read like it wanted a bare number, so people
+          typed "2" and the invitation rendered "2 Bapak …" — every template
+          prints this field verbatim in front of the father's name. */}
+      <FieldLabel>Urutan anak</FieldLabel>
       <TextField
         value={person.childOrder ?? ""}
         onChange={(e) => onPatch({ childOrder: e.target.value })}
-        placeholder="cth. Putra pertama dari"
+        placeholder="cth. Anak kedua dari"
         className="mb-5"
         maxLength={80}
       />
