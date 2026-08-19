@@ -1,9 +1,10 @@
 "use client";
 
-// Onyx opening gate — the reference's `CoverScreen`, verbatim in look: two ghost
-// champagne rings, "The Wedding Of", the two names stacked around an italic gold
-// ampersand, a hairline-flanked date line, the tagline, and the outlined "Open
-// Invitation" button.
+// Onyx opening gate — the reference's `CoverScreen`: two ghost champagne rings,
+// "The Wedding Of", the two names stacked around an italic gold ampersand, a
+// hairline-flanked date line, and the outlined "Open Invitation" button. The
+// reference's "Two Souls. One Light. One Forever." tagline is dropped (same as
+// on the hero) on request.
 //
 // Wired to the maritare gate contract (folk/sienna parity): tapping the button
 // dispatches "maritare:open-invitation" synchronously inside the click — that's
@@ -245,25 +246,12 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           </div>
         )}
 
-        <p
-          style={{
-            fontFamily: ONYX.font.display,
-            fontStyle: "italic",
-            fontWeight: 300,
-            fontSize: "clamp(0.95rem, calc(2.5 * var(--onyx-vw)), 1.3rem)",
-            color: warm(0.45),
-            marginBottom: "3rem",
-            letterSpacing: "0.02em",
-            lineHeight: 1.7,
-          }}
-        >
-          &quot;Two Souls. One Light. One Forever.&quot;
-        </p>
-
         <button
           type="button"
           onClick={handleOpen}
           style={{
+            // The dropped tagline used to hold this gap open.
+            marginTop: "3rem",
             border: `1px solid ${gold(0.45)}`,
             borderRadius: RADIUS,
             color: ONYX.color.warmWhite,
