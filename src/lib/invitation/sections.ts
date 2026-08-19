@@ -88,6 +88,24 @@ export const acaraEventSchema = z.object({
   mapsUrl: z.url().startsWith("https://").max(500).optional(),
 });
 
+/**
+ * Whether a half-typed event row is complete enough for `acaraEventSchema` to
+ * accept it — i.e. it has the three fields with no valid empty value.
+ *
+ * The editor's repeater always holds rows the user hasn't finished (a fresh row
+ * after "Tambah acara" is entirely blank), and the save action replaces the
+ * section WHOLESALE — so one unfinished row used to fail the parse and reject
+ * the entire section, title included. AcaraForm filters on this instead, and
+ * keeps the unfinished row on screen.
+ */
+export function isCompleteEvent(e: {
+  name?: string;
+  date?: string;
+  timeStart?: string;
+}): boolean {
+  return !!(e.name?.trim() && e.date?.trim() && e.timeStart?.trim());
+}
+
 export const acaraDataSchema = z.object({
   // Section heading + sub-line (Scarlet/Folk: "Love is Calling," / "Save the
   // Date!"). Optional — the template supplies its own default when left empty.

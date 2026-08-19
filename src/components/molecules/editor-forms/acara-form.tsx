@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import type { EditorSaveStatus } from "@/components/molecules/editor-canvas";
-import type { AcaraData, AcaraEvent } from "@/lib/invitation/sections";
+import { isCompleteEvent, type AcaraData, type AcaraEvent } from "@/lib/invitation/sections";
 import {
   AddButton,
   DoneToggle,
@@ -59,23 +59,26 @@ function toDraft(e: AcaraEvent): DraftEvent {
   };
 }
 
-// Build the complete acara payload: drop fully-empty rows, strip empty optionals.
+// Same story for the map link: acaraEventSchema takes an https URL only, so a
+// pasted "maps.app.goo.gl/…" or a half-typed one would sink the whole save.
+// Drop it until it's a real https link rather than reject the event with it.
+function cleanMapsUrl(raw: string): string | undefined {
+  const url = raw.trim();
+  return url.startsWith("https://") ? url : undefined;
+}
+
+// Build the complete acara payload: drop rows that can't be stored yet, strip
+// empty optionals.
 function toPayload(events: DraftEvent[], title: string, subtitle: string): Record<string, unknown> {
-  const cleaned = events
-    .filter((e) =>
-      [e.name, e.date, e.timeStart, e.timeEnd, e.venue, e.address, e.mapsUrl].some(
-        (v) => v.trim().length > 0,
-      ),
-    )
-    .map((e) => ({
-      name: e.name.trim(),
-      date: e.date.trim(),
-      timeStart: e.timeStart.trim(),
-      timeEnd: e.timeEnd.trim() || undefined,
-      venue: e.venue.trim(),
-      address: e.address.trim() || undefined,
-      mapsUrl: e.mapsUrl.trim() || undefined,
-    }));
+  const cleaned = events.filter(isCompleteEvent).map((e) => ({
+    name: e.name.trim(),
+    date: e.date.trim(),
+    timeStart: e.timeStart.trim(),
+    timeEnd: e.timeEnd.trim() || undefined,
+    venue: e.venue.trim(),
+    address: e.address.trim() || undefined,
+    mapsUrl: cleanMapsUrl(e.mapsUrl),
+  }));
   return { title: title.trim() || undefined, subtitle: subtitle.trim() || undefined, events: cleaned };
 }
 
@@ -249,6 +252,17 @@ export function AcaraForm({ value, onChange, onStatusChange }: AcaraFormProps) {
               placeholder="https://maps.google.com/…"
               maxLength={500}
             />
+
+            {/* Incomplete rows are held back from the save (see isCompleteEvent),
+                so say so — otherwise a half-filled acara vanishes on reload with
+                no explanation. */}
+            {!isCompleteEvent(e) && (
+              <p className="mt-4 text-[11px] leading-relaxed text-[rgba(245,239,230,0.45)]">
+                Isi <span className="text-cream">nama acara</span>,{" "}
+                <span className="text-cream">tanggal</span>, dan{" "}
+                <span className="text-cream">jam mulai</span> dulu ya — acara ini belum tersimpan.
+              </p>
+            )}
           </RepeaterCard>
         ))}
 
