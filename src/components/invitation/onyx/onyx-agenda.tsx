@@ -22,6 +22,12 @@ type Props = { data: InvitationView; mode: "public" | "ownerPreview" | "editorPr
 const CARD_LABELS = ["The Sacred Vow", "The Celebration", "The Gathering", "The Occasion"];
 
 function Row({ k, v }: { k: string; v: string }) {
+  // A row with nothing to say is no row — the date/time of a half-filled draft
+  // event formats to "" (see flora/format), and a bare "DATE" label reads as a
+  // rendering bug in the editor preview.
+  if (!v.trim()) {
+    return null;
+  }
   return (
     <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
       <span
