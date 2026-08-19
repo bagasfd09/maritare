@@ -12,7 +12,9 @@ import {
 } from "next/font/google";
 import { redirect } from "next/navigation";
 
+import { AssistBanner } from "@/components/molecules/assist-banner";
 import { auth } from "@/lib/auth";
+import { resolveAssistWeddingId } from "@/server/queries/wedding";
 
 // Variable fonts — full axis (weight unset) so `font-variation-settings` works.
 // Exposed as --font-fraunces / --font-instrument, which @theme maps to
@@ -88,9 +90,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session?.user) {
     redirect("/login");
   }
-  // Role separation: admins belong in /admin, not the customer dashboard.
-  // (The (admin) layout mirrors this by bouncing non-admins to /dashboard.)
-  if (session.user.role === "admin") {
+  // Role separation: admins belong in /admin, not the customer dashboard — the
+  // ONE exception is an active "bantu edit" session (admin helping a customer
+  // fill their invitation). The proxy narrows which dashboard pages that allows.
+  const assistedWeddingId = session.user.role === "admin" ? await resolveAssistWeddingId() : null;
+  if (session.user.role === "admin" && !assistedWeddingId) {
     redirect("/admin");
   }
 
@@ -98,6 +102,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div
       className={`${fraunces.variable} ${instrumentSans.variable} ${cormorant.variable} ${ovo.variable} ${roboto.variable} ${caveat.variable} ${pinyon.variable} ${lancelot.variable} ${cormorantGaramond.variable}`}
     >
+      {assistedWeddingId && <AssistBanner weddingId={assistedWeddingId} />}
       {children}
     </div>
   );

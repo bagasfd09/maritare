@@ -7,6 +7,9 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 
+import { cookies } from "next/headers";
+
+import { ASSIST_COOKIE, assistIdFor } from "@/lib/assist-session";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { templates, users, weddingMembers, weddings } from "@/lib/db/schema";
@@ -52,6 +55,30 @@ export async function resolveEditorUserId(): Promise<string | null> {
 }
 
 /**
+ * Admin "bantu edit": the wedding an admin has opened to help a customer, or
+ * `null`. Authority is the admin role read from the session HERE — the cookie
+ * alone grants nothing, so a forged one on a customer session is inert. The row
+ * is re-checked as non-deleted so a stale cookie can't point at a deleted
+ * wedding. Assist is scoped to the editor by the proxy + the dashboard layout.
+ */
+export async function resolveAssistWeddingId(): Promise<string | null> {
+  const cookieValue = (await cookies()).get(ASSIST_COOKIE)?.value ?? null;
+  if (!cookieValue) {
+    return null;
+  }
+  const session = await auth();
+  const weddingId = assistIdFor(cookieValue, session?.user?.role);
+  if (!weddingId) {
+    return null;
+  }
+  const wedding = await db.query.weddings.findFirst({
+    columns: { id: true },
+    where: and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)),
+  });
+  return wedding?.id ?? null;
+}
+
+/**
  * Resolve the id of the wedding the signed-in user is a MEMBER of (one wedding
  * per user — a user is an owner of exactly one wedding). This is the single
  * source of ownership: every wedding-scoped getter/action goes through here
@@ -59,6 +86,12 @@ export async function resolveEditorUserId(): Promise<string | null> {
  * Returns `null` when unauthenticated or the user has no membership yet.
  */
 export async function resolveMemberWeddingId(): Promise<string | null> {
+  // Admin "bantu edit" overrides membership — see resolveAssistWeddingId.
+  const assisted = await resolveAssistWeddingId();
+  if (assisted) {
+    return assisted;
+  }
+
   const userId = await resolveEditorUserId();
   if (!userId) {
     return null;

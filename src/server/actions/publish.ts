@@ -18,7 +18,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { orders, packages, weddings } from "@/lib/db/schema";
 import { logAudit } from "@/server/audit";
-import { resolveMemberWeddingId } from "@/server/queries/wedding";
+import { resolveAssistWeddingId, resolveMemberWeddingId } from "@/server/queries/wedding";
 
 /** Why a publish was refused — lets the UI tailor the call to action. */
 export type PublishRefusal = "auth" | "notfound" | "incomplete" | "unpaid" | "server";
@@ -40,6 +40,16 @@ function revalidatePublishSurfaces(slug: string): void {
 }
 
 export async function publishWedding(): Promise<PublishResult> {
+  // Publishing is the CUSTOMER's act (AGENTS.md) — an admin helping via "bantu
+  // edit" may fill the invitation but never make it public on their behalf.
+  if (await resolveAssistWeddingId()) {
+    return {
+      ok: false,
+      reason: "auth",
+      error: "Publish harus dilakukan pemilik undangan sendiri.",
+    };
+  }
+
   const weddingId = await resolveMemberWeddingId();
   if (!weddingId) {
     return { ok: false, reason: "auth", error: "Kamu harus masuk dulu." };

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   adminDeleteWedding,
   adminSetWeddingStatus,
+  adminStartAssist,
 } from "@/server/actions/admin-wedding";
 import type { AdminWeddingRow } from "@/server/queries/admin";
 
@@ -166,8 +167,10 @@ export function AdminWeddings({
   ) => {
     setActionError(null);
     startTransition(async () => {
+      // A redirecting action (adminStartAssist) resolves with nothing — the
+      // router navigates instead. Same guard as onboarding.tsx's join flow.
       const result = await action();
-      if (!result.ok) {
+      if (result && !result.ok) {
         setActionError(result.error);
         return;
       }
@@ -176,6 +179,9 @@ export function AdminWeddings({
       router.refresh();
     });
   };
+
+  // Opens the customer's own editor with an assist cookie set (redirects there).
+  const assistWedding = (w: AdminWeddingRow) => runAction(() => adminStartAssist({ id: w.id }));
 
   const deactivateWedding = (w: AdminWeddingRow) =>
     runAction(() => adminSetWeddingStatus({ id: w.id, status: "draft" }));
@@ -648,6 +654,13 @@ export function AdminWeddings({
                               >
                                 <Icon name="eye" size={11} />Lihat detail
                               </button>
+                              <button
+                                type="button"
+                                className={cn(MENU_ITEM, isPending && "opacity-50 pointer-events-none")}
+                                onClick={() => assistWedding(w)}
+                              >
+                                <Icon name="edit" size={11} />Bantu edit
+                              </button>
                               <button type="button" className={MENU_ITEM} onClick={() => copyLink(w)}>
                                 <Icon name="copy" size={11} />{copiedId === w.id ? "Tersalin!" : "Salin link"}
                               </button>
@@ -788,11 +801,19 @@ export function AdminWeddings({
                     </span>
                   </div>
                 ))}
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => assistWedding(detailWedding)}
+                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-burgundy text-cream text-[11px] font-bold tracking-[0.1em] uppercase py-[9px] cursor-pointer hover:opacity-90 disabled:opacity-50"
+                >
+                  <Icon name="edit" size={12} />Bantu edit undangan
+                </button>
                 <a
                   href={`/inv/${detailWedding.slug}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-forest-deep text-cream text-[11px] font-bold tracking-[0.1em] uppercase py-[9px] no-underline hover:opacity-90"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-forest-deep text-cream text-[11px] font-bold tracking-[0.1em] uppercase py-[9px] no-underline hover:opacity-90"
                 >
                   <Icon name="external" size={12} />Lihat undangan
                 </a>

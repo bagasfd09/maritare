@@ -28,7 +28,7 @@ import {
 } from "@/lib/invitation/sections";
 import { publicImageUrl } from "@/lib/image-url";
 import { getViewUrl } from "@/lib/r2";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveAssistWeddingId, resolveEditorUserId } from "@/server/queries/wedding";
 
 export type InvitationPhoto = {
   id: string;
@@ -123,17 +123,21 @@ export async function getInvitationBySlug(slug: string): Promise<InvitationLooku
     kind = "public";
   } else {
     // Draft/pending/expired: visible only to a MEMBER as a preview (either owner —
-    // groom or bride — not just the creator, so both partners can preview drafts).
-    const userId = await resolveEditorUserId();
-    if (!userId) {
-      return { kind: "notFound" };
-    }
-    const membership = await db.query.weddingMembers.findFirst({
-      columns: { id: true },
-      where: and(eq(weddingMembers.weddingId, wedding.id), eq(weddingMembers.userId, userId)),
-    });
-    if (!membership) {
-      return { kind: "notFound" };
+    // groom or bride — not just the creator, so both partners can preview drafts),
+    // or to an admin assisting THIS wedding (they need to preview what they edit).
+    const assisted = await resolveAssistWeddingId();
+    if (assisted !== wedding.id) {
+      const userId = await resolveEditorUserId();
+      if (!userId) {
+        return { kind: "notFound" };
+      }
+      const membership = await db.query.weddingMembers.findFirst({
+        columns: { id: true },
+        where: and(eq(weddingMembers.weddingId, wedding.id), eq(weddingMembers.userId, userId)),
+      });
+      if (!membership) {
+        return { kind: "notFound" };
+      }
     }
     kind = "ownerPreview";
   }

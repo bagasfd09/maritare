@@ -19,7 +19,11 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { weddingMembers, weddings } from "@/lib/db/schema";
 import { generateUniqueInviteCode } from "@/lib/guest-code";
-import { resolveEditorUserId, resolveMemberWeddingId } from "@/server/queries/wedding";
+import {
+  resolveAssistWeddingId,
+  resolveEditorUserId,
+  resolveMemberWeddingId,
+} from "@/server/queries/wedding";
 
 const MAX_MEMBERS = 2; // a wedding has at most two owners (groom + bride)
 
@@ -52,6 +56,14 @@ export async function joinWeddingByCode(input: {
   if (!parsed.success) {
     const first = parsed.error.issues[0]?.message;
     return { ok: false, error: first || "Kode undangan tidak valid." };
+  }
+
+  // An admin in "bantu edit" must never become a member: their own membership
+  // would then win resolveMemberWeddingId() forever and pollute the couple's
+  // owner list. The UI can't reach this page in assist mode; this is the guard
+  // for a direct action call.
+  if (await resolveAssistWeddingId()) {
+    return { ok: false, error: "Keluar dari mode bantu edit dulu." };
   }
 
   const userId = await resolveEditorUserId();

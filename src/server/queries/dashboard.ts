@@ -33,7 +33,7 @@ import {
   type NotificationPrefs,
 } from "@/lib/notifications";
 import { getDisabledPaymentChannels } from "@/server/queries/app-settings";
-import { resolveEditorUserId } from "@/server/queries/wedding";
+import { resolveEditorUserId, resolveMemberWeddingId } from "@/server/queries/wedding";
 
 // ─────────────────────────────────────────────────────────────────
 // Chrome (sidebar header) — shared by every getter
@@ -118,14 +118,10 @@ type ResolvedWedding = {
  */
 async function resolveWedding(): Promise<ResolvedWedding | null> {
   const userId = await resolveEditorUserId();
-  if (!userId) {
-    return null;
-  }
-  const membership = await db.query.weddingMembers.findFirst({
-    columns: { weddingId: true },
-    where: eq(weddingMembers.userId, userId),
-  });
-  if (!membership) {
+  // Shared resolver so admin "bantu edit" works here too (it overrides
+  // membership); `userId` stays the signed-in user for their own profile.
+  const weddingId = await resolveMemberWeddingId();
+  if (!userId || !weddingId) {
     return null;
   }
 
@@ -140,7 +136,7 @@ async function resolveWedding(): Promise<ResolvedWedding | null> {
     .from(weddings)
     .innerJoin(users, eq(weddings.userId, users.id))
     .leftJoin(packages, eq(weddings.packageId, packages.id))
-    .where(and(eq(weddings.id, membership.weddingId), isNull(weddings.deletedAt)))
+    .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
     .limit(1);
 
   if (!row) {

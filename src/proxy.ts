@@ -16,6 +16,11 @@ const GUESTBOOK_COOKIE = "gb_session";
 // (see src/lib/share-session.ts). Also separate from the dashboard session.
 const SHARE_COOKIE = "share_session";
 
+// The admin "bantu edit" cookie (see src/lib/assist-session.ts). While it is
+// set, the dashboard is narrowed to the pages an admin actually needs.
+const ASSIST_COOKIE = "assist_wedding";
+const ASSIST_PATHS = ["/dashboard/editor", "/dashboard/gallery"] as const;
+
 /**
  * Optimistic edge gate.
  *
@@ -65,6 +70,21 @@ export function proxy(request: NextRequest): NextResponse {
     const loginUrl = new URL("/login", request.nextUrl);
     loginUrl.searchParams.set("callbackUrl", pathname + search);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // ── Admin "bantu edit" — assist is scoped to the editor + gallery ──
+  // While an assist cookie is present, keep the admin out of the customer's
+  // account-scoped pages (billing/checkout, settings, akses keluarga): those
+  // resolve the SIGNED-IN user, so an admin there would act on their own
+  // account or, worse, join the customer's wedding as a member. The
+  // authoritative admin check lives in the (dashboard) layout — this only
+  // narrows navigation.
+  if (
+    pathname.startsWith("/dashboard") &&
+    request.cookies.has(ASSIST_COOKIE) &&
+    !ASSIST_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
+    return NextResponse.redirect(new URL("/dashboard/editor", request.nextUrl));
   }
 
   return NextResponse.next();

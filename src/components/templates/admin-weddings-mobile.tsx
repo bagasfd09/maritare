@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   adminDeleteWedding,
   adminSetWeddingStatus,
+  adminStartAssist,
 } from "@/server/actions/admin-wedding";
 import type { AdminWeddingRow } from "@/server/queries/admin";
 
@@ -160,8 +161,10 @@ export function AdminWeddingsMobile({
   ) => {
     setActionError(null);
     startTransition(async () => {
+      // A redirecting action (adminStartAssist) resolves with nothing — the
+      // router navigates instead. Same guard as onboarding.tsx's join flow.
       const result = await action();
-      if (!result.ok) {
+      if (result && !result.ok) {
         setActionError(result.error);
         return;
       }
@@ -437,6 +440,13 @@ export function AdminWeddingsMobile({
               }}
             >
               <Icon name="eye" size={15} />Lihat detail
+            </button>
+            <button
+              type="button"
+              className={cn(SHEET_MENU_ITEM, isPending && "opacity-50 pointer-events-none")}
+              onClick={() => runAction(() => adminStartAssist({ id: menuWedding.id }))}
+            >
+              <Icon name="edit" size={15} />Bantu edit
             </button>
             <button type="button" className={SHEET_MENU_ITEM} onClick={() => copyLink(menuWedding)}>
               <Icon name="copy" size={15} />{copied ? "Tersalin!" : "Salin link"}
