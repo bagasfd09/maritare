@@ -151,6 +151,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           The Wedding of
         </p>
 
+        {/* Bride on top — swapped on request, matching the hero + couple section. */}
         <div style={{ lineHeight: 0.92 }}>
           <h1
             style={{
@@ -162,7 +163,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
               margin: 0,
             }}
           >
-            {groom}
+            {bride}
           </h1>
           <p
             style={{
@@ -187,7 +188,7 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
               margin: 0,
             }}
           >
-            {bride}
+            {groom}
           </h1>
         </div>
 

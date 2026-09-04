@@ -32,7 +32,8 @@ export function OnyxFootnote({ data }: Props) {
   const eventDate = data.sections.acara.events[0]?.date ?? data.eventDate;
   const dotted = eventDate ? format(parseISO(eventDate), "dd · MM · yyyy") : null;
   const longDate = eventDate ? format(parseISO(eventDate), "dd MMMM yyyy") : null;
-  const initials = `${groom.charAt(0)} & ${bride.charAt(0)}`;
+  // Bride first throughout onyx — swapped on request (hero, gate, couple).
+  const initials = `${bride.charAt(0)} & ${groom.charAt(0)}`;
 
   return (
     <>
@@ -90,7 +91,7 @@ export function OnyxFootnote({ data }: Props) {
                 margin: "1.5rem 0 2rem",
               }}
             >
-              {groom} &amp; {bride}
+              {bride} &amp; {groom}
             </h2>
             <p
               style={{
@@ -186,7 +187,7 @@ export function OnyxFootnote({ data }: Props) {
             textAlign: "center",
           }}
         >
-          The Wedding of {groom} &amp; {bride}
+          The Wedding of {bride} &amp; {groom}
         </p>
       </footer>
     </>

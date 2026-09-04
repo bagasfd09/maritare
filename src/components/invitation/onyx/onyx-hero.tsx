@@ -86,7 +86,8 @@ export function OnyxHero({ data }: Props) {
             animation: "onyxFadeUp 1s ease 0.5s both",
           }}
         >
-          {groom} &amp; {bride}
+          {/* Bride first — swapped on request, matching the couple section. */}
+          {bride} &amp; {groom}
         </h1>
 
         {metaLine && (
