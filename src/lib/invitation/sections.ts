@@ -195,6 +195,12 @@ export const rsvpDataSchema = z.object({
   enabled: z.boolean().default(true),
   deadline: dateStr.optional(),
   maxPartySize: z.number().int().min(1).max(10).default(2),
+  /**
+   * Show the guest check-in QR section in the invitation. Couples who don't run
+   * a QR guestbook at the door can turn it off. Defaults to shown, so existing
+   * rows (which have no such key) keep the section.
+   */
+  showQr: z.boolean().default(true),
 });
 
 // ─────────────────────────────────────────────────────────────────

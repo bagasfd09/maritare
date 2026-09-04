@@ -82,12 +82,15 @@ export function FolkTemplate({ data, mode, guestName, checkin }: InvitationTempl
       <FolkGallery data={data} mode={mode} />
       <ScarletSaveDate data={data} mode={mode} />
       <ScarletAgenda data={data} mode={mode} />
-      <FolkQr
-        checkin={checkin}
-        brideName={brideFirst}
-        groomName={groomFirst}
-        eventDate={qrDate}
-      />
+      {/* Check-in QR — hideable from the RSVP form (rsvp.showQr). */}
+      {data.sections.rsvp.showQr && (
+        <FolkQr
+          checkin={checkin}
+          brideName={brideFirst}
+          groomName={groomFirst}
+          eventDate={qrDate}
+        />
+      )}
       {/* Folk shows the bank's logo only (no bank-name text) when a logo exists.
           guestSide hides the other family's accounts on personalized ?g= links. */}
       <ScarletGift data={data} mode={mode} logoOnly plainNumber gated={mode === "public"} guestSide={checkin?.side} />

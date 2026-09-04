@@ -61,12 +61,15 @@ export function SiennaTemplate({ data, mode, guestName, checkin }: InvitationTem
         <SiennaStory data={data} mode={mode} />
         <SiennaSaveDate data={data} mode={mode} />
         <SiennaAgenda data={data} mode={mode} />
-        <SiennaQr
-          checkin={checkin}
-          brideName={brideFirst}
-          groomName={groomFirst}
-          eventDate={qrDate}
-        />
+        {/* Check-in QR — hideable from the RSVP form (rsvp.showQr). */}
+        {data.sections.rsvp.showQr && (
+          <SiennaQr
+            checkin={checkin}
+            brideName={brideFirst}
+            groomName={groomFirst}
+            eventDate={qrDate}
+          />
+        )}
         {/* Folk-style: personalized ?g= links hide the other family's accounts. */}
         <SiennaGift data={data} mode={mode} guestSide={checkin?.side} />
         {/* Pre-fill the wish/RSVP name with the invitation's guest (?g= guest, else ?to=);

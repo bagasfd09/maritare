@@ -16,8 +16,11 @@ export function PhoneFrame({ previewData }: { previewData: InvitationView }) {
       <div className="w-full h-full rounded-[28px] overflow-hidden bg-[#F0EAD8] relative">
         <div className="w-[270px] h-[584px] overflow-hidden rounded-[28px]">
           <div className="w-[390px] h-[844px] origin-top-left scale-[0.692] overflow-y-auto">
+            {/* Placeholder guest: the real name comes from ?to=/?g= on the sent
+                link, which the preview has no equivalent of — without it the
+                cover's "Kepada Yth." block would never render while editing. */}
             {/* eslint-disable-next-line react-hooks/static-components -- registry returns a module-level component, never a new one */}
-            <Template data={previewData} mode="editorPreview" />
+            <Template data={previewData} mode="editorPreview" guestName="Nama Tamu" />
           </div>
         </div>
       </div>

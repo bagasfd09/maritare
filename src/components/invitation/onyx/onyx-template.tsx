@@ -81,7 +81,8 @@ export function OnyxTemplate({ data, mode, guestName, checkin }: InvitationTempl
         <OnyxVenue data={data} mode={mode} />
         {/* Folk-style: personalized ?g= links hide the other family's accounts. */}
         <OnyxGift data={data} mode={mode} guestSide={checkin?.side} />
-        <OnyxQr checkin={checkin} />
+        {/* Check-in QR — hideable from the RSVP form (rsvp.showQr). */}
+        {data.sections.rsvp.showQr && <OnyxQr checkin={checkin} />}
         {/* Pre-fill the wish/RSVP name with the invitation's guest (?g= guest, else
             ?to=); checkin keys the RSVP to them (dashboard status + headcount). */}
         <OnyxWishes

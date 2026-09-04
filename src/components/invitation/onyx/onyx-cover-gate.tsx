@@ -26,7 +26,7 @@ import { ONYX, RADIUS, gold, shortName, warm } from "./onyx-theme";
 type Props = {
   data: InvitationView;
   mode: "public" | "ownerPreview" | "editorPreview";
-  /** Sanitized guest name (?g= guest, else ?to=) — greeted above the names. */
+  /** Sanitized guest name (?g= guest, else ?to=) — greeted above the open button. */
   guestName?: string;
 };
 
@@ -145,39 +145,11 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
             letterSpacing: "0.45em",
             textTransform: "uppercase",
             color: ONYX.color.champagne,
-            marginBottom: guestName ? "1.25rem" : "2.5rem",
+            marginBottom: "2.5rem",
           }}
         >
           The Wedding of
         </p>
-
-        {guestName && (
-          <div style={{ marginBottom: "1.75rem" }}>
-            <p
-              style={{
-                fontFamily: ONYX.font.body,
-                fontSize: "0.55rem",
-                letterSpacing: "0.3em",
-                textTransform: "uppercase",
-                color: warm(0.35),
-                marginBottom: "0.4rem",
-              }}
-            >
-              Kepada Yth.
-            </p>
-            <p
-              style={{
-                fontFamily: ONYX.font.display,
-                fontStyle: "italic",
-                fontWeight: 300,
-                fontSize: "clamp(1rem, calc(3 * var(--onyx-vw)), 1.4rem)",
-                color: warm(0.85),
-              }}
-            >
-              {guestName}
-            </p>
-          </div>
-        )}
 
         <div style={{ lineHeight: 0.92 }}>
           <h1
@@ -246,12 +218,41 @@ export function OnyxCoverGate({ data, mode, guestName }: Props) {
           </div>
         )}
 
+        {guestName && (
+          <div style={{ marginTop: "1.5rem" }}>
+            <p
+              style={{
+                fontFamily: ONYX.font.body,
+                fontSize: "0.55rem",
+                letterSpacing: "0.3em",
+                textTransform: "uppercase",
+                color: warm(0.35),
+                marginBottom: "0.4rem",
+              }}
+            >
+              Kepada Yth.
+            </p>
+            <p
+              style={{
+                fontFamily: ONYX.font.display,
+                fontStyle: "italic",
+                fontWeight: 300,
+                fontSize: "clamp(1rem, calc(3 * var(--onyx-vw)), 1.4rem)",
+                color: warm(0.85),
+              }}
+            >
+              {guestName}
+            </p>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleOpen}
           style={{
-            // The dropped tagline used to hold this gap open.
-            marginTop: "3rem",
+            // The dropped tagline used to hold this gap open; the guest block,
+            // when present, already fills part of it.
+            marginTop: guestName ? "1.75rem" : "3rem",
             border: `1px solid ${gold(0.45)}`,
             borderRadius: RADIUS,
             color: ONYX.color.warmWhite,

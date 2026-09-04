@@ -21,12 +21,11 @@ type RsvpFormProps = {
   onStatusChange?: (status: EditorSaveStatus) => void;
 };
 
+// Spread, not a hand-listed whitelist: RsvpData carries no server-resolved
+// fields (unlike musik.audioUrl), the action re-validates with rsvpDataSchema
+// anyway, and an enumerated list silently DROPS any field added later.
 function toPayload(data: RsvpData): Record<string, unknown> {
-  return {
-    enabled: data.enabled,
-    deadline: data.deadline?.trim() ? data.deadline.trim() : undefined,
-    maxPartySize: data.maxPartySize,
-  };
+  return { ...data, deadline: data.deadline?.trim() || undefined };
 }
 
 export function RsvpForm({ value, onChange, onStatusChange }: RsvpFormProps) {
@@ -62,6 +61,17 @@ export function RsvpForm({ value, onChange, onStatusChange }: RsvpFormProps) {
           onChange={(enabled) => patchData({ enabled })}
           label="Aktifkan form RSVP di undangan"
         />
+      </div>
+
+      <div className="mb-7">
+        <Toggle
+          checked={value.data.showQr}
+          onChange={(showQr) => patchData({ showQr })}
+          label="Tampilkan QR check-in tamu"
+        />
+        <p className="mt-2 text-[11px] text-[rgba(245,239,230,0.5)]">
+          Matikan kalau kamu nggak pakai buku tamu QR di lokasi acara.
+        </p>
       </div>
 
       <FieldLabel>Batas konfirmasi</FieldLabel>

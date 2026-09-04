@@ -57,12 +57,15 @@ export function IvoryTemplate({ data, mode, guestName, checkin }: InvitationTemp
       <IvoryCouple data={data} mode={mode} />
       <IvorySaveDate data={data} mode={mode} />
       <IvoryAgenda data={data} mode={mode} />
-      <IvoryQr
-        checkin={checkin}
-        brideName={brideFirst}
-        groomName={groomFirst}
-        eventDate={qrDate}
-      />
+      {/* Check-in QR — hideable from the RSVP form (rsvp.showQr). */}
+      {data.sections.rsvp.showQr && (
+        <IvoryQr
+          checkin={checkin}
+          brideName={brideFirst}
+          groomName={groomFirst}
+          eventDate={qrDate}
+        />
+      )}
       <IvoryGallery data={data} mode={mode} />
       <IvoryStory data={data} />
       {/* Folk-style: personalized ?g= links hide the other family's accounts. */}

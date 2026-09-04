@@ -18,6 +18,9 @@ export default async function TemplatePreviewPage({ params }: PageProps) {
   }
   const Template = getInvitationTemplate(slug);
   // editorPreview = forms disabled + no audio (a static showcase render).
+  // Placeholder guest — the real one rides on ?to=/?g= of a sent link, which a
+  // catalog preview has no equivalent of; without it the cover's "Kepada Yth."
+  // block never shows here.
   // eslint-disable-next-line react-hooks/static-components -- registry returns a module-level component, never a new one
-  return <Template data={demoInvitation(slug)} mode="editorPreview" />;
+  return <Template data={demoInvitation(slug)} mode="editorPreview" guestName="Nama Tamu" />;
 }
