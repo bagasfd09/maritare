@@ -1,7 +1,8 @@
 // Onyx couple — the reference's `CoupleSection`: two circular portraits, each
 // ringed by two concentric champagne hairlines, with an italic gold ampersand
-// column between them on wide screens. DOM order is groom → ampersand → bride,
-// matching the reference.
+// column between them on wide screens. DOM order is bride → ampersand → groom
+// (the reference had groom first; swapped on request — the WHOLE card moves,
+// portrait + names + parents + IG, so the two sides stay internally consistent).
 //
 // Bindings: the portrait comes from couplePhotoUrls (InvImage, never a raw
 // <img>), the heading from the wedding's nickname (shortName, onyx-theme), and
@@ -228,10 +229,10 @@ export function OnyxCouple({ data }: Props) {
           }}
         >
           <CoupleCard
-            person={pasangan.groom}
-            nickname={data.groomName}
-            photoUrl={data.couplePhotoUrls.groom ?? ONYX_SAMPLE.groom}
-            bio="The Groom"
+            person={pasangan.bride}
+            nickname={data.brideName}
+            photoUrl={data.couplePhotoUrls.bride ?? ONYX_SAMPLE.bride}
+            bio="The Bride"
             delay={0}
           />
 
@@ -275,10 +276,10 @@ export function OnyxCouple({ data }: Props) {
           </OnyxReveal>
 
           <CoupleCard
-            person={pasangan.bride}
-            nickname={data.brideName}
-            photoUrl={data.couplePhotoUrls.bride ?? ONYX_SAMPLE.bride}
-            bio="The Bride"
+            person={pasangan.groom}
+            nickname={data.groomName}
+            photoUrl={data.couplePhotoUrls.groom ?? ONYX_SAMPLE.groom}
+            bio="The Groom"
             delay={150}
           />
         </div>
